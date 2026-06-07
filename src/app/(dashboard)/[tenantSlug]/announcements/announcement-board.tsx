@@ -1,12 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import {useState} from "react";
+import {Dialog, DialogContent, DialogHeader, DialogTitle,} from "@/components/ui/dialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -17,9 +12,9 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { AnnouncementForm } from "@/modules/announcements/components/AnnouncementForm";
-import { deleteAnnouncementAction } from "@/modules/announcements/announcement.actions";
-import { IconPin, IconTrash, IconEdit, IconBell, IconBellPlus } from "@tabler/icons-react";
+import {AnnouncementForm} from "@/modules/announcements/components/AnnouncementForm";
+import {deleteAnnouncementAction} from "@/modules/announcements/announcement.actions";
+import {IconBell, IconBellPlus, IconEdit, IconPin, IconTrash} from "@tabler/icons-react";
 
 type Announcement = {
   id: string;
@@ -29,13 +24,6 @@ type Announcement = {
   isPinned: boolean;
   createdAt: Date;
   createdBy: string | null;
-};
-
-const priorityColors: Record<string, string> = {
-  low: "border-l-zinc-400",
-  normal: "border-l-blue-500",
-  high: "border-l-amber-500",
-  urgent: "border-l-red-500",
 };
 
 const priorityLabels: Record<string, string> = {
@@ -85,7 +73,12 @@ export function AnnouncementBoard({
           {announcements.map((a) => (
             <div
               key={a.id}
-              className={`rounded-lg border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950 ${priorityColors[a.priority] ?? priorityColors.normal} border-l-4`}
+              className={`rounded-lg border p-4 bg-zinc-950 ${
+                  a.priority === "urgent" ? "bg-red-100 border-l-red-900" :
+                      a.priority === "high" ? " border-l-amber-900" :
+                          a.priority === "low" ? " border-l-zinc-900" :
+                              "border-l-blue-900"
+              } border-l-4`}
             >
               <div className="flex items-start justify-between gap-4">
                 <div className="min-w-0 flex-1">

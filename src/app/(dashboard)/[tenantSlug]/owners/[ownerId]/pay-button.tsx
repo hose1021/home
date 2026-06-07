@@ -1,14 +1,10 @@
 "use client";
 
-import { useState } from "react";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { toast } from "sonner";
-import { payForUnitAction } from "./pay-action";
+import {useState} from "react";
+import {Dialog, DialogContent, DialogHeader, DialogTitle,} from "@/components/ui/dialog";
+import {toast} from "sonner";
+import {payForUnitAction} from "./pay-action";
+import {Button} from "@/components/ui/button";
 
 const MONTHS = [
   "Январь", "Февраль", "Март", "Апрель", "Май", "Июнь",
@@ -58,13 +54,9 @@ export function PayButton({
     }
   }
 
-  const totalDebt = debts.reduce((s, d) => s + Math.max(0, monthlyFee - d.paid), 0);
-
   return (
     <>
-      <button onClick={() => { setAmount(owed.toFixed(2)); setOpen(true); }} className="rounded-lg bg-green-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-green-700">
-        {totalDebt > 0 ? `Долг ${totalDebt.toFixed(2)} ₼` : "Оплачено"}
-      </button>
+      <Button onClick={() => { setAmount(owed.toFixed(2)); setOpen(true); }} className="w-full">Оплатить</Button>
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent>

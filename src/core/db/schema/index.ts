@@ -19,3 +19,4 @@ export { notifications } from "./notifications";
 export { auditLogs } from "./audit-logs";
 export { budgets, budgetItems } from "./budgets";
 export { managementMembers } from "./management-members";
+export { announcements } from "./announcements";

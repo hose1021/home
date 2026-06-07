@@ -1,53 +1,103 @@
-import Link from "next/link";
-import { getSession } from "@/core/auth/session";
-import { db } from "@/core/db";
-import { tenants } from "@/core/db/schema/tenants";
-import { eq } from "drizzle-orm";
-import { redirect } from "next/navigation";
+"use client";
 
-export default async function Home() {
-  const session = await getSession();
+import {useEffect, useState} from "react";
+import {useRouter} from "next/navigation";
 
-  if (session) {
-    const [tenant] = await db
-      .select({ slug: tenants.slug })
-      .from(tenants)
-      .where(eq(tenants.id, session.user.tenantId))
-      .limit(1);
+export default function Home() {
+  const router = useRouter();
+  const [error, setError] = useState<string | null>(null);
+  const [pending, setPending] = useState(false);
 
-    if (tenant) {
-      redirect(`/${tenant.slug}`);
+  useEffect(() => {
+    fetch("/api/auth/me")
+      .then((res) => res.ok ? res.json() : null)
+      .then((data) => {
+        if (data?.user?.tenantSlug) {
+          router.push(`/${data.user.tenantSlug}`);
+        }
+      })
+      .catch(() => {});
+  }, [router]);
+
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setPending(true);
+    setError(null);
+
+    const form = new FormData(e.currentTarget);
+    try {
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          username: form.get("username"),
+          password: form.get("password"),
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setError(data.error || "Login failed");
+        return;
+      }
+
+      const slug = data.user?.tenantSlug;
+      router.push(slug ? `/${slug}` : "/");
+    } catch {
+      setError("Network error");
+    } finally {
+      setPending(false);
     }
   }
 
   return (
-    <div className="flex flex-1 flex-col items-center justify-center">
-      <main className="flex w-full max-w-3xl flex-col items-center gap-8 px-8 text-center">
-        <div className="space-y-2">
-          <h1 className="text-4xl font-bold tracking-tight">MMMC Platform</h1>
-          <p className="text-lg text-zinc-500 dark:text-zinc-400">
-            Mənzil Mülkiyyətçilərinin Müştərək Cəmiyyəti
-          </p>
-          <p className="text-sm text-zinc-400 dark:text-zinc-500">
-            Единый цифровой центр управления многоквартирным домом
-          </p>
+    <div className="flex min-h-screen items-center justify-center px-4">
+      <div className="w-full max-w-sm space-y-6">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold">Pilot Residence Platform</h1>
+          <p className="mt-1 text-sm text-zinc-500">Войдите в панель управления MMMC</p>
         </div>
 
-        <div className="flex gap-4">
-          <Link
-            href="/login"
-            className="rounded-lg bg-zinc-900 px-6 py-3 text-sm font-medium text-white transition-colors hover:bg-zinc-700 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300"
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label htmlFor="username" className="block text-sm font-medium">Никнейм</label>
+            <input
+              id="username"
+              name="username"
+              placeholder="имя.фамилия"
+              pattern="[\p{L}]+\.[\p{L}]+"
+              required
+              className="mt-1 block w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900"
+            />
+          </div>
+          <div>
+            <label htmlFor="password" className="block text-sm font-medium">Пароль</label>
+            <input
+              id="password"
+              name="password"
+              type="password"
+              required
+              minLength={8}
+              className="mt-1 block w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900"
+            />
+          </div>
+
+          {error && <p className="text-sm text-red-500">{error}</p>}
+
+          <button
+            type="submit"
+            disabled={pending}
+            className="w-full rounded-lg bg-zinc-900 px-4 py-2.5 text-sm font-medium text-white hover:bg-zinc-700 disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900"
           >
-            Войти
-          </Link>
-          <Link
-            href="/register"
-            className="rounded-lg border border-zinc-300 px-6 py-3 text-sm font-medium transition-colors hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800"
-          >
-            Регистрация
-          </Link>
-        </div>
-      </main>
+            {pending ? "Вход..." : "Войти"}
+          </button>
+        </form>
+
+        <p className="text-center text-sm text-zinc-500">
+          Не можете зайти? Обратитесь к Админу сайта
+        </p>
+      </div>
     </div>
   );
 }

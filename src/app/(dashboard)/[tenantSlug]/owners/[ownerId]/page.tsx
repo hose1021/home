@@ -1,16 +1,29 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
-import { and, eq, sql } from "drizzle-orm";
-import { db } from "@/core/db";
-import { buildings } from "@/core/db/schema/buildings";
-import { owners, ownerships } from "@/core/db/schema/owners";
-import { units } from "@/core/db/schema/units";
-import { payments } from "@/core/db/schema/payments";
-import { users } from "@/core/db/schema/users";
-import { ensureTenantExists } from "@/core/multi-tenant";
-import { PayButton } from "./pay-button";
+import {notFound} from "next/navigation";
+import {and, eq, sql} from "drizzle-orm";
+import {db} from "@/core/db";
+import {buildings} from "@/core/db/schema/buildings";
+import {owners, ownerships} from "@/core/db/schema/owners";
+import {units} from "@/core/db/schema/units";
+import {payments} from "@/core/db/schema/payments";
+import {users} from "@/core/db/schema/users";
+import {ensureTenantExists} from "@/core/multi-tenant";
+import {PayButton} from "./pay-button";
+import {
+    Breadcrumb,
+    BreadcrumbItem,
+    BreadcrumbLink,
+    BreadcrumbList,
+    BreadcrumbPage,
+    BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
 
 const TARIFF_RATE = Number(process.env.NEXT_PUBLIC_TARIFF_RATE ?? "0.40");
+
+const MONTH_NAMES = [
+  "Январь", "Февраль", "Март", "Апрель", "Май", "Июнь",
+  "Июль", "Август", "Сентябрь", "Октябрь", "Ноябрь", "Декабрь",
+];
 
 
 export default async function OwnerDetailsPage({
@@ -84,15 +97,20 @@ export default async function OwnerDetailsPage({
   return (
     <div className="space-y-6">
       <div>
-        <Link href={`/${tenantSlug}/owners`} className="text-sm text-zinc-500 hover:text-zinc-900">
-          ← Собственники
-        </Link>
-        <div className="mt-2 flex flex-wrap items-center gap-3">
-          <h1 className="text-2xl font-bold">{owner.fullName}</h1>
-        </div>
+        <Breadcrumb>
+          <BreadcrumbList>
+            <BreadcrumbItem>
+              <BreadcrumbLink render={<Link href="" />} href={`/${tenantSlug}/owners`}>Собственники</BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator />
+            <BreadcrumbItem>
+              <BreadcrumbPage>{owner.fullName}</BreadcrumbPage>
+            </BreadcrumbItem>
+          </BreadcrumbList>
+        </Breadcrumb>
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className="space-y-3">
         <section className="rounded-lg border border-zinc-200 p-4 dark:border-zinc-800">
           <h2 className="mb-4 font-semibold">Личная информация</h2>
           <dl className="space-y-3 text-sm">
@@ -103,52 +121,65 @@ export default async function OwnerDetailsPage({
           </dl>
         </section>
 
-        <section className="rounded-lg border border-zinc-200 p-4 dark:border-zinc-800">
-          <h2 className="mb-4 font-semibold">Квартиры и оплата</h2>
+        <section className="rounded-lg border border-zinc-200 p-4 dark:border-zinc-800 lg:col-span-2">
+          <h2 className="mb-4 font-semibold">Собственность и оплата</h2>
           {ownerUnits.length > 0 ? (
-            <div className="space-y-3">
+            <div className="lg:flex space-y-3 lg:space-x-3">
               {ownerUnits.map((unit) => {
                 const area = Number(unit.area);
                 const monthlyFee = area * TARIFF_RATE;
                 const debts = paymentsByUnit.get(unit.id) ?? [];
                 const totalPaid = debts.reduce((s, d) => s + d.paid, 0);
 
-
                 return (
-                  <div key={unit.id} className="rounded-lg bg-zinc-50 p-3 text-sm dark:bg-zinc-900">
+                  <div key={unit.id} className="rounded-lg w-full bg-zinc-50 p-3 text-sm dark:bg-zinc-900">
                     <div className="flex items-center justify-between gap-4">
                       <div>
                         <span className="font-medium">Квартира №{unit.unitNumber}</span>
                         <span className="ml-2 text-zinc-400">{area.toFixed(1)} м²</span>
+                        <span className="ml-2 text-sm text-zinc-400">Под. {unit.entrance}, эт. {unit.floor}</span>
                       </div>
-                      <span className="text-xs text-zinc-400">Под. {unit.entrance}, эт. {unit.floor}</span>
+                      <span className="text-sm text-zinc-500">Тариф: {TARIFF_RATE.toFixed(2)} ₼/м² · {monthlyFee.toFixed(2)} ₼/мес</span>
                     </div>
 
-                    <div className="mt-2 space-y-1 border-t border-zinc-200 pt-2 dark:border-zinc-700">
-                      <div className="flex justify-between text-xs text-zinc-500">
-                        <span>Тариф: {TARIFF_RATE.toFixed(2)} ₼/м² · {monthlyFee.toFixed(2)} ₼/мес</span>
-                        <span className="text-green-600 font-medium">Оплачено: {totalPaid.toFixed(2)} ₼</span>
+                    <div className="mt-3 flex flex-col gap-3 sm:flex-row">
+                      <div className="w-full">
+                        <table className="w-full text-sm">
+                          <thead>
+                            <tr className="text-zinc-400">
+                              <th className="pb-1 text-left font-medium">Месяц</th>
+                              <th className="pb-1 text-right font-medium">Сумма</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {debts.map((d) => (
+                              <tr key={`${d.year}-${d.month}`}>
+                                <td className="py-0.5 text-zinc-400">{MONTH_NAMES[d.month - 1]} {d.year}</td>
+                                <td className={`py-0.5 text-right ${d.paid >= monthlyFee ? "text-green-600" : "text-amber-600"}`}>
+                                  {d.paid.toFixed(2)} ₼ {d.paid >= monthlyFee ? "✓" : ""}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                          <tfoot>
+                            <tr className="border-t border-zinc-200 text-zinc-500 dark:border-zinc-700">
+                              <td className="pt-1 font-medium">Оплачено всего</td>
+                              <td className="pt-1 text-right font-medium text-green-600">{totalPaid.toFixed(2)} ₼</td>
+                            </tr>
+                          </tfoot>
+                        </table>
                       </div>
-                      {debts.map((d) => (
-                        <div key={`${d.year}-${d.month}`} className="flex justify-between text-xs">
-                          <span className="text-zinc-400">{d.year}-{String(d.month).padStart(2, "0")}</span>
-                          <span className={d.paid >= monthlyFee ? "text-green-600" : "text-amber-600"}>
-                            {d.paid.toFixed(2)} ₼ {d.paid >= monthlyFee ? "✓" : ""}
-                          </span>
-                        </div>
-                      ))}
                     </div>
-
-                    <div className="mt-2 flex justify-end">
-                      <PayButton
-                        slug={tenantSlug}
-                        ownerId={owner.id}
-                        unitId={unit.id}
-                        unitNumber={unit.unitNumber}
-                        monthlyFee={monthlyFee}
-                        debts={debts}
-                      />
-                    </div>
+                      <div className="flex mt-4 items-end">
+                          <PayButton
+                              slug={tenantSlug}
+                              ownerId={owner.id}
+                              unitId={unit.id}
+                              unitNumber={unit.unitNumber}
+                              monthlyFee={monthlyFee}
+                              debts={debts}
+                          />
+                      </div>
                   </div>
                 );
               })}

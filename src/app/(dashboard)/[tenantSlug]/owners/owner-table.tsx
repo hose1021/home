@@ -1,29 +1,46 @@
 "use client";
 
-import { useState } from "react";
+import {useMemo, useState} from "react";
 import Link from "next/link";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import {useRouter, useSearchParams} from "next/navigation";
+import {Dialog, DialogContent, DialogHeader, DialogTitle,} from "@/components/ui/dialog";
 import {
   AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
   AlertDialogContent,
-  AlertDialogHeader,
-  AlertDialogTitle,
   AlertDialogDescription,
   AlertDialogFooter,
-  AlertDialogCancel,
-  AlertDialogAction,
+  AlertDialogHeader,
+  AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { toast } from "sonner";
-import { OwnerCreateForm } from "@/modules/owner/components/OwnerCreateForm";
-import { OwnerEditForm } from "@/modules/owner/components/OwnerEditForm";
-import { deleteOwnerAction } from "@/modules/owner/owner.actions";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import {toast} from "sonner";
+import {OwnerCreateForm} from "@/modules/owner/components/OwnerCreateForm";
+import {OwnerEditForm} from "@/modules/owner/components/OwnerEditForm";
+import {deleteOwnerAction} from "@/modules/owner/owner.actions";
+import {Button} from "@/components/ui/button";
+import {Badge} from "@/components/ui/badge";
+import {IconSearch, IconX} from "@tabler/icons-react";
+
+const ALL_ROLES = [
+  { value: "admin", label: "Админ" },
+  { value: "management_member", label: "Правление" },
+  { value: "commandant", label: "Председатель" },
+  { value: "owner", label: "Собственник" },
+];
+
+const UNIT_OPTIONS = [
+  { value: "", label: "Все квартиры" },
+  { value: "1", label: "1" },
+  { value: "2", label: "2" },
+  { value: "3", label: "3+" },
+];
+
+const PAYMENT_OPTIONS = [
+  { value: "", label: "Все" },
+  { value: "debt", label: "Долг за прошлый месяц" },
+  { value: "paid", label: "Оплатили в этом месяце" },
+];
 
 type OwnerRow = {
   id: string;
@@ -33,12 +50,62 @@ type OwnerRow = {
   username: string;
   roles: string[];
   unitCount: number;
+  hasDebt: boolean;
+  hasPaid: boolean;
 };
 
-export function OwnerTable({ slug, owners }: { slug: string; owners: OwnerRow[] }) {
+export function OwnerTable({ slug, owners, initialSearch, initialRole, initialUnits, initialPayment }: {
+  slug: string;
+  owners: OwnerRow[];
+  initialSearch?: string;
+  initialRole?: string;
+  initialUnits?: string;
+  initialPayment?: string;
+}) {
+  const router = useRouter();
+  const sp = useSearchParams();
+  const [search, setSearch] = useState(initialSearch ?? sp.get("search") ?? "");
+  const [roleFilter, setRoleFilter] = useState(initialRole ?? sp.get("role") ?? "");
+  const [unitsFilter, setUnitsFilter] = useState(initialUnits ?? sp.get("units") ?? "");
+  const [paymentFilter, setPaymentFilter] = useState(initialPayment ?? sp.get("payment") ?? "");
   const [createOpen, setCreateOpen] = useState(false);
   const [editing, setEditing] = useState<OwnerRow | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+
+  function updateURL(s: string, r: string, u: string, p: string) {
+    const params = new URLSearchParams();
+    if (s) params.set("search", s);
+    if (r) params.set("role", r);
+    if (u) params.set("units", u);
+    if (p) params.set("payment", p);
+    const q = params.toString();
+    router.replace(q ? `?${q}` : window.location.pathname, { scroll: false });
+  }
+
+  const filtered = useMemo(() => {
+    let list = owners;
+    if (search) {
+      const q = search.toLowerCase();
+      list = list.filter((o) =>
+        o.fullName.toLowerCase().includes(q) ||
+        o.phone?.toLowerCase().includes(q) ||
+        o.username.toLowerCase().includes(q)
+      );
+    }
+    if (roleFilter) {
+      list = list.filter((o) => o.roles.includes(roleFilter));
+    }
+    if (unitsFilter) {
+      const count = Number(unitsFilter);
+      list = list.filter((o) => unitsFilter === "3" ? o.unitCount >= 3 : o.unitCount === count);
+    }
+    if (paymentFilter === "debt") {
+      list = list.filter((o) => o.hasDebt);
+    } else if (paymentFilter === "paid") {
+      list = list.filter((o) => o.hasPaid);
+    }
+    return list;
+  }, [owners, search, roleFilter, unitsFilter, paymentFilter]);
 
   async function handleDelete() {
     if (!deleteId) return;
@@ -49,7 +116,40 @@ export function OwnerTable({ slug, owners }: { slug: string; owners: OwnerRow[] 
 
   return (
     <>
-      <div className="flex items-center justify-end mb-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="relative">
+            <IconSearch className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-zinc-400" />
+            <input
+              value={search}
+              onChange={(e) => { setSearch(e.target.value); updateURL(e.target.value, roleFilter, unitsFilter, paymentFilter); }}
+              placeholder="Поиск по ФИО, телефону, логину..."
+              className="h-9 w-56 rounded-lg border border-zinc-300 pl-9 pr-8 text-sm dark:border-zinc-700 dark:bg-zinc-900"
+            />
+            {search && (
+              <button onClick={() => { setSearch(""); updateURL("", roleFilter, unitsFilter, paymentFilter); }} className="absolute right-2 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-700">
+                <IconX className="size-4" />
+              </button>
+            )}
+          </div>
+
+          <select value={roleFilter} onChange={(e) => { setRoleFilter(e.target.value); updateURL(search, e.target.value, unitsFilter, paymentFilter); }}
+            className="h-9 rounded-lg border border-zinc-300 px-3 text-sm dark:border-zinc-700 dark:bg-zinc-900">
+            <option value="">Все роли</option>
+            {ALL_ROLES.map((r) => (<option key={r.value} value={r.value}>{r.label}</option>))}
+          </select>
+
+          <select value={unitsFilter} onChange={(e) => { setUnitsFilter(e.target.value); updateURL(search, roleFilter, e.target.value, paymentFilter); }}
+            className="h-9 rounded-lg border border-zinc-300 px-3 text-sm dark:border-zinc-700 dark:bg-zinc-900">
+            {UNIT_OPTIONS.map((o) => (<option key={o.value} value={o.value}>{o.label}</option>))}
+          </select>
+
+          <select value={paymentFilter} onChange={(e) => { setPaymentFilter(e.target.value); updateURL(search, roleFilter, unitsFilter, e.target.value); }}
+            className="h-9 rounded-lg border border-zinc-300 px-3 text-sm dark:border-zinc-700 dark:bg-zinc-900">
+            {PAYMENT_OPTIONS.map((o) => (<option key={o.value} value={o.value}>{o.label}</option>))}
+          </select>
+        </div>
+
         <Button variant="secondary" onClick={() => setCreateOpen(true)}>
           + Добавить собственника
         </Button>
@@ -68,7 +168,7 @@ export function OwnerTable({ slug, owners }: { slug: string; owners: OwnerRow[] 
             </tr>
           </thead>
           <tbody className="divide-y divide-zinc-200 dark:divide-zinc-800">
-            {owners.map((o) => (
+            {filtered.map((o) => (
               <tr key={o.id} className="hover:bg-zinc-50 dark:hover:bg-zinc-900/50">
                 <td className="px-4 py-3 text-sm font-medium">
                   <Link href={`/${slug}/owners/${o.id}`} className="hover:underline">{o.fullName}</Link>
@@ -87,8 +187,9 @@ export function OwnerTable({ slug, owners }: { slug: string; owners: OwnerRow[] 
             ))}
           </tbody>
         </table>
-        {owners.length === 0 && <p className="p-4 text-sm text-zinc-400">Нет собственников</p>}
+        {filtered.length === 0 && <p className="p-4 text-sm text-zinc-400">Нет собственников</p>}
       </div>
+      <p className="text-sm text-zinc-400">Показано: {filtered.length} из {owners.length}</p>
 
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
         <DialogContent>
@@ -137,7 +238,7 @@ function RoleBadge({ roles }: { roles: string[] }) {
   return (
     <div className="flex flex-wrap gap-1">
       {roles.map((r) => (
-        <Badge variant={`${colors[r]}`} key={r} className={`${colors[r]}`}>{labels[r] ?? r}</Badge>
+        <Badge variant={colors[r] as "admin" | "secondary" | "management_member" | "commandant"} key={r}>{labels[r] ?? r}</Badge>
       ))}
     </div>
   );

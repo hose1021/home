@@ -9,7 +9,7 @@ import {userRoles, users} from "@/core/db/schema/users";
 import {managementMembers} from "@/core/db/schema/management-members";
 import {ensureTenantExists} from "@/core/multi-tenant";
 import {and, eq, inArray, sql} from "drizzle-orm";
-import { Badge } from "@/components/ui/badge";
+import {Badge} from "@/components/ui/badge";
 
 export default async function DashboardPage({
                                                 params,
@@ -114,7 +114,7 @@ export default async function DashboardPage({
         <div className="space-y-6">
             <div>
                 <h1 className="text-2xl font-bold">Дашборд</h1>
-                <p className="text-sm text-zinc-500">MMMC /{tenantSlug}</p>
+                <p className="text-sm text-zinc-500">Pilot Residence</p>
             </div>
 
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

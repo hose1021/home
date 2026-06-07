@@ -1,19 +1,28 @@
-import { ensureTenantExists } from "@/core/multi-tenant";
-import { db } from "@/core/db";
-import { owners } from "@/core/db/schema/owners";
-import { ownerships } from "@/core/db/schema/owners";
-import { units } from "@/core/db/schema/units";
-import { users, userRoles } from "@/core/db/schema/users";
-import { eq, sql } from "drizzle-orm";
-import { OwnerTable } from "./owner-table";
+import {ensureTenantExists} from "@/core/multi-tenant";
+import {db} from "@/core/db";
+import {owners, ownerships} from "@/core/db/schema/owners";
+import {units} from "@/core/db/schema/units";
+import {userRoles, users} from "@/core/db/schema/users";
+import {charges} from "@/core/db/schema/charges";
+import {and, eq, inArray, ne, sql} from "drizzle-orm";
+import {OwnerTable} from "./owner-table";
 
 export default async function OwnersPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ tenantSlug: string }>;
+  searchParams: Promise<{ search?: string; role?: string; units?: string; payment?: string }>;
 }) {
   const { tenantSlug } = await params;
+  const sp = await searchParams;
   const tenantId = await ensureTenantExists(tenantSlug);
+
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  const currentMonth = now.getMonth() + 1;
+  const prevMonth = currentMonth === 1 ? 12 : currentMonth - 1;
+  const prevYear = currentMonth === 1 ? currentYear - 1 : currentYear;
 
   const rows = await db
     .select({
@@ -31,11 +40,64 @@ export default async function OwnersPage({
     .leftJoin(userRoles, eq(userRoles.userId, users.id))
     .leftJoin(ownerships, eq(ownerships.ownerId, owners.id))
     .leftJoin(units, eq(units.id, ownerships.unitId))
-    .where(eq(owners.tenantId, tenantId))
+    .where(and(eq(owners.tenantId, tenantId), ne(owners.status, "deleted")))
     .groupBy(owners.id, owners.userId, users.id, userRoles.role)
     .orderBy(owners.fullName);
 
-  const grouped = rows.reduce<Record<string, { id: string; userId: string | null; fullName: string; phone: string | null; username: string; roles: string[]; unitNumbers: string[]; unitCount: number }>>((acc, row) => {
+  const ownerIds = [...new Set(rows.map((r) => r.id))];
+
+  const [prevCharges, thisCharges] = ownerIds.length > 0
+    ? await Promise.all([
+        db
+          .select({
+            ownerId: charges.ownerId,
+            status: charges.status,
+          })
+          .from(charges)
+          .where(and(
+            eq(charges.tenantId, tenantId),
+            eq(charges.periodYear, prevYear),
+            eq(charges.periodMonth, prevMonth),
+            inArray(charges.ownerId, ownerIds),
+          )),
+        db
+          .select({
+            ownerId: charges.ownerId,
+            status: charges.status,
+          })
+          .from(charges)
+          .where(and(
+            eq(charges.tenantId, tenantId),
+            eq(charges.periodYear, currentYear),
+            eq(charges.periodMonth, currentMonth),
+            inArray(charges.ownerId, ownerIds),
+          )),
+      ])
+    : [[], []];
+
+  const notPaidPrev = new Set(
+    prevCharges
+      .filter((c) => c.status !== "paid")
+      .map((c) => c.ownerId),
+  );
+  const paidThisMonth = new Set(
+    thisCharges
+      .filter((c) => c.status === "paid")
+      .map((c) => c.ownerId),
+  );
+
+  const grouped = rows.reduce<Record<string, {
+    id: string;
+    userId: string | null;
+    fullName: string;
+    phone: string | null;
+    username: string;
+    roles: string[];
+    unitNumbers: string[];
+    unitCount: number;
+    hasDebt: boolean;
+    hasPaid: boolean;
+  }>>((acc, row) => {
     if (!acc[row.id]) {
       acc[row.id] = {
         id: row.id,
@@ -46,6 +108,8 @@ export default async function OwnersPage({
         roles: [],
         unitNumbers: row.unitNumbers,
         unitCount: row.unitNumbers.length,
+        hasDebt: notPaidPrev.has(row.id),
+        hasPaid: paidThisMonth.has(row.id),
       };
     }
     if (row.role) acc[row.id].roles.push(row.role);
@@ -62,7 +126,14 @@ export default async function OwnersPage({
           <p className="text-sm text-zinc-500">{ownersWithRoles.length} чел.</p>
         </div>
       </div>
-      <OwnerTable slug={tenantSlug} owners={ownersWithRoles} />
+      <OwnerTable
+        slug={tenantSlug}
+        owners={ownersWithRoles}
+        initialSearch={sp.search}
+        initialRole={sp.role}
+        initialUnits={sp.units}
+        initialPayment={sp.payment}
+      />
     </div>
   );
 }
