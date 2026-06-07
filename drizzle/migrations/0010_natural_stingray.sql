@@ -1,0 +1,1 @@
+ALTER TABLE "user_roles" ADD COLUMN "is_chairman" boolean DEFAULT false NOT NULL;

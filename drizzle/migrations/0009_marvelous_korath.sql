@@ -1,0 +1,1 @@
+ALTER TABLE "user_roles" ADD CONSTRAINT "chk_user_roles_allowed" CHECK ("user_roles"."role" in ('admin', 'management_member', 'commandant', 'owner'));
