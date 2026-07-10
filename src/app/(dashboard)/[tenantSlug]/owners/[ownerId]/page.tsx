@@ -34,6 +34,10 @@ const now = new Date();
 const currentYear = now.getFullYear();
 const currentMonth = now.getMonth() + 1;
 
+const startDate = process.env.BILLING_START_DATE ?? "2025-01";
+const [startYear, startMonthRaw] = startDate.split("-").map(Number);
+const startMonth = startMonthRaw ?? 1;
+
 type PeriodRow = {
   year: number;
   month: number;
@@ -41,10 +45,13 @@ type PeriodRow = {
   paid: number;
 };
 
-function buildPeriods(year: number): { year: number; month: number }[] {
+function buildAllPeriods(): { year: number; month: number }[] {
   const out: { year: number; month: number }[] = [];
-  const maxMonth = year === currentYear ? currentMonth : 12;
-  for (let m = 1; m <= maxMonth; m++) out.push({ year, month: m });
+  for (let y = startYear; y <= currentYear; y++) {
+    const minM = y === startYear ? startMonth : 1;
+    const maxM = y === currentYear ? currentMonth : 12;
+    for (let m = minM; m <= maxM; m++) out.push({ year: y, month: m });
+  }
   return out;
 }
 
@@ -146,8 +153,9 @@ export default async function OwnerDetailsPage({
                 <dd><Badge variant={owner.status === "active" ? "default" : "secondary"}>{owner.status === "active" ? "Активен" : owner.status}</Badge></dd>
               </div>
             </dl>
-            <div className="mt-4 rounded-lg bg-zinc-50 p-3 text-sm dark:bg-zinc-900">
+            <div className="mt-4 rounded-lg bg-zinc-50 p-3 text-sm dark:bg-zinc-900 space-y-1">
               <div className="flex justify-between"><span className="text-zinc-500">Тариф:</span><span className="font-medium">{TARIFF.toFixed(2)} ₼/м²</span></div>
+              <div className="flex justify-between"><span className="text-zinc-500">Начало начисления:</span><span className="font-medium">{MONTHS[startMonth]} {startYear}</span></div>
             </div>
           </CardContent>
         </Card>
@@ -158,13 +166,10 @@ export default async function OwnerDetailsPage({
               const area = Number(unit.area);
               const monthlyFee = area * TARIFF;
 
-              const years = [currentYear - 1, currentYear];
               const allPeriods: PeriodRow[] = [];
-              for (const y of years) {
-                for (const { year, month } of buildPeriods(y)) {
-                  const paid = paymentsByUnit.get(unit.id)?.get(`${year}-${month}`) ?? 0;
-                  allPeriods.push({ year, month, charged: monthlyFee, paid });
-                }
+              for (const { year, month } of buildAllPeriods()) {
+                const paid = paymentsByUnit.get(unit.id)?.get(`${year}-${month}`) ?? 0;
+                allPeriods.push({ year, month, charged: monthlyFee, paid });
               }
 
               const totalCharged = allPeriods.reduce((s, p) => s + p.charged, 0);
