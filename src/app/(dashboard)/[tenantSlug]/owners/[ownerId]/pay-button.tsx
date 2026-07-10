@@ -32,6 +32,7 @@ export function PayButton({
   unitNumber,
   entrance,
   floor,
+  monthlyFee,
   periods,
 }: {
   slug: string;
@@ -40,6 +41,7 @@ export function PayButton({
   unitNumber: string;
   entrance: number;
   floor: number;
+  monthlyFee: number;
   periods: { year: number; month: number; charged: number; paid: number }[];
 }) {
   const [open, setOpen] = useState(false);
@@ -51,9 +53,8 @@ export function PayButton({
   const [pending, setPending] = useState(false);
 
   const periodData = periods.find((p) => p.year === year && p.month === month);
-  const charged = periodData?.charged ?? 0;
   const alreadyPaid = periodData?.paid ?? 0;
-  const owed = Math.max(0, charged - alreadyPaid);
+  const owed = Math.max(0, monthlyFee - alreadyPaid);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -123,7 +124,7 @@ export function PayButton({
             <div className="rounded-lg bg-zinc-50 p-3 text-sm dark:bg-zinc-900 space-y-1">
               <div className="flex justify-between">
                 <span className="text-zinc-500">Начислено:</span>
-                <span>{charged.toFixed(2)} ₼</span>
+                <span>{monthlyFee.toFixed(2)} ₼</span>
               </div>
               <div className="flex justify-between text-zinc-500">
                 <span>Оплачено:</span>

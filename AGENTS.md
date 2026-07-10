@@ -50,6 +50,7 @@ Run a single test file: `bun run vitest run src/core/auth/permissions.test.ts`
 - Migration `0013_ticket_status_overhaul.sql` drops `resolution`, adds `rejection_reason`.
 
 ## Finance module specifics
+- **Tariff**: `MONTHLY_TARIFF_PER_SQM` env var (default 0.40 ₼/m²). Monthly fee = `area × tariff`. Used on owner detail page to compute debt per period — no `charges` rows needed for tariff-based periods.
 - **Charge templates** (`charge_templates`): 4 seed templates — Yaşayış (40 ₼), Qeyri-yaşayış (100 ₼), Təmir fondu (30 ₼), Liftə xidmət (120 ₼). `calculation`: `fixed_per_unit`, `per_owner`, `percentage_of_income`.
 - **Charges** (`charges`): generated per unit per period via `generateMonthlyCharges(tenantId, templateId, year, month, dueDate)`. Multiple charges per period per unit (one per template). Status: `pending` → `paid` / `partially_paid` / `overdue` / `cancelled`.
 - **Payments** (`payments`): registered via `registerPayment` or inline `payForUnitAction`. Methods: `cash`, `bank_transfer`, `card`, `e_manat`, `pos_terminal`. `referenceNo` optional. Status: `confirmed` (set immediately, no approval flow).

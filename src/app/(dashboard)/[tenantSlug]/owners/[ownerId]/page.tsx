@@ -5,7 +5,6 @@ import {db} from "@/core/db";
 import {buildings} from "@/core/db/schema/buildings";
 import {owners, ownerships} from "@/core/db/schema/owners";
 import {units} from "@/core/db/schema/units";
-import {charges} from "@/core/db/schema/charges";
 import {payments} from "@/core/db/schema/payments";
 import {users} from "@/core/db/schema/users";
 import {ensureTenantExists} from "@/core/multi-tenant";
@@ -29,14 +28,25 @@ const MONTHS = [
   "Июль", "Август", "Сентябрь", "Октябрь", "Ноябрь", "Декабрь",
 ];
 
+const TARIFF = Number(process.env.MONTHLY_TARIFF_PER_SQM ?? "0.40");
+
+const now = new Date();
+const currentYear = now.getFullYear();
+const currentMonth = now.getMonth() + 1;
+
 type PeriodRow = {
-  unitId: string;
   year: number;
   month: number;
   charged: number;
   paid: number;
-  dueDate: string;
 };
+
+function buildPeriods(year: number): { year: number; month: number }[] {
+  const out: { year: number; month: number }[] = [];
+  const maxMonth = year === currentYear ? currentMonth : 12;
+  for (let m = 1; m <= maxMonth; m++) out.push({ year, month: m });
+  return out;
+}
 
 export default async function OwnerDetailsPage({
   params,
@@ -85,60 +95,28 @@ export default async function OwnerDetailsPage({
 
   const unitIds = ownerUnits.map((u) => u.id);
 
-  const [chargeAgg, paymentAgg] = unitIds.length > 0
-    ? await Promise.all([
-        db
-          .select({
-            unitId: charges.unitId,
-            periodYear: charges.periodYear,
-            periodMonth: charges.periodMonth,
-            charged: sql<string>`coalesce(sum(${charges.amount}::numeric), 0)`,
-            dueDate: sql<string>`min(${charges.dueDate})`,
-          })
-          .from(charges)
-          .where(and(
-            eq(charges.ownerId, owner.id),
-            eq(charges.tenantId, tenantId),
-          ))
-          .groupBy(charges.unitId, charges.periodYear, charges.periodMonth)
-          .orderBy(charges.periodYear, charges.periodMonth),
-        db
-          .select({
-            unitId: payments.unitId,
-            periodYear: payments.periodYear,
-            periodMonth: payments.periodMonth,
-            paid: sql<string>`coalesce(sum(${payments.amount}::numeric), 0)`,
-          })
-          .from(payments)
-          .where(and(
-            eq(payments.ownerId, owner.id),
-            eq(payments.tenantId, tenantId),
-            eq(payments.status, "confirmed"),
-          ))
-          .groupBy(payments.unitId, payments.periodYear, payments.periodMonth),
-      ])
-    : [[], []];
+  const paymentRows = unitIds.length > 0
+    ? await db
+        .select({
+          unitId: payments.unitId,
+          periodYear: payments.periodYear,
+          periodMonth: payments.periodMonth,
+          paid: sql<string>`coalesce(sum(${payments.amount}::numeric), 0)`,
+        })
+        .from(payments)
+        .where(and(
+          eq(payments.ownerId, owner.id),
+          eq(payments.tenantId, tenantId),
+          eq(payments.status, "confirmed"),
+        ))
+        .groupBy(payments.unitId, payments.periodYear, payments.periodMonth)
+    : [];
 
-  const periodsByUnit = new Map<string, PeriodRow[]>();
-
-  for (const c of chargeAgg) {
-    const arr = periodsByUnit.get(c.unitId) ?? [];
-    arr.push({
-      unitId: c.unitId,
-      year: c.periodYear,
-      month: c.periodMonth,
-      charged: Number(c.charged),
-      paid: 0,
-      dueDate: c.dueDate,
-    });
-    periodsByUnit.set(c.unitId, arr);
-  }
-
-  for (const p of paymentAgg) {
-    const arr = periodsByUnit.get(p.unitId);
-    if (!arr) continue;
-    const row = arr.find((r) => r.year === p.periodYear && r.month === p.periodMonth);
-    if (row) row.paid = Number(p.paid);
+  const paymentsByUnit = new Map<string, Map<string, number>>();
+  for (const p of paymentRows) {
+    const inner = paymentsByUnit.get(p.unitId) ?? new Map<string, number>();
+    inner.set(`${p.periodYear}-${p.periodMonth}`, Number(p.paid));
+    paymentsByUnit.set(p.unitId, inner);
   }
 
   return (
@@ -168,6 +146,9 @@ export default async function OwnerDetailsPage({
                 <dd><Badge variant={owner.status === "active" ? "default" : "secondary"}>{owner.status === "active" ? "Активен" : owner.status}</Badge></dd>
               </div>
             </dl>
+            <div className="mt-4 rounded-lg bg-zinc-50 p-3 text-sm dark:bg-zinc-900">
+              <div className="flex justify-between"><span className="text-zinc-500">Тариф:</span><span className="font-medium">{TARIFF.toFixed(2)} ₼/м²</span></div>
+            </div>
           </CardContent>
         </Card>
 
@@ -175,9 +156,19 @@ export default async function OwnerDetailsPage({
           {ownerUnits.length > 0 ? (
             ownerUnits.map((unit) => {
               const area = Number(unit.area);
-              const periods = periodsByUnit.get(unit.id) ?? [];
-              const totalCharged = periods.reduce((s, p) => s + p.charged, 0);
-              const totalPaid = periods.reduce((s, p) => s + p.paid, 0);
+              const monthlyFee = area * TARIFF;
+
+              const years = [currentYear - 1, currentYear];
+              const allPeriods: PeriodRow[] = [];
+              for (const y of years) {
+                for (const { year, month } of buildPeriods(y)) {
+                  const paid = paymentsByUnit.get(unit.id)?.get(`${year}-${month}`) ?? 0;
+                  allPeriods.push({ year, month, charged: monthlyFee, paid });
+                }
+              }
+
+              const totalCharged = allPeriods.reduce((s, p) => s + p.charged, 0);
+              const totalPaid = allPeriods.reduce((s, p) => s + p.paid, 0);
               const totalDebt = Math.max(0, totalCharged - totalPaid);
 
               return (
@@ -202,61 +193,54 @@ export default async function OwnerDetailsPage({
                             unitNumber={unit.unitNumber}
                             entrance={unit.entrance}
                             floor={unit.floor}
-                            periods={periods}
+                            monthlyFee={monthlyFee}
+                            periods={allPeriods}
                           />
                         )}
                       </div>
                     </div>
                   </CardHeader>
                   <CardContent>
-                    {periods.length > 0 ? (
-                      <div className="rounded-lg border border-zinc-200 dark:border-zinc-800">
-                        <Table>
-                          <TableHeader>
-                            <TableRow>
-                              <TableHead>Период</TableHead>
-                              <TableHead className="text-right">Начислено</TableHead>
-                              <TableHead className="text-right">Оплачено</TableHead>
-                              <TableHead className="text-right">Долг</TableHead>
-                              <TableHead>Срок</TableHead>
-                              <TableHead className="min-w-[100px]">Статус</TableHead>
-                            </TableRow>
-                          </TableHeader>
-                          <TableBody>
-                            {periods.map((p) => {
-                              const debt = Math.max(0, p.charged - p.paid);
-                              const isPaid = p.paid >= p.charged;
-                              return (
-                                <TableRow key={`${p.year}-${p.month}`}>
-                                  <TableCell className="text-sm whitespace-nowrap">{MONTHS[p.month]} {p.year}</TableCell>
-                                  <TableCell className="text-right text-sm">{p.charged.toFixed(2)} ₼</TableCell>
-                                  <TableCell className="text-right text-sm font-medium text-green-600">{p.paid.toFixed(2)} ₼</TableCell>
-                                  <TableCell className={`text-right text-sm whitespace-nowrap ${debt > 0 ? "text-red-600 font-medium" : "text-zinc-400"}`}>{debt.toFixed(2)} ₼</TableCell>
-                                  <TableCell className="text-sm text-zinc-500 whitespace-nowrap">{p.dueDate}</TableCell>
-                                  <TableCell>
-                                    <Badge className={`whitespace-nowrap ${
-                                      isPaid
-                                        ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
-                                        : "bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200"
-                                    }`}>
-                                      {isPaid ? "Оплачено" : "К оплате"}
-                                    </Badge>
-                                  </TableCell>
-                                </TableRow>
-                              );
-                            })}
-                          </TableBody>
-                        </Table>
-                      </div>
-                    ) : (
-                      <p className="text-sm text-zinc-400">Нет начислений</p>
-                    )}
-                    {periods.length > 0 && (
-                      <div className="mt-3 flex flex-col gap-1 sm:flex-row sm:justify-between text-sm">
-                        <span className="text-zinc-500">Всего начислено: <span className="font-medium text-zinc-700 dark:text-zinc-300">{totalCharged.toFixed(2)} ₼</span></span>
-                        <span className="text-zinc-500">Всего оплачено: <span className="font-medium text-green-600">{totalPaid.toFixed(2)} ₼</span></span>
-                      </div>
-                    )}
+                    <div className="rounded-lg border border-zinc-200 dark:border-zinc-800">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Период</TableHead>
+                            <TableHead className="text-right">Начислено</TableHead>
+                            <TableHead className="text-right">Оплачено</TableHead>
+                            <TableHead className="text-right">Долг</TableHead>
+                            <TableHead className="min-w-[90px]">Статус</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {allPeriods.map((p) => {
+                            const debt = Math.max(0, p.charged - p.paid);
+                            const isPaid = p.paid >= p.charged;
+                            return (
+                              <TableRow key={`${p.year}-${p.month}`}>
+                                <TableCell className="text-sm whitespace-nowrap">{MONTHS[p.month]} {p.year}</TableCell>
+                                <TableCell className="text-right text-sm">{p.charged.toFixed(2)} ₼</TableCell>
+                                <TableCell className="text-right text-sm font-medium text-green-600">{p.paid.toFixed(2)} ₼</TableCell>
+                                <TableCell className={`text-right text-sm whitespace-nowrap ${debt > 0 ? "text-red-600 font-medium" : "text-zinc-400"}`}>{debt.toFixed(2)} ₼</TableCell>
+                                <TableCell>
+                                  <Badge className={`whitespace-nowrap ${
+                                    isPaid
+                                      ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
+                                      : "bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200"
+                                  }`}>
+                                    {isPaid ? "Оплачено" : "Долг"}
+                                  </Badge>
+                                </TableCell>
+                              </TableRow>
+                            );
+                          })}
+                        </TableBody>
+                      </Table>
+                    </div>
+                    <div className="mt-3 flex flex-col gap-1 sm:flex-row sm:justify-between text-sm">
+                      <span className="text-zinc-500">Всего начислено: <span className="font-medium text-zinc-700 dark:text-zinc-300">{totalCharged.toFixed(2)} ₼</span></span>
+                      <span className="text-zinc-500">Всего оплачено: <span className="font-medium text-green-600">{totalPaid.toFixed(2)} ₼</span></span>
+                    </div>
                   </CardContent>
                 </Card>
               );
