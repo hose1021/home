@@ -5,26 +5,38 @@ import {db} from "@/core/db";
 import {buildings} from "@/core/db/schema/buildings";
 import {owners, ownerships} from "@/core/db/schema/owners";
 import {units} from "@/core/db/schema/units";
+import {charges} from "@/core/db/schema/charges";
 import {payments} from "@/core/db/schema/payments";
 import {users} from "@/core/db/schema/users";
 import {ensureTenantExists} from "@/core/multi-tenant";
+import {getSession} from "@/core/auth/session";
+import {getPermissionsForRoles, type Permission} from "@/core/auth/permissions";
 import {PayButton} from "./pay-button";
+import {Card, CardContent, CardHeader, CardTitle} from "@/components/ui/card";
+import {Badge} from "@/components/ui/badge";
+import {Table, TableHeader, TableBody, TableRow, TableHead, TableCell} from "@/components/ui/table";
 import {
-    Breadcrumb,
-    BreadcrumbItem,
-    BreadcrumbLink,
-    BreadcrumbList,
-    BreadcrumbPage,
-    BreadcrumbSeparator,
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 
-const TARIFF_RATE = Number(process.env.NEXT_PUBLIC_TARIFF_RATE ?? "0.40");
-
-const MONTH_NAMES = [
-  "Январь", "Февраль", "Март", "Апрель", "Май", "Июнь",
+const MONTHS = [
+  "", "Январь", "Февраль", "Март", "Апрель", "Май", "Июнь",
   "Июль", "Август", "Сентябрь", "Октябрь", "Ноябрь", "Декабрь",
 ];
 
+type PeriodRow = {
+  unitId: string;
+  year: number;
+  month: number;
+  charged: number;
+  paid: number;
+  dueDate: string;
+};
 
 export default async function OwnerDetailsPage({
   params,
@@ -33,6 +45,9 @@ export default async function OwnerDetailsPage({
 }) {
   const { tenantSlug, ownerId } = await params;
   const tenantId = await ensureTenantExists(tenantSlug);
+  const session = await getSession();
+  const permissions: Permission[] = session ? getPermissionsForRoles(session.user.roles) : [];
+  const canPay = permissions.includes("payment:write");
 
   const [owner] = await db
     .select({
@@ -66,128 +81,192 @@ export default async function OwnerDetailsPage({
       eq(ownerships.ownerId, owner.id),
       eq(ownerships.tenantId, tenantId),
     ))
-    .orderBy(units.unitNumber);
+    .orderBy(units.entrance, units.floor, units.unitNumber);
 
   const unitIds = ownerUnits.map((u) => u.id);
-  const paymentsPerUnit = unitIds.length > 0
-    ? await db
-        .select({
-          unitId: payments.unitId,
-          periodYear: payments.periodYear,
-          periodMonth: payments.periodMonth,
-          totalPaid: sql<string>`coalesce(sum(${payments.amount}::numeric), 0)`,
-        })
-        .from(payments)
-        .where(and(
-          eq(payments.ownerId, owner.id),
-          eq(payments.tenantId, tenantId),
-          eq(payments.status, "confirmed"),
-        ))
-        .groupBy(payments.unitId, payments.periodYear, payments.periodMonth)
-    : [];
 
-  // Group payments per unit: unitId → [{year, month, paid}, ...]
-  const paymentsByUnit = new Map<string, { year: number; month: number; paid: number }[]>();
-  for (const p of paymentsPerUnit) {
-    const arr = paymentsByUnit.get(p.unitId) ?? [];
-    arr.push({ year: p.periodYear, month: p.periodMonth, paid: Number(p.totalPaid) });
-    paymentsByUnit.set(p.unitId, arr);
+  const [chargeAgg, paymentAgg] = unitIds.length > 0
+    ? await Promise.all([
+        db
+          .select({
+            unitId: charges.unitId,
+            periodYear: charges.periodYear,
+            periodMonth: charges.periodMonth,
+            charged: sql<string>`coalesce(sum(${charges.amount}::numeric), 0)`,
+            dueDate: sql<string>`min(${charges.dueDate})`,
+          })
+          .from(charges)
+          .where(and(
+            eq(charges.ownerId, owner.id),
+            eq(charges.tenantId, tenantId),
+          ))
+          .groupBy(charges.unitId, charges.periodYear, charges.periodMonth)
+          .orderBy(charges.periodYear, charges.periodMonth),
+        db
+          .select({
+            unitId: payments.unitId,
+            periodYear: payments.periodYear,
+            periodMonth: payments.periodMonth,
+            paid: sql<string>`coalesce(sum(${payments.amount}::numeric), 0)`,
+          })
+          .from(payments)
+          .where(and(
+            eq(payments.ownerId, owner.id),
+            eq(payments.tenantId, tenantId),
+            eq(payments.status, "confirmed"),
+          ))
+          .groupBy(payments.unitId, payments.periodYear, payments.periodMonth),
+      ])
+    : [[], []];
+
+  const periodsByUnit = new Map<string, PeriodRow[]>();
+
+  for (const c of chargeAgg) {
+    const arr = periodsByUnit.get(c.unitId) ?? [];
+    arr.push({
+      unitId: c.unitId,
+      year: c.periodYear,
+      month: c.periodMonth,
+      charged: Number(c.charged),
+      paid: 0,
+      dueDate: c.dueDate,
+    });
+    periodsByUnit.set(c.unitId, arr);
+  }
+
+  for (const p of paymentAgg) {
+    const arr = periodsByUnit.get(p.unitId);
+    if (!arr) continue;
+    const row = arr.find((r) => r.year === p.periodYear && r.month === p.periodMonth);
+    if (row) row.paid = Number(p.paid);
   }
 
   return (
     <div className="space-y-6">
-      <div>
-        <Breadcrumb>
-          <BreadcrumbList>
-            <BreadcrumbItem>
-              <BreadcrumbLink render={<Link href="" />} href={`/${tenantSlug}/owners`}>Собственники</BreadcrumbLink>
-            </BreadcrumbItem>
-            <BreadcrumbSeparator />
-            <BreadcrumbItem>
-              <BreadcrumbPage>{owner.fullName}</BreadcrumbPage>
-            </BreadcrumbItem>
-          </BreadcrumbList>
-        </Breadcrumb>
-      </div>
+      <Breadcrumb>
+        <BreadcrumbList>
+          <BreadcrumbItem>
+            <BreadcrumbLink render={<Link href="" />} href={`/${tenantSlug}/owners`}>Собственники</BreadcrumbLink>
+          </BreadcrumbItem>
+          <BreadcrumbSeparator />
+          <BreadcrumbItem>
+            <BreadcrumbPage>{owner.fullName}</BreadcrumbPage>
+          </BreadcrumbItem>
+        </BreadcrumbList>
+      </Breadcrumb>
 
-      <div className="space-y-3">
-        <section className="rounded-lg border border-zinc-200 p-4 dark:border-zinc-800">
-          <h2 className="mb-4 font-semibold">Личная информация</h2>
-          <dl className="space-y-3 text-sm">
-            <InfoRow label="ФИО" value={owner.fullName} />
-            <InfoRow label="Телефон" value={owner.phone} />
-            <InfoRow label="Логин" value={owner.username} />
-            <InfoRow label="Статус" value={owner.status} />
-          </dl>
-        </section>
+      <div className="grid gap-6 lg:grid-cols-3">
+        <Card className="lg:col-span-1 h-fit">
+          <CardHeader><CardTitle>Личная информация</CardTitle></CardHeader>
+          <CardContent>
+            <dl className="space-y-3 text-sm">
+              <InfoRow label="ФИО" value={owner.fullName} />
+              <InfoRow label="Телефон" value={owner.phone} />
+              <InfoRow label="Логин" value={owner.username} />
+              <div className="grid grid-cols-[100px_1fr] gap-3">
+                <dt className="text-zinc-500">Статус</dt>
+                <dd><Badge variant={owner.status === "active" ? "default" : "secondary"}>{owner.status === "active" ? "Активен" : owner.status}</Badge></dd>
+              </div>
+            </dl>
+          </CardContent>
+        </Card>
 
-        <section className="rounded-lg border border-zinc-200 p-4 dark:border-zinc-800 lg:col-span-2">
-          <h2 className="mb-4 font-semibold">Собственность и оплата</h2>
+        <div className="lg:col-span-2 space-y-4">
           {ownerUnits.length > 0 ? (
-            <div className="lg:flex space-y-3 lg:space-x-3">
-              {ownerUnits.map((unit) => {
-                const area = Number(unit.area);
-                const monthlyFee = area * TARIFF_RATE;
-                const debts = paymentsByUnit.get(unit.id) ?? [];
-                const totalPaid = debts.reduce((s, d) => s + d.paid, 0);
+            ownerUnits.map((unit) => {
+              const area = Number(unit.area);
+              const periods = periodsByUnit.get(unit.id) ?? [];
+              const totalCharged = periods.reduce((s, p) => s + p.charged, 0);
+              const totalPaid = periods.reduce((s, p) => s + p.paid, 0);
+              const totalDebt = Math.max(0, totalCharged - totalPaid);
 
-                return (
-                  <div key={unit.id} className="rounded-lg w-full bg-zinc-50 p-3 text-sm dark:bg-zinc-900">
-                    <div className="flex items-center justify-between gap-4">
-                      <div>
-                        <span className="font-medium">Квартира №{unit.unitNumber}</span>
-                        <span className="ml-2 text-zinc-400">{area.toFixed(1)} м²</span>
-                        <span className="ml-2 text-sm text-zinc-400">Под. {unit.entrance}, эт. {unit.floor}</span>
-                      </div>
-                      <span className="text-sm text-zinc-500">Тариф: {TARIFF_RATE.toFixed(2)} ₼/м² · {monthlyFee.toFixed(2)} ₼/мес</span>
-                    </div>
-
-                    <div className="mt-3 flex flex-col gap-3 sm:flex-row">
-                      <div className="w-full">
-                        <table className="w-full text-sm">
-                          <thead>
-                            <tr className="text-zinc-400">
-                              <th className="pb-1 text-left font-medium">Месяц</th>
-                              <th className="pb-1 text-right font-medium">Сумма</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {debts.map((d) => (
-                              <tr key={`${d.year}-${d.month}`}>
-                                <td className="py-0.5 text-zinc-400">{MONTH_NAMES[d.month - 1]} {d.year}</td>
-                                <td className={`py-0.5 text-right ${d.paid >= monthlyFee ? "text-green-600" : "text-amber-600"}`}>
-                                  {d.paid.toFixed(2)} ₼ {d.paid >= monthlyFee ? "✓" : ""}
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                          <tfoot>
-                            <tr className="border-t border-zinc-200 text-zinc-500 dark:border-zinc-700">
-                              <td className="pt-1 font-medium">Оплачено всего</td>
-                              <td className="pt-1 text-right font-medium text-green-600">{totalPaid.toFixed(2)} ₼</td>
-                            </tr>
-                          </tfoot>
-                        </table>
-                      </div>
-                    </div>
-                      <div className="flex mt-4 items-end">
+              return (
+                <Card key={unit.id}>
+                  <CardHeader>
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                      <CardTitle className="text-base">
+                        Кв. {unit.unitNumber}
+                        <span className="ml-2 text-sm font-normal text-zinc-400">
+                          Блок {unit.entrance}, эт. {unit.floor}, {area.toFixed(1)} м²
+                        </span>
+                      </CardTitle>
+                      <div className="flex items-center gap-3">
+                        <span className="whitespace-nowrap text-sm text-zinc-500">
+                          Долг: <span className="font-bold text-red-600">{totalDebt.toFixed(2)} ₼</span>
+                        </span>
+                        {canPay && (
                           <PayButton
-                              slug={tenantSlug}
-                              ownerId={owner.id}
-                              unitId={unit.id}
-                              unitNumber={unit.unitNumber}
-                              monthlyFee={monthlyFee}
-                              debts={debts}
+                            slug={tenantSlug}
+                            ownerId={owner.id}
+                            unitId={unit.id}
+                            unitNumber={unit.unitNumber}
+                            entrance={unit.entrance}
+                            floor={unit.floor}
+                            periods={periods}
                           />
+                        )}
                       </div>
-                  </div>
-                );
-              })}
-            </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    {periods.length > 0 ? (
+                      <div className="rounded-lg border border-zinc-200 dark:border-zinc-800">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>Период</TableHead>
+                              <TableHead className="text-right">Начислено</TableHead>
+                              <TableHead className="text-right">Оплачено</TableHead>
+                              <TableHead className="text-right">Долг</TableHead>
+                              <TableHead>Срок</TableHead>
+                              <TableHead className="min-w-[100px]">Статус</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {periods.map((p) => {
+                              const debt = Math.max(0, p.charged - p.paid);
+                              const isPaid = p.paid >= p.charged;
+                              return (
+                                <TableRow key={`${p.year}-${p.month}`}>
+                                  <TableCell className="text-sm whitespace-nowrap">{MONTHS[p.month]} {p.year}</TableCell>
+                                  <TableCell className="text-right text-sm">{p.charged.toFixed(2)} ₼</TableCell>
+                                  <TableCell className="text-right text-sm font-medium text-green-600">{p.paid.toFixed(2)} ₼</TableCell>
+                                  <TableCell className={`text-right text-sm whitespace-nowrap ${debt > 0 ? "text-red-600 font-medium" : "text-zinc-400"}`}>{debt.toFixed(2)} ₼</TableCell>
+                                  <TableCell className="text-sm text-zinc-500 whitespace-nowrap">{p.dueDate}</TableCell>
+                                  <TableCell>
+                                    <Badge className={`whitespace-nowrap ${
+                                      isPaid
+                                        ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
+                                        : "bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200"
+                                    }`}>
+                                      {isPaid ? "Оплачено" : "К оплате"}
+                                    </Badge>
+                                  </TableCell>
+                                </TableRow>
+                              );
+                            })}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    ) : (
+                      <p className="text-sm text-zinc-400">Нет начислений</p>
+                    )}
+                    {periods.length > 0 && (
+                      <div className="mt-3 flex flex-col gap-1 sm:flex-row sm:justify-between text-sm">
+                        <span className="text-zinc-500">Всего начислено: <span className="font-medium text-zinc-700 dark:text-zinc-300">{totalCharged.toFixed(2)} ₼</span></span>
+                        <span className="text-zinc-500">Всего оплачено: <span className="font-medium text-green-600">{totalPaid.toFixed(2)} ₼</span></span>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              );
+            })
           ) : (
-            <p className="text-sm text-zinc-400">Квартиры не привязаны</p>
+            <Card>
+              <CardContent><p className="text-sm text-zinc-400 py-8 text-center">Квартиры не привязаны</p></CardContent>
+            </Card>
           )}
-        </section>
+        </div>
       </div>
     </div>
   );
@@ -195,7 +274,7 @@ export default async function OwnerDetailsPage({
 
 function InfoRow({ label, value }: { label: string; value: string | null }) {
   return (
-    <div className="grid grid-cols-[120px_1fr] gap-3">
+    <div className="grid grid-cols-[100px_1fr] gap-3">
       <dt className="text-zinc-500">{label}</dt>
       <dd>{value || "—"}</dd>
     </div>

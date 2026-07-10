@@ -25,7 +25,7 @@ DB scripts (require `docker compose up -d db` first):
 Run a single test file: `bun run vitest run src/core/auth/permissions.test.ts`
 
 ## Architecture
-- **Modular Monolith** — `src/modules/*/`, 7 implemented: owner, unit, tenant, finance, meeting, announcements, tickets. ~12 domain entities have DB schema only (awaiting services/UI).
+- **Modular Monolith** — `src/modules/*/`, 7 fully implemented: owner, unit, tenant, finance, meeting, announcements, tickets.
 - **Layers per module**: Server Components/Pages → `*.actions.ts` (Server Actions) → `*.service.ts` → Drizzle queries. No REST API for domain ops — only `src/app/api/auth/*` exists.
 - **Multi-Tenant** — Shared DB. `tenantId` passed explicitly as param to every service (no global/request-scoped state). Slug→id resolved via `ensureTenantExists(slug)` in `src/core/multi-tenant/` (in-process Map cache, TTL 60s — call `invalidateTenantCache(slug)` on tenant slug/name change). Cross-tenant access blocked in `requireTenantContext` (admin role bypasses).
 - **RBAC**: roles `admin`, `management_member`, `commandant`, `owner` in `src/core/auth/permissions.ts` (56 permissions). Helpers: `hasPermission`, `hasAnyPermission`, `getPermissionsForRoles`, `ROLE_LABELS`, `ROLE_ORDER`. Session carries `roles: Role[]` (queried from `user_roles` on each `getSessionFromToken`). Enforce in server actions via `requirePermission(perm)` / `requireTenantPermission(slug, perm)` from `src/core/auth/session.ts`. **Every server action must call one.** UI hides controls via `permissions` passed from server pages (computed once in `[tenantSlug]/layout.tsx`, flows to sidebar + pages).
@@ -49,11 +49,21 @@ Run a single test file: `bun run vitest run src/core/auth/permissions.test.ts`
 - **Unit selection**: owner sees only their units (`getUnitsForUser`); staff sees all units (`getAllUnits`); option `__yard__` = `unitId: null` (общая территория).
 - Migration `0013_ticket_status_overhaul.sql` drops `resolution`, adds `rejection_reason`.
 
+## Finance module specifics
+- **Charge templates** (`charge_templates`): 4 seed templates — Yaşayış (40 ₼), Qeyri-yaşayış (100 ₼), Təmir fondu (30 ₼), Liftə xidmət (120 ₼). `calculation`: `fixed_per_unit`, `per_owner`, `percentage_of_income`.
+- **Charges** (`charges`): generated per unit per period via `generateMonthlyCharges(tenantId, templateId, year, month, dueDate)`. Multiple charges per period per unit (one per template). Status: `pending` → `paid` / `partially_paid` / `overdue` / `cancelled`.
+- **Payments** (`payments`): registered via `registerPayment` or inline `payForUnitAction`. Methods: `cash`, `bank_transfer`, `card`, `e_manat`, `pos_terminal`. `referenceNo` optional. Status: `confirmed` (set immediately, no approval flow).
+- **Funds** (`funds`): target amount + current balance. Types: `reserve`, `repair`, `improvement`, `emergency`, `other`.
+- **Owner detail page** (`owners/[ownerId]/page.tsx`): aggregates charges by period (sum across templates), joins with payments to show debt per period. `PayButton` dialog lets staff pick year/month/method/amount/referenceNo.
+- **Finance dashboard** (`finance/page.tsx`): 4 summary cards + tabs (Начисления / Платежи / Фонды). Permission-gated buttons: `charge:write`, `payment:write`, `fund:write`.
+
 ## DB notes
 - Schema in `src/core/db/schema/` (22 files), barrel export `index.ts`. 14 migrations (0000–0013).
+- DB connection: `postgres://postgres:postgres@localhost:5432/mmcm` (database name is `mmcm`, user `postgres` — NOT `mmmc`).
 - `drizzle-kit generate` may hit interactive prompt on column renames — create migration SQL manually in `drizzle/migrations/NNNN_name.sql` if it fails in non-TTY.
 - RLS script `scripts/rls-setup.sql` mounted into Postgres container via `docker-compose.yml` — applied on first container init only.
 - Seed is env-parameterized: `SEED_TENANT_SLUG`, `SEED_TENANT_NAME`, `SEED_ADMIN_USERNAME`, `SEED_ADMIN_PASSWORD`, `SEED_OWNER_PASSWORD`, etc. Defaults: tenant `demo`, admin `admin.admin`/`admin123`.
+- **Charges table starts empty** after seed — no charges are auto-generated. Use finance dashboard "Начислить" button or `generateMonthlyCharges()` to populate.
 
 ## Gotchas
 - **Auth is custom** (not Better Auth) — `@better-auth/kysely-adapter` and `kysely` were removed. `next.config.ts` no longer lists them in `serverExternalPackages`.
@@ -65,6 +75,7 @@ Run a single test file: `bun run vitest run src/core/auth/permissions.test.ts`
 - **Storage**: `src/core/storage/storage.service.ts` — minimal R2 wrapper, `getSignedUrl` returns public path without auth headers. Not integrated.
 - **Payments**: E-Manat API + POS terminals planned. Webhook placeholder at `src/app/api/webhooks/payment/` — not implemented.
 - **Playwright**: `@playwright/test` in devDeps and `test:e2e` script exist, but no `playwright.config.*` — script will error.
+- **tabs.tsx**: custom context-based implementation (not Radix). `Tabs` takes `defaultValue`/`value`/`onValueChange`. `TabsTrigger` and `TabsContent` require `value` prop.
 
 ## Key paths
 ```
@@ -79,7 +90,7 @@ src/
 │   ├── audit/                    # writeAuditLog()
 │   ├── storage/                  # R2 wrapper (stub)
 │   └── config.ts                 # PLATFORM_NAME
-├── components/ui/                # shadcn primitives (sidebar, dialog, alert-dialog, badge, button, ...)
+├── components/ui/                # shadcn primitives (sidebar, dialog, alert-dialog, badge, button, card, tabs, table, label, textarea, ...)
 └── proxy.ts                      # Next.js 16 proxy
 drizzle/migrations/               # 0000–0013
 vitest.config.ts                  # @ alias, node env

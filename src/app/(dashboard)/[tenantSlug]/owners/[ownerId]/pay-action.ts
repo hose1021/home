@@ -13,6 +13,8 @@ export async function payForUnitAction(
   amount: string,
   periodYear: number,
   periodMonth: number,
+  paymentMethod: "cash" | "bank_transfer" | "card" | "e_manat" | "pos_terminal",
+  referenceNo?: string,
 ) {
   const { session, tenantId } = await requireTenantPermission(slug, "payment:write");
 
@@ -25,7 +27,8 @@ export async function payForUnitAction(
       amount,
       periodYear,
       periodMonth,
-      paymentMethod: "cash",
+      paymentMethod,
+      referenceNo: referenceNo ?? null,
       paymentDate: new Date(),
       status: "confirmed",
       confirmedBy: session.user.id,
@@ -38,7 +41,7 @@ export async function payForUnitAction(
     action: "create",
     entityType: "payment",
     entityId: payment.id,
-    newValues: { unitId, ownerId, amount, periodYear, periodMonth },
+    newValues: { unitId, ownerId, amount, periodYear, periodMonth, paymentMethod },
   });
 
   revalidatePath(`/${slug}/owners/${ownerId}`);

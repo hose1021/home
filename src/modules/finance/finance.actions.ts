@@ -2,8 +2,8 @@
 
 import {revalidatePath} from "next/cache";
 import {requireTenantPermission} from "@/core/auth/session";
-import {generateMonthlyCharges, listCharges} from "./services/charge.service";
-import {registerPayment, listPayments} from "./services/payment.service";
+import {generateMonthlyCharges} from "./services/charge.service";
+import {registerPayment} from "./services/payment.service";
 import {db} from "@/core/db";
 import {funds} from "@/core/db/schema/funds";
 import {eq} from "drizzle-orm";

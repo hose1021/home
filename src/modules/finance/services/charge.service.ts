@@ -1,7 +1,7 @@
 import {db} from "@/core/db";
 import {charges, chargeTemplates} from "@/core/db/schema/charges";
 import {units} from "@/core/db/schema/units";
-import {ownerships} from "@/core/db/schema/owners";
+import {owners, ownerships} from "@/core/db/schema/owners";
 import {and, eq} from "drizzle-orm";
 import {writeAuditLog} from "@/core/audit/audit.service";
 

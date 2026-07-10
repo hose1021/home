@@ -1,6 +1,6 @@
 import {ensureTenantExists} from "@/core/multi-tenant";
 import {db} from "@/core/db";
-import {charges, chargeTemplates} from "@/core/db/schema/charges";
+import {charges} from "@/core/db/schema/charges";
 import {payments} from "@/core/db/schema/payments";
 import {funds} from "@/core/db/schema/funds";
 import {units} from "@/core/db/schema/units";
