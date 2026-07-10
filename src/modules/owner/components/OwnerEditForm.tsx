@@ -1,14 +1,9 @@
 "use client";
 
-import { useState } from "react";
-import { updateOwnerAction } from "../owner.actions";
-
-const ALL_ROLES = [
-  { value: "owner", label: "Собственник" },
-  { value: "management_member", label: "Правление" },
-  { value: "commandant", label: "Председатель" },
-  { value: "admin", label: "Админ" },
-];
+import {useState} from "react";
+import {updateOwnerAction, updateOwnerPasswordAction} from "../owner.actions";
+import {ROLE_LABELS, ROLE_ORDER, type Role} from "@/core/auth/permissions";
+import {toast} from "sonner";
 
 type OwnerData = {
   id: string;
@@ -22,15 +17,19 @@ type OwnerData = {
 export function OwnerEditForm({
   slug,
   owner,
+  canManageRoles,
   onDone,
 }: {
   slug: string;
   owner: OwnerData;
+  canManageRoles?: boolean;
   onDone: () => void;
 }) {
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   const [selectedRoles, setSelectedRoles] = useState<string[]>(owner.roles);
+  const [newPassword, setNewPassword] = useState("");
+  const [pwdPending, setPwdPending] = useState(false);
 
   function toggleRole(role: string) {
     setSelectedRoles((prev) =>
@@ -48,13 +47,30 @@ export function OwnerEditForm({
         fullName: fd.get("fullName") as string,
         phone: (fd.get("phone") as string) || null,
         username: (fd.get("username") as string) || undefined,
-        roles: selectedRoles as ("owner" | "management_member" | "commandant" | "admin")[],
+        roles: selectedRoles as Role[],
       });
       onDone();
     } catch (err) {
       setError((err as Error).message);
     } finally {
       setPending(false);
+    }
+  }
+
+  async function handlePasswordChange() {
+    if (newPassword.length < 8) {
+      toast.error("Пароль должен быть не менее 8 символов");
+      return;
+    }
+    setPwdPending(true);
+    try {
+      await updateOwnerPasswordAction(slug, owner.id, newPassword);
+      setNewPassword("");
+      toast.success("Пароль обновлён. Сессия пользователя сброшена.");
+    } catch (err) {
+      toast.error((err as Error).message);
+    } finally {
+      setPwdPending(false);
     }
   }
 
@@ -75,22 +91,49 @@ export function OwnerEditForm({
         </div>
       </div>
 
-      <div>
-        <label className="block text-sm font-medium mb-2">Роли</label>
-        <div className="space-y-2">
-          {ALL_ROLES.map((r) => (
-            <label key={r.value} className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={selectedRoles.includes(r.value)}
-                onChange={() => toggleRole(r.value)}
-                className="rounded border-zinc-300 dark:border-zinc-700"
-              />
-              <span className="text-sm">{r.label}</span>
-            </label>
-          ))}
+      {canManageRoles && (
+        <div>
+          <label className="block text-sm font-medium mb-2">Роли</label>
+          <div className="space-y-2">
+            {ROLE_ORDER.map((r) => (
+              <label key={r} className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={selectedRoles.includes(r)}
+                  onChange={() => toggleRole(r)}
+                  className="rounded border-zinc-300 dark:border-zinc-700"
+                />
+                <span className="text-sm">{ROLE_LABELS[r]}</span>
+              </label>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
+
+      {canManageRoles && (
+        <div className="rounded-lg border border-zinc-200 p-3 dark:border-zinc-800">
+          <label className="block text-sm font-medium mb-1">Сменить пароль</label>
+          <p className="text-xs text-zinc-500 mb-2">Минимум 8 символов. Все сессии пользователя будут сброшены.</p>
+          <div className="flex gap-2">
+            <input
+              type="password"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              placeholder="Новый пароль"
+              minLength={8}
+              className="block w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900"
+            />
+            <button
+              type="button"
+              onClick={handlePasswordChange}
+              disabled={pwdPending || newPassword.length < 8}
+              className="shrink-0 rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-700 disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900"
+            >
+              {pwdPending ? "..." : "Задать"}
+            </button>
+          </div>
+        </div>
+      )}
 
       {error && <p className="text-sm text-red-500">{error}</p>}
 

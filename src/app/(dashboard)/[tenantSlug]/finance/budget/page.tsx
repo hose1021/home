@@ -1,7 +1,8 @@
-import { ensureTenantExists } from "@/core/multi-tenant";
-import { db } from "@/core/db";
-import { budgets, budgetItems } from "@/core/db/schema/budgets";
-import { eq } from "drizzle-orm";
+import {ensureTenantExists} from "@/core/multi-tenant";
+import {db} from "@/core/db";
+import {budgetItems, budgets} from "@/core/db/schema/budgets";
+import {eq} from "drizzle-orm";
+import {isIncomeCode, isExpenseCode} from "@/modules/finance/constants";
 
 export default async function BudgetPage({
   params,
@@ -10,9 +11,6 @@ export default async function BudgetPage({
 }) {
   const { tenantSlug } = await params;
   const tenantId = await ensureTenantExists(tenantSlug);
-
-  const incomeCodes = ["4010", "4020", "4030", "4040", "4050", "4090"];
-  const expenseCodes = ["5010", "5011", "5012", "5020", "5030", "5040", "5050", "5060", "5070", "5080", "5090", "5100", "5990", "5991", "3020"];
 
   const budget = (await db.select().from(budgets).where(eq(budgets.tenantId, tenantId)).limit(1))[0];
   if (!budget) {
@@ -30,8 +28,8 @@ export default async function BudgetPage({
     .where(eq(budgetItems.budgetId, budget.id))
     .orderBy(budgetItems.accountCode);
 
-  const incomeItems = allItems.filter((i) => incomeCodes.includes(i.accountCode));
-  const expenseItems = allItems.filter((i) => expenseCodes.includes(i.accountCode));
+  const incomeItems = allItems.filter((i) => isIncomeCode(i.accountCode));
+  const expenseItems = allItems.filter((i) => isExpenseCode(i.accountCode));
 
   return (
     <div className="space-y-6">

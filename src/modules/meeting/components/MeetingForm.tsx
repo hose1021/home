@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { createMeetingAction, updateMeetingAction } from "../meeting.actions";
+import {useState} from "react";
+import {createMeetingAction, updateMeetingAction} from "../meeting.actions";
 
 type MeetingData = {
   id: string;

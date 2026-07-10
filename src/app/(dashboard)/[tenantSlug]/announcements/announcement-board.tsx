@@ -3,18 +3,18 @@
 import {useState} from "react";
 import {Dialog, DialogContent, DialogHeader, DialogTitle,} from "@/components/ui/dialog";
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import {AnnouncementForm} from "@/modules/announcements/components/AnnouncementForm";
 import {deleteAnnouncementAction} from "@/modules/announcements/announcement.actions";
-import {IconBell, IconBellPlus, IconEdit, IconPin, IconTrash} from "@tabler/icons-react";
+import {IconBell, IconEdit, IconPin, IconTrash} from "@tabler/icons-react";
 
 type Announcement = {
   id: string;
@@ -22,6 +22,7 @@ type Announcement = {
   content: string;
   priority: string;
   isPinned: boolean;
+  isDashboard: boolean;
   createdAt: Date;
   createdBy: string | null;
 };
@@ -43,7 +44,6 @@ export function AnnouncementBoard({
   canManage: boolean;
 }) {
   const [editing, setEditing] = useState<Announcement | null>(null);
-  const [showCreate, setShowCreate] = useState(false);
   const [deleting, setDeleting] = useState<string | null>(null);
 
   async function handleDelete() {
@@ -54,15 +54,6 @@ export function AnnouncementBoard({
 
   return (
     <>
-      {canManage && (
-        <div className="mb-4 flex justify-end">
-          <button onClick={() => setShowCreate(true)} className="inline-flex items-center gap-2 rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-700 dark:bg-zinc-100 dark:text-zinc-900">
-            <IconBellPlus className="size-4" />
-            Добавить объявление
-          </button>
-        </div>
-      )}
-
       {announcements.length === 0 ? (
         <div className="flex flex-col items-center gap-3 py-16 text-zinc-400">
           <IconBell className="size-12" />
@@ -85,6 +76,9 @@ export function AnnouncementBoard({
                   <div className="flex items-center gap-2">
                     {a.isPinned && <IconPin className="size-4 shrink-0 text-zinc-400" />}
                     <h3 className="font-medium">{a.title}</h3>
+                    {a.isDashboard && (
+                      <span className="rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-medium text-blue-700 dark:bg-blue-900 dark:text-blue-200">Дашборд</span>
+                    )}
                     <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${
                       a.priority === "urgent" ? "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-200" :
                       a.priority === "high" ? "bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-200" :
@@ -119,13 +113,6 @@ export function AnnouncementBoard({
         </div>
       )}
 
-      <Dialog open={showCreate} onOpenChange={setShowCreate}>
-        <DialogContent>
-          <DialogHeader><DialogTitle>Новое объявление</DialogTitle></DialogHeader>
-          <AnnouncementForm slug={slug} onDone={() => setShowCreate(false)} />
-        </DialogContent>
-      </Dialog>
-
       <Dialog open={!!editing} onOpenChange={(o) => { if (!o) setEditing(null); }}>
         <DialogContent>
           <DialogHeader><DialogTitle>Редактировать объявление</DialogTitle></DialogHeader>
@@ -134,8 +121,7 @@ export function AnnouncementBoard({
               slug={slug}
               announcement={editing}
               onDone={() => setEditing(null)}
-            />
-          )}
+            />          )}
         </DialogContent>
       </Dialog>
 

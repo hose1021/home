@@ -1,12 +1,11 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
-import { requireAuth } from "@/core/auth/session";
-import { ensureTenantExists } from "@/core/multi-tenant";
-import { createMeeting, updateMeeting, deleteMeeting } from "./meeting.service";
-import { db } from "@/core/db";
-import { meetingAgendas } from "@/core/db/schema/meetings";
-import { eq } from "drizzle-orm";
+import {revalidatePath} from "next/cache";
+import {requireTenantPermission} from "@/core/auth/session";
+import {createMeeting, deleteMeeting, updateMeeting} from "./meeting.service";
+import {db} from "@/core/db";
+import {meetingAgendas} from "@/core/db/schema/meetings";
+import {eq} from "drizzle-orm";
 
 export async function createMeetingAction(slug: string, input: {
   title: string;
@@ -17,8 +16,7 @@ export async function createMeetingAction(slug: string, input: {
   onlineLink?: string;
   agendas: { title: string; description?: string; sortOrder: number }[];
 }) {
-  const session = await requireAuth();
-  const tenantId = await ensureTenantExists(slug);
+  const { session, tenantId } = await requireTenantPermission(slug, "meeting:write");
   await createMeeting(tenantId, session.user.id, {
     ...input,
     proposedDate: new Date(input.proposedDate),
@@ -36,12 +34,11 @@ export async function updateMeetingAction(slug: string, id: string, input: {
   location?: string | null;
   agendas?: { title: string; description?: string; sortOrder: number }[];
 }) {
-  await requireAuth();
-  const tenantId = await ensureTenantExists(slug);
+  const { session, tenantId } = await requireTenantPermission(slug, "meeting:write");
   await updateMeeting(tenantId, id, {
     ...input,
     proposedDate: input.proposedDate ? new Date(input.proposedDate) : undefined,
-  });
+  }, session.user.id);
 
   if (input.agendas) {
     await db.delete(meetingAgendas).where(eq(meetingAgendas.meetingId, id));
@@ -57,9 +54,8 @@ export async function updateMeetingAction(slug: string, id: string, input: {
 }
 
 export async function deleteMeetingAction(slug: string, id: string) {
-  await requireAuth();
-  const tenantId = await ensureTenantExists(slug);
-  await deleteMeeting(tenantId, id);
+  const { session, tenantId } = await requireTenantPermission(slug, "meeting:write");
+  await deleteMeeting(tenantId, id, session.user.id);
   revalidatePath(`/${slug}/meetings`);
   return { success: true };
 }

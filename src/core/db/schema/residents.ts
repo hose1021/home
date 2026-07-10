@@ -1,6 +1,6 @@
-import { pgTable, uuid, varchar, timestamp, date } from "drizzle-orm/pg-core";
-import { tenants } from "./tenants";
-import { units } from "./units";
+import {date, pgTable, timestamp, uuid, varchar} from "drizzle-orm/pg-core";
+import {tenants} from "./tenants";
+import {units} from "./units";
 
 export const residents = pgTable("residents", {
   id: uuid("id").defaultRandom().primaryKey(),

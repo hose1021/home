@@ -6,6 +6,8 @@ import {userRoles, users} from "@/core/db/schema/users";
 import {charges} from "@/core/db/schema/charges";
 import {and, eq, inArray, ne, sql} from "drizzle-orm";
 import {OwnerTable} from "./owner-table";
+import {getSession} from "@/core/auth/session";
+import {getPermissionsForRoles, type Permission} from "@/core/auth/permissions";
 
 export default async function OwnersPage({
   params,
@@ -17,6 +19,10 @@ export default async function OwnersPage({
   const { tenantSlug } = await params;
   const sp = await searchParams;
   const tenantId = await ensureTenantExists(tenantSlug);
+  const session = await getSession();
+  const permissions: Permission[] = session
+    ? getPermissionsForRoles(session.user.roles)
+    : [];
 
   const now = new Date();
   const currentYear = now.getFullYear();
@@ -129,6 +135,8 @@ export default async function OwnersPage({
       <OwnerTable
         slug={tenantSlug}
         owners={ownersWithRoles}
+        canManage={permissions.includes("owner:write")}
+        canManageRoles={permissions.includes("user:manage")}
         initialSearch={sp.search}
         initialRole={sp.role}
         initialUnits={sp.units}

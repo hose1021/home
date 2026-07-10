@@ -1,11 +1,12 @@
-import { db } from "@/core/db";
-import { owners, ownerships } from "@/core/db/schema/owners";
-import { units } from "@/core/db/schema/units";
-import { buildings } from "@/core/db/schema/buildings";
-import { users, userRoles } from "@/core/db/schema/users";
-import { eq, and } from "drizzle-orm";
-import { assertValidUsername, hashPassword, normalizeUsername } from "@/core/auth/auth";
-import type { Role } from "@/core/auth/permissions";
+import {db} from "@/core/db";
+import {owners, ownerships} from "@/core/db/schema/owners";
+import {units} from "@/core/db/schema/units";
+import {buildings} from "@/core/db/schema/buildings";
+import {userRoles, users, sessions} from "@/core/db/schema/users";
+import {and, eq} from "drizzle-orm";
+import {assertValidUsername, hashPassword, normalizeUsername} from "@/core/auth/auth";
+import type {Role} from "@/core/auth/permissions";
+import {writeAuditLog} from "@/core/audit/audit.service";
 
 export async function getOwnerById(tenantId: string, id: string) {
   const [o] = await db
@@ -26,7 +27,7 @@ export async function createOwnerWithUnit(tenantId: string, input: {
   entrance: number;
   type: "residential" | "commercial" | "parking" | "storage" | "other";
   area: string;
-}) {
+}, userId: string) {
   const [building] = await db
     .select()
     .from(buildings)
@@ -78,10 +79,19 @@ export async function createOwnerWithUnit(tenantId: string, input: {
       isPrimary: true,
     });
 
-    return createdOwner;
+    return { owner: createdOwner, unit };
   });
 
-  return owner;
+  await writeAuditLog({
+    tenantId,
+    userId,
+    action: "create",
+    entityType: "owner",
+    entityId: owner.owner.id,
+    newValues: { fullName: input.fullName, username, unitNumber: input.unitNumber, unitId: owner.unit.id },
+  });
+
+  return owner.owner;
 }
 
 export async function updateOwnerWithRoles(tenantId: string, id: string, input: {
@@ -89,7 +99,7 @@ export async function updateOwnerWithRoles(tenantId: string, id: string, input: 
   phone?: string | null;
   username?: string;
   roles?: Role[];
-}) {
+}, userId: string) {
   const [existingOwner] = await db
     .select()
     .from(owners)
@@ -125,10 +135,19 @@ export async function updateOwnerWithRoles(tenantId: string, id: string, input: 
     }
   });
 
+  await writeAuditLog({
+    tenantId,
+    userId,
+    action: "update",
+    entityType: "owner",
+    entityId: id,
+    newValues: input as unknown as Record<string, unknown>,
+  });
+
   return { success: true };
 }
 
-export async function deleteOwner(tenantId: string, id: string) {
+export async function deleteOwner(tenantId: string, id: string, userId: string) {
   const [owner] = await db
     .select()
     .from(owners)
@@ -142,4 +161,44 @@ export async function deleteOwner(tenantId: string, id: string) {
       await tx.update(users).set({ isActive: false, updatedAt: new Date() }).where(eq(users.id, owner.userId));
     }
   });
+
+  await writeAuditLog({
+    tenantId,
+    userId,
+    action: "delete",
+    entityType: "owner",
+    entityId: id,
+    oldValues: { fullName: owner.fullName } as Record<string, unknown>,
+  });
+}
+
+export async function updateOwnerPassword(tenantId: string, id: string, newPassword: string, userId: string) {
+  const [owner] = await db
+    .select()
+    .from(owners)
+    .where(and(eq(owners.id, id), eq(owners.tenantId, tenantId)))
+    .limit(1);
+  if (!owner || !owner.userId) throw new Error("Owner not found");
+
+  if (newPassword.length < 8) throw new Error("Password must be at least 8 characters");
+
+  const passwordHash = await hashPassword(newPassword);
+
+  await db
+    .update(users)
+    .set({ passwordHash, updatedAt: new Date() })
+    .where(eq(users.id, owner.userId));
+
+  await db.delete(sessions).where(eq(sessions.userId, owner.userId));
+
+  await writeAuditLog({
+    tenantId,
+    userId,
+    action: "update",
+    entityType: "user",
+    entityId: owner.userId,
+    newValues: { passwordChanged: true },
+  });
+
+  return { success: true };
 }

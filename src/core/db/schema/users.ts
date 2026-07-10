@@ -1,7 +1,7 @@
-import { sql } from "drizzle-orm";
-import { check, pgTable, uuid, varchar, text, timestamp, boolean } from "drizzle-orm/pg-core";
-import { tenants } from "./tenants";
-import type { Role } from "@/core/auth/permissions";
+import {sql} from "drizzle-orm";
+import {boolean, check, pgTable, text, timestamp, uuid, varchar} from "drizzle-orm/pg-core";
+import {tenants} from "./tenants";
+import type {Role} from "@/core/auth/permissions";
 
 export const users = pgTable("users", {
   id: uuid("id").defaultRandom().primaryKey(),

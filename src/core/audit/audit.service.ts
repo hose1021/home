@@ -1,5 +1,5 @@
-import { db } from "@/core/db";
-import { auditLogs } from "@/core/db/schema/audit-logs";
+import {db} from "@/core/db";
+import {auditLogs} from "@/core/db/schema/audit-logs";
 
 interface AuditEntry {
   tenantId: string;

@@ -1,7 +1,9 @@
-import { ensureTenantExists } from "@/core/multi-tenant";
-import { db } from "@/core/db";
-import { votings, votingOptions, votes } from "@/core/db/schema/votings";
-import { eq, sql } from "drizzle-orm";
+import {ensureTenantExists} from "@/core/multi-tenant";
+import {db} from "@/core/db";
+import {votes, votingOptions, votings} from "@/core/db/schema/votings";
+import {eq, sql} from "drizzle-orm";
+import {getSession} from "@/core/auth/session";
+import {getPermissionsForRoles, type Permission} from "@/core/auth/permissions";
 
 export default async function VotingPage({
   params,
@@ -10,40 +12,60 @@ export default async function VotingPage({
 }) {
   const { tenantSlug } = await params;
   const tenantId = await ensureTenantExists(tenantSlug);
+  const session = await getSession();
+  const permissions: Permission[] = session
+    ? getPermissionsForRoles(session.user.roles)
+    : [];
 
-  const votingList = await db
+  const rows = await db
     .select({
-      id: votings.id,
+      votingId: votings.id,
       title: votings.title,
       votingType: votings.votingType,
       status: votings.status,
       startDate: votings.startDate,
       endDate: votings.endDate,
+      optionId: votingOptions.id,
+      optionLabel: votingOptions.label,
+      total: sql<string>`coalesce(sum(${votes.voteWeight}::numeric), 0)`.as("total"),
     })
     .from(votings)
+    .leftJoin(votingOptions, eq(votingOptions.votingId, votings.id))
+    .leftJoin(votes, eq(votes.optionId, votingOptions.id))
     .where(eq(votings.tenantId, tenantId))
-    .orderBy(votings.startDate);
+    .groupBy(votings.id, votingOptions.id)
+    .orderBy(votings.startDate, votingOptions.sortOrder);
 
-  const votingData = await Promise.all(
-    votingList.map(async (v) => {
-      const opts = await db
-        .select({ id: votingOptions.id, label: votingOptions.label })
-        .from(votingOptions)
-        .where(eq(votingOptions.votingId, v.id));
+  const votingMap = new Map<string, {
+    id: string;
+    title: string;
+    votingType: string;
+    status: string;
+    startDate: Date;
+    endDate: Date;
+    results: { label: string; total: number }[];
+  }>();
 
-      const results = await Promise.all(
-        opts.map(async (o) => {
-          const [row] = await db
-            .select({ total: sql<string>`coalesce(sum(${votes.voteWeight}::numeric), 0)` })
-            .from(votes)
-            .where(eq(votes.optionId, o.id));
-          return { label: o.label, total: Number(row?.total ?? 0) };
-        }),
-      );
+  for (const r of rows) {
+    let v = votingMap.get(r.votingId);
+    if (!v) {
+      v = {
+        id: r.votingId,
+        title: r.title,
+        votingType: r.votingType,
+        status: r.status,
+        startDate: r.startDate,
+        endDate: r.endDate,
+        results: [],
+      };
+      votingMap.set(r.votingId, v);
+    }
+    if (r.optionId && r.optionLabel) {
+      v.results.push({ label: r.optionLabel, total: Number(r.total ?? 0) });
+    }
+  }
 
-      return { ...v, results };
-    }),
-  );
+  const votingData = Array.from(votingMap.values());
 
   return (
     <div className="space-y-6">
@@ -52,9 +74,11 @@ export default async function VotingPage({
           <h1 className="text-2xl font-bold">Голосования</h1>
           <p className="text-sm text-zinc-500">Управление голосованиями собственников</p>
         </div>
-        <button className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-700 dark:bg-zinc-100 dark:text-zinc-900">
-          + Создать голосование
-        </button>
+        {permissions.includes("voting:write") && (
+          <button className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-700 dark:bg-zinc-100 dark:text-zinc-900">
+            + Создать голосование
+          </button>
+        )}
       </div>
 
       <div className="space-y-3">

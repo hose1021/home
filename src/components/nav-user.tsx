@@ -1,12 +1,8 @@
 "use client";
 
-import {
-  SidebarMenu,
-  SidebarMenuItem,
-  SidebarMenuButton,
-} from "@/components/ui/sidebar";
+import {SidebarMenu, SidebarMenuButton, SidebarMenuItem,} from "@/components/ui/sidebar";
 import Link from "next/link";
-import { IconUser } from "@tabler/icons-react";
+import {IconUser} from "@tabler/icons-react";
 
 export function NavUser({ slug, userName, userEmail }: { slug: string; userName: string; userEmail?: string }) {
   return (

@@ -10,6 +10,7 @@ export const announcements = pgTable("announcements", {
   content: text("content").notNull(),
   priority: varchar("priority", { length: 20 }).notNull().default("normal").$type<"low" | "normal" | "high" | "urgent">(),
   isPinned: boolean("is_pinned").notNull().default(false),
+  isDashboard: boolean("is_dashboard").notNull().default(false),
   status: varchar("status", { length: 20 }).notNull().default("active").$type<"active" | "archived" | "deleted">(),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),

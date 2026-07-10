@@ -5,14 +5,14 @@ import Link from "next/link";
 import {useRouter, useSearchParams} from "next/navigation";
 import {Dialog, DialogContent, DialogHeader, DialogTitle,} from "@/components/ui/dialog";
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import {toast} from "sonner";
 import {OwnerCreateForm} from "@/modules/owner/components/OwnerCreateForm";
@@ -21,13 +21,9 @@ import {deleteOwnerAction} from "@/modules/owner/owner.actions";
 import {Button} from "@/components/ui/button";
 import {Badge} from "@/components/ui/badge";
 import {IconSearch, IconX} from "@tabler/icons-react";
+import {ROLE_LABELS, ROLE_ORDER, type Role} from "@/core/auth/permissions";
 
-const ALL_ROLES = [
-  { value: "admin", label: "Админ" },
-  { value: "management_member", label: "Правление" },
-  { value: "commandant", label: "Председатель" },
-  { value: "owner", label: "Собственник" },
-];
+const ALL_ROLES = ROLE_ORDER.map((r) => ({ value: r, label: ROLE_LABELS[r] }));
 
 const UNIT_OPTIONS = [
   { value: "", label: "Все квартиры" },
@@ -54,9 +50,11 @@ type OwnerRow = {
   hasPaid: boolean;
 };
 
-export function OwnerTable({ slug, owners, initialSearch, initialRole, initialUnits, initialPayment }: {
+export function OwnerTable({ slug, owners, canManage, canManageRoles, initialSearch, initialRole, initialUnits, initialPayment }: {
   slug: string;
   owners: OwnerRow[];
+  canManage?: boolean;
+  canManageRoles?: boolean;
   initialSearch?: string;
   initialRole?: string;
   initialUnits?: string;
@@ -150,9 +148,11 @@ export function OwnerTable({ slug, owners, initialSearch, initialRole, initialUn
           </select>
         </div>
 
-        <Button variant="secondary" onClick={() => setCreateOpen(true)}>
-          + Добавить собственника
-        </Button>
+        {canManage && (
+          <Button variant="secondary" onClick={() => setCreateOpen(true)}>
+            + Добавить собственника
+          </Button>
+        )}
       </div>
 
       <div className="overflow-hidden rounded-lg border border-zinc-200 dark:border-zinc-800">
@@ -178,10 +178,12 @@ export function OwnerTable({ slug, owners, initialSearch, initialRole, initialUn
                 <td className="px-4 py-3 text-sm text-zinc-500">{o.username}</td>
                 <td className="px-4 py-3 text-right text-sm">{o.unitCount}</td>
                 <td className="px-4 py-3 text-right">
-                  <div className="flex justify-end gap-2">
-                    <Button variant="outline" size="sm" onClick={() => setEditing(o)}>Ред.</Button>
-                    <Button variant="destructive" size="sm" onClick={() => setDeleteId(o.id)}>Удалить</Button>
-                  </div>
+                  {canManage && (
+                    <div className="flex justify-end gap-2">
+                      <Button variant="outline" size="sm" onClick={() => setEditing(o)}>Ред.</Button>
+                      <Button variant="destructive" size="sm" onClick={() => setDeleteId(o.id)}>Удалить</Button>
+                    </div>
+                  )}
                 </td>
               </tr>
             ))}
@@ -201,7 +203,7 @@ export function OwnerTable({ slug, owners, initialSearch, initialRole, initialUn
       <Dialog open={!!editing} onOpenChange={(o) => { if (!o) setEditing(null); }}>
         <DialogContent>
           <DialogHeader><DialogTitle>Редактировать собственника</DialogTitle></DialogHeader>
-          {editing && <OwnerEditForm slug={slug} owner={editing} onDone={() => setEditing(null)} />}
+          {editing && <OwnerEditForm slug={slug} owner={editing} canManageRoles={canManageRoles} onDone={() => setEditing(null)} />}
         </DialogContent>
       </Dialog>
 
@@ -229,16 +231,10 @@ function RoleBadge({ roles }: { roles: string[] }) {
     commandant: "commandant",
     owner: "secondary",
   };
-  const labels: Record<string, string> = {
-    admin: "Админ",
-    management_member: "Правление",
-    commandant: "Председатель",
-    owner: "Собственник",
-  };
   return (
     <div className="flex flex-wrap gap-1">
       {roles.map((r) => (
-        <Badge variant={colors[r] as "admin" | "secondary" | "management_member" | "commandant"} key={r}>{labels[r] ?? r}</Badge>
+        <Badge variant={colors[r] as "admin" | "secondary" | "management_member" | "commandant"} key={r}>{ROLE_LABELS[r as Role] ?? r}</Badge>
       ))}
     </div>
   );

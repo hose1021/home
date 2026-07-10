@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { createOwnerAction } from "../owner.actions";
+import {useState} from "react";
+import {createOwnerAction} from "../owner.actions";
 
 export function OwnerCreateForm({
   slug,

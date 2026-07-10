@@ -1,9 +1,9 @@
-import { pgTable, uuid, varchar, timestamp, decimal, date, integer, boolean } from "drizzle-orm/pg-core";
-import { tenants } from "./tenants";
-import { units } from "./units";
-import { owners } from "./owners";
-import { funds } from "./funds";
-import { users } from "./users";
+import {boolean, date, decimal, integer, pgTable, timestamp, uuid, varchar} from "drizzle-orm/pg-core";
+import {tenants} from "./tenants";
+import {units} from "./units";
+import {owners} from "./owners";
+import {funds} from "./funds";
+import {users} from "./users";
 
 export const chargeTemplates = pgTable("charge_templates", {
   id: uuid("id").defaultRandom().primaryKey(),

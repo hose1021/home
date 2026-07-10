@@ -2,6 +2,7 @@
 
 import {useEffect, useState} from "react";
 import {useRouter} from "next/navigation";
+import {PLATFORM_NAME} from "@/core/config";
 
 export default function Home() {
   const router = useRouter();
@@ -55,8 +56,8 @@ export default function Home() {
     <div className="flex min-h-screen items-center justify-center px-4">
       <div className="w-full max-w-sm space-y-6">
         <div className="text-center">
-          <h1 className="text-2xl font-bold">Pilot Residence Platform</h1>
-          <p className="mt-1 text-sm text-zinc-500">Войдите в панель управления MMMC</p>
+          <h1 className="text-2xl font-bold">{PLATFORM_NAME}</h1>
+          <p className="mt-1 text-sm text-zinc-500">Войдите в панель управления</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">

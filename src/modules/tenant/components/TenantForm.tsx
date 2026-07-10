@@ -1,7 +1,7 @@
 "use client";
 
-import { useActionState } from "react";
-import { createTenantAction } from "../tenant.actions";
+import {useActionState} from "react";
+import {createTenantAction} from "../tenant.actions";
 
 const initialState = { success: false, error: null as string | null };
 
@@ -26,7 +26,7 @@ export function TenantForm() {
   return (
     <form action={formAction} className="space-y-4 max-w-md">
       <div>
-        <label htmlFor="name" className="block text-sm font-medium">Название MMMC</label>
+        <label htmlFor="name" className="block text-sm font-medium">Название организации</label>
         <input
           id="name"
           name="name"
@@ -72,7 +72,7 @@ export function TenantForm() {
         disabled={pending}
         className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-700 disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900"
       >
-        {pending ? "Создание..." : "Создать MMMC"}
+        {pending ? "Создание..." : "Создать"}
       </button>
     </form>
   );

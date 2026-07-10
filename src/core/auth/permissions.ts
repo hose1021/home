@@ -40,3 +40,26 @@ export function hasPermission(role: Role, permission: Permission): boolean {
 export function getPermissionsForRole(role: Role): Permission[] {
   return rolePermissions[role] ?? [];
 }
+
+export function hasAnyPermission(roles: Role[], permission: Permission): boolean {
+  return roles.some((role) => hasPermission(role, permission));
+}
+
+export function getPermissionsForRoles(roles: Role[]): Permission[] {
+  const set = new Set<Permission>();
+  for (const role of roles) {
+    for (const perm of rolePermissions[role] ?? []) {
+      set.add(perm);
+    }
+  }
+  return Array.from(set);
+}
+
+export const ROLE_LABELS: Record<Role, string> = {
+  admin: "Админ",
+  management_member: "Правление",
+  commandant: "Председатель",
+  owner: "Собственник",
+};
+
+export const ROLE_ORDER: Role[] = ["admin", "commandant", "management_member", "owner"];

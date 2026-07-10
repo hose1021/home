@@ -8,16 +8,20 @@ import {units} from "@/core/db/schema/units";
 import {userRoles, users} from "@/core/db/schema/users";
 import {managementMembers} from "@/core/db/schema/management-members";
 import {ensureTenantExists} from "@/core/multi-tenant";
+import {getTenantBySlug} from "@/modules/tenant/tenant.service";
+import {getDashboardAnnouncement} from "@/modules/announcements/announcement.service";
 import {and, eq, inArray, sql} from "drizzle-orm";
 import {Badge} from "@/components/ui/badge";
 
 export default async function DashboardPage({
-                                                params,
-                                            }: {
+                                                 params,
+                                             }: {
     params: Promise<{ tenantSlug: string }>;
 }) {
     const {tenantSlug} = await params;
     const tenantId = await ensureTenantExists(tenantSlug);
+    const tenant = await getTenantBySlug(tenantSlug);
+    const dashboardAnnouncement = await getDashboardAnnouncement(tenantId);
 
     const [unitCount] = await db
         .select({count: sql<number>`count(*)`})
@@ -37,7 +41,7 @@ export default async function DashboardPage({
     const [ticketCount] = await db
         .select({count: sql<number>`count(*)`})
         .from(tickets)
-        .where(and(eq(tickets.tenantId, tenantId), eq(tickets.status, "open")));
+        .where(and(eq(tickets.tenantId, tenantId), eq(tickets.status, "pending")));
 
     const recentPayments = await db
         .select({
@@ -114,8 +118,22 @@ export default async function DashboardPage({
         <div className="space-y-6">
             <div>
                 <h1 className="text-2xl font-bold">Дашборд</h1>
-                <p className="text-sm text-zinc-500">Pilot Residence</p>
+                <p className="text-sm text-zinc-500">{tenant?.name ?? tenantSlug}</p>
             </div>
+
+            {dashboardAnnouncement && (
+                <div className={`rounded-lg border-l-4 p-4 ${
+                    dashboardAnnouncement.priority === "urgent" ? "border-l-red-500 bg-red-50 dark:bg-red-950/20" :
+                    dashboardAnnouncement.priority === "high" ? "border-l-amber-500 bg-amber-50 dark:bg-amber-950/20" :
+                    "border-l-blue-500 bg-blue-50 dark:bg-blue-950/20"
+                }`}>
+                    <div className="flex items-center gap-2">
+                        <h2 className="font-semibold">{dashboardAnnouncement.title}</h2>
+                        <span className="text-xs text-zinc-400">объявление</span>
+                    </div>
+                    <p className="mt-1 whitespace-pre-wrap text-sm text-zinc-700 dark:text-zinc-300">{dashboardAnnouncement.content}</p>
+                </div>
+            )}
 
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                 <DashboardCard title="Всего квартир" value={String(unitCount?.count ?? 0)}/>

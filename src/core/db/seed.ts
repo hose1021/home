@@ -1,21 +1,35 @@
 import "dotenv/config";
 import {db} from "./index";
 import {tenants} from "./schema/tenants";
-import {buildings} from "@/core/db/schema";
+import {
+    buildings,
+    managementMembers,
+    meetingAgendas,
+    meetings,
+    payments,
+    protocols,
+    protocolSignatures
+} from "@/core/db/schema";
 import {units} from "./schema/units";
 import {owners, ownerships} from "./schema/owners";
-import {users, userRoles} from "./schema/users";
+import {userRoles, users} from "./schema/users";
 import {funds} from "./schema/funds";
-import {chargeTemplates, charges} from "./schema/charges";
-import {payments} from "@/core/db/schema";
-import {votings, votingOptions, votes} from "./schema/votings";
-import {meetings, meetingAgendas} from "@/core/db/schema";
-import {protocols, protocolSignatures} from "./schema/protocols";
-import {budgets, budgetItems} from "./schema/budgets";
-import {managementMembers} from "./schema/management-members";
+import {charges, chargeTemplates} from "./schema/charges";
+import {votes, votingOptions, votings} from "./schema/votings";
+import {budgetItems, budgets} from "./schema/budgets";
 import {and, eq} from "drizzle-orm";
 import {createUser, hashPassword} from "../auth/auth";
 import type {Role} from "../auth/permissions";
+
+const SEED_TENANT_SLUG = process.env.SEED_TENANT_SLUG ?? "demo";
+const SEED_TENANT_NAME = process.env.SEED_TENANT_NAME ?? "Demo Residence";
+const SEED_TENANT_ADDRESS = process.env.SEED_TENANT_ADDRESS ?? "Baku, Azerbaijan";
+const SEED_ADMIN_USERNAME = process.env.SEED_ADMIN_USERNAME ?? "admin.admin";
+const SEED_ADMIN_FULLNAME = process.env.SEED_ADMIN_FULLNAME ?? "Admin Admin";
+const SEED_ADMIN_PASSWORD = process.env.SEED_ADMIN_PASSWORD ?? "admin123";
+const SEED_OWNER_PASSWORD = process.env.SEED_OWNER_PASSWORD ?? "owner123";
+const SEED_BUILDING_NAME = process.env.SEED_BUILDING_NAME ?? "Demo Building A";
+const SEED_BUILDING_ADDRESS = process.env.SEED_BUILDING_ADDRESS ?? "Baku";
 
 const numberWords = [
     "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten",
@@ -32,15 +46,15 @@ const managementUsernames = ["iman.m", "azer.m", "elvina.x", "sevda.x", "mikayil
 async function seed() {
     console.log("Seeding database...");
 
-    const adminUsername = "mikail.huseynov";
+    const adminUsername = SEED_ADMIN_USERNAME;
 
     // ─── TENANT ────────────────────────────────────────────────
-    let tenant = (await db.select().from(tenants).where(eq(tenants.slug, "demo-mmmc")).limit(1))[0];
+    let tenant = (await db.select().from(tenants).where(eq(tenants.slug, SEED_TENANT_SLUG)).limit(1))[0];
     if (!tenant) {
         [tenant] = await db.insert(tenants).values({
-            slug: "demo-mmmc",
-            name: "Demo MMMC",
-            address: "Baku, Azerbaijan"
+            slug: SEED_TENANT_SLUG,
+            name: SEED_TENANT_NAME,
+            address: SEED_TENANT_ADDRESS
         }).returning();
         console.log(`Tenant created: ${tenant.name}`);
     } else {
@@ -53,21 +67,21 @@ async function seed() {
         admin = await createUser({
             tenantId: tenant.id,
             username: adminUsername,
-            fullName: "Mikail Huseynov",
-            password: "admin123",
+            fullName: SEED_ADMIN_FULLNAME,
+            password: SEED_ADMIN_PASSWORD,
         });
     } else {
         await db
             .update(users)
             .set({
-                fullName: "Mikail Huseynov",
-                passwordHash: await hashPassword("admin123"),
+                fullName: SEED_ADMIN_FULLNAME,
+                passwordHash: await hashPassword(SEED_ADMIN_PASSWORD),
                 isActive: true,
                 updatedAt: new Date(),
             })
             .where(eq(users.id, admin.id));
     }
-    console.log(`Admin: ${adminUsername} / admin123`);
+    console.log(`Admin: ${adminUsername} / ${SEED_ADMIN_PASSWORD}`);
 
     const [adminOwner] = await db
         .select()
@@ -90,8 +104,8 @@ async function seed() {
     if (!building) {
         [building] = await db.insert(buildings).values({
             tenantId: tenant.id,
-            name: "Demo Building A",
-            address: "28 May, Baku",
+            name: SEED_BUILDING_NAME,
+            address: SEED_BUILDING_ADDRESS,
             totalFloors: 5,
             totalEntrances: 1,
             totalArea: "2000.00",
@@ -119,7 +133,7 @@ async function seed() {
         "Elçin Bağırov", "Zəhra Rzayeva",
     ];
     const createdOwners = await db.select().from(owners).where(eq(owners.tenantId, tenant.id));
-    const demoPasswordHash = await hashPassword("owner123");
+    const demoPasswordHash = await hashPassword(SEED_OWNER_PASSWORD);
     for (const [index, owner] of createdOwners.entries()) {
         if (owner.userId) continue;
         const [user] = await db.insert(users).values({
@@ -143,7 +157,7 @@ async function seed() {
                 fullName: name,
                 phone: `+99450${String(1000000 + Math.floor(Math.random() * 9000000)).slice(0, 7)}`,
                 username: `owner.${numberWord(index + 1)}`,
-                password: "owner123",
+                password: SEED_OWNER_PASSWORD,
             });
             const [owner] = await db.select().from(owners).where(eq(owners.userId, user.id)).limit(1);
             createdOwners.push(owner);
@@ -197,7 +211,7 @@ async function seed() {
                 tenantId: tenant.id,
                 fullName: member.fullName,
                 username: managementUsernames[index],
-                password: "owner123",
+                password: SEED_OWNER_PASSWORD,
             });
             [owner] = await db.select().from(owners).where(eq(owners.userId, user.id)).limit(1);
             createdOwners.push(owner);
@@ -309,7 +323,7 @@ async function seed() {
         console.log(`Created ${createdFunds.length} funds`);
     }
 
-    // ─── CHARGE TEMPLATES (real rates from Pilot Residence) ───
+    // ─── CHARGE TEMPLATES (demo monthly rates) ───
     let templates = await db.select().from(chargeTemplates).where(eq(chargeTemplates.tenantId, tenant.id));
     if (templates.length === 0) {
         templates = await db.insert(chargeTemplates).values([
@@ -486,7 +500,7 @@ async function seed() {
         console.log("Protocol signed");
     }
 
-    // ─── BUDGET (2026) — Pilot Residence real smeta ───────────
+    // ─── BUDGET (2026) — demo smeta ───────────
     let budget = (await db.select().from(budgets).where(eq(budgets.tenantId, tenant.id)).limit(1))[0];
     if (!budget) {
         [budget] = await db.insert(budgets).values({

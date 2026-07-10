@@ -1,9 +1,9 @@
-import { NextRequest, NextResponse } from "next/server";
-import { createUser, createSession } from "@/core/auth/auth";
-import { getSessionCookieName } from "@/core/auth/session";
-import { db } from "@/core/db";
-import { tenants } from "@/core/db/schema/tenants";
-import { eq } from "drizzle-orm";
+import {type NextRequest, NextResponse} from "next/server";
+import {createSession, createUser} from "@/core/auth/auth";
+import {getSessionCookieName} from "@/core/auth/session";
+import {db} from "@/core/db";
+import {tenants} from "@/core/db/schema/tenants";
+import {eq} from "drizzle-orm";
 
 export async function POST(request: NextRequest) {
   try {

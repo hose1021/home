@@ -1,10 +1,21 @@
-import { sql } from "drizzle-orm";
-import { pgTable, uuid, varchar, text, timestamp, integer, decimal, boolean, check, uniqueIndex } from "drizzle-orm/pg-core";
-import { tenants } from "./tenants";
-import { meetings } from "./meetings";
-import { owners } from "./owners";
-import { units } from "./units";
-import { users } from "./users";
+import {sql} from "drizzle-orm";
+import {
+    boolean,
+    check,
+    decimal,
+    integer,
+    pgTable,
+    text,
+    timestamp,
+    uniqueIndex,
+    uuid,
+    varchar
+} from "drizzle-orm/pg-core";
+import {tenants} from "./tenants";
+import {meetings} from "./meetings";
+import {owners} from "./owners";
+import {units} from "./units";
+import {users} from "./users";
 
 export const votings = pgTable("votings", {
   id: uuid("id").defaultRandom().primaryKey(),

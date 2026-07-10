@@ -1,25 +1,20 @@
 "use client";
 
-import { useState } from "react";
+import {useState} from "react";
+import {Dialog, DialogContent, DialogHeader, DialogTitle,} from "@/components/ui/dialog";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
-  AlertDialog,
-  AlertDialogContent,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogCancel,
-  AlertDialogAction,
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { toast } from "sonner";
-import { MeetingForm } from "@/modules/meeting/components/MeetingForm";
-import { deleteMeetingAction } from "@/modules/meeting/meeting.actions";
+import {toast} from "sonner";
+import {MeetingForm} from "@/modules/meeting/components/MeetingForm";
+import {deleteMeetingAction} from "@/modules/meeting/meeting.actions";
 
 type Agenda = { id: string; title: string; description: string | null; sortOrder: number };
 type Meeting = {
@@ -34,7 +29,7 @@ type Meeting = {
   agendas: Agenda[];
 };
 
-export function MeetingTable({ slug, meetings }: { slug: string; meetings: Meeting[] }) {
+export function MeetingTable({ slug, meetings, canManage }: { slug: string; meetings: Meeting[]; canManage?: boolean }) {
   const [createOpen, setCreateOpen] = useState(false);
   const [editing, setEditing] = useState<Meeting | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
@@ -49,9 +44,11 @@ export function MeetingTable({ slug, meetings }: { slug: string; meetings: Meeti
   return (
     <>
       <div className="flex items-center justify-end mb-4">
-        <button onClick={() => setCreateOpen(true)} className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-700 dark:bg-zinc-100 dark:text-zinc-900">
-          + Создать собрание
-        </button>
+        {canManage && (
+          <button onClick={() => setCreateOpen(true)} className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-700 dark:bg-zinc-100 dark:text-zinc-900">
+            + Создать собрание
+          </button>
+        )}
       </div>
 
       <div className="space-y-3">
@@ -79,8 +76,12 @@ export function MeetingTable({ slug, meetings }: { slug: string; meetings: Meeti
                 )}
               </div>
               <div className="flex items-start gap-2 ml-4">
-                <button onClick={() => setEditing(m)} className="text-xs text-zinc-500 hover:text-zinc-700">Ред.</button>
-                <button onClick={() => setDeleteId(m.id)} className="text-xs text-red-500 hover:text-red-700">Отменить</button>
+                {canManage && (
+                  <>
+                    <button onClick={() => setEditing(m)} className="text-xs text-zinc-500 hover:text-zinc-700">Ред.</button>
+                    <button onClick={() => setDeleteId(m.id)} className="text-xs text-red-500 hover:text-red-700">Отменить</button>
+                  </>
+                )}
               </div>
             </div>
           </div>

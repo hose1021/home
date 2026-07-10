@@ -9,6 +9,7 @@ type AnnouncementData = {
   content: string;
   priority: string;
   isPinned: boolean;
+  isDashboard: boolean;
 };
 
 export function AnnouncementForm({
@@ -35,10 +36,11 @@ export function AnnouncementForm({
         content: fd.get("content") as string,
         priority: (fd.get("priority") || "normal") as "low" | "normal" | "high" | "urgent",
         isPinned: fd.get("isPinned") === "on",
+        isDashboard: fd.get("isDashboard") === "on",
       };
 
       if (isEdit) {
-        await updateAnnouncementAction(slug, announcement.id, data);
+        await updateAnnouncementAction(slug, announcement!.id, data);
       } else {
         await createAnnouncementAction(slug, data);
       }
@@ -72,10 +74,14 @@ export function AnnouncementForm({
             <option value="urgent">Срочный</option>
           </select>
         </div>
-        <div className="flex items-end pb-1">
+        <div className="flex items-end gap-4 pb-1">
           <label className="flex items-center gap-2 cursor-pointer">
             <input name="isPinned" type="checkbox" defaultChecked={announcement?.isPinned} className="rounded border-zinc-300 dark:border-zinc-700" />
             <span className="text-sm font-medium">Закрепить</span>
+          </label>
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input name="isDashboard" type="checkbox" defaultChecked={announcement?.isDashboard} className="rounded border-zinc-300 dark:border-zinc-700" />
+            <span className="text-sm font-medium">На дашборд</span>
           </label>
         </div>
       </div>

@@ -1,7 +1,8 @@
-import { db } from "@/core/db";
-import { tenants } from "@/core/db/schema/tenants";
-import { eq } from "drizzle-orm";
-import { writeAuditLog } from "@/core/audit/audit.service";
+import {db} from "@/core/db";
+import {tenants} from "@/core/db/schema/tenants";
+import {eq} from "drizzle-orm";
+import {writeAuditLog} from "@/core/audit/audit.service";
+import {invalidateTenantCache} from "@/core/multi-tenant";
 
 type CreateTenantInput = {
   slug: string;
@@ -58,6 +59,9 @@ export async function updateTenant(id: string, input: UpdateTenantInput, userId:
     .set({ ...input, updatedAt: new Date() })
     .where(eq(tenants.id, id))
     .returning();
+
+  invalidateTenantCache(old.slug);
+  if (input.slug && input.slug !== old.slug) invalidateTenantCache(input.slug);
 
   await writeAuditLog({
     tenantId: id,

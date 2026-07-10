@@ -1,4 +1,4 @@
-import { listTenants } from "../tenant.service";
+import {listTenants} from "../tenant.service";
 
 export async function TenantList() {
   const tenants = await listTenants();
@@ -25,7 +25,7 @@ export async function TenantList() {
         </div>
       ))}
       {tenants.length === 0 && (
-        <p className="text-sm text-zinc-400">Нет зарегистрированных MMMC</p>
+        <p className="text-sm text-zinc-400">Нет зарегистрированных организаций</p>
       )}
     </div>
   );

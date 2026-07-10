@@ -1,9 +1,10 @@
-import { db } from "@/core/db";
-import { users, sessions, userRoles } from "@/core/db/schema/users";
-import { owners } from "@/core/db/schema/owners";
-import { eq, and, gt } from "drizzle-orm";
+import {db} from "@/core/db";
+import {sessions, userRoles, users} from "@/core/db/schema/users";
+import {owners} from "@/core/db/schema/owners";
+import {and, eq, gt} from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
+import type {Role} from "./permissions";
 
 const SALT_ROUNDS = 12;
 const SESSION_DURATION_MS = 7 * 24 * 60 * 60 * 1000;
@@ -13,6 +14,7 @@ export type SessionUser = {
   tenantId: string;
   username: string;
   fullName: string;
+  roles: Role[];
 };
 
 const USERNAME_PATTERN = /^\p{L}+\.\p{L}+$/u;
@@ -131,11 +133,19 @@ export async function getSessionFromToken(token: string): Promise<SessionUser | 
 
   if (!result) return null;
 
+  const roleRows = await db
+    .select({ role: userRoles.role })
+    .from(userRoles)
+    .where(eq(userRoles.userId, result.userId));
+
+  const roles = roleRows.length > 0 ? roleRows.map((r) => r.role) : (["owner"] as Role[]);
+
   return {
     id: result.userId,
     tenantId: result.tenantId,
     username: result.username,
     fullName: result.fullName,
+    roles,
   };
 }
 

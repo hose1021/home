@@ -1,9 +1,9 @@
-import { db } from "@/core/db";
-import { charges, chargeTemplates } from "@/core/db/schema/charges";
-import { units } from "@/core/db/schema/units";
-import { ownerships } from "@/core/db/schema/owners";
-import { eq, and } from "drizzle-orm";
-import { writeAuditLog } from "@/core/audit/audit.service";
+import {db} from "@/core/db";
+import {charges, chargeTemplates} from "@/core/db/schema/charges";
+import {units} from "@/core/db/schema/units";
+import {ownerships} from "@/core/db/schema/owners";
+import {and, eq} from "drizzle-orm";
+import {writeAuditLog} from "@/core/audit/audit.service";
 
 type GenerateChargesInput = {
   templateId: string;
@@ -75,4 +75,43 @@ export async function listCharges(tenantId: string, periodYear?: number, periodM
     .from(charges)
     .where(and(...conditions))
     .orderBy(charges.dueDate);
+}
+
+export async function listChargesWithDetails(tenantId: string, filter?: {
+  periodYear?: number;
+  periodMonth?: number;
+  status?: string;
+}) {
+  const conditions = [eq(charges.tenantId, tenantId)];
+  if (filter?.periodYear) conditions.push(eq(charges.periodYear, filter.periodYear));
+  if (filter?.periodMonth) conditions.push(eq(charges.periodMonth, filter.periodMonth));
+  if (filter?.status) conditions.push(eq(charges.status, filter.status as "pending" | "paid" | "partially_paid" | "overdue" | "cancelled"));
+
+  return await db
+    .select({
+      id: charges.id,
+      amount: charges.amount,
+      periodYear: charges.periodYear,
+      periodMonth: charges.periodMonth,
+      dueDate: charges.dueDate,
+      status: charges.status,
+      unitNumber: units.unitNumber,
+      entrance: units.entrance,
+      floor: units.floor,
+      ownerName: owners.fullName,
+      templateName: chargeTemplates.name,
+    })
+    .from(charges)
+    .leftJoin(units, eq(units.id, charges.unitId))
+    .leftJoin(owners, eq(owners.id, charges.ownerId))
+    .leftJoin(chargeTemplates, eq(chargeTemplates.id, charges.templateId))
+    .where(and(...conditions))
+    .orderBy(charges.dueDate);
+}
+
+export async function listChargeTemplates(tenantId: string) {
+  return await db
+    .select()
+    .from(chargeTemplates)
+    .where(and(eq(chargeTemplates.tenantId, tenantId), eq(chargeTemplates.isActive, true)));
 }

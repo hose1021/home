@@ -1,7 +1,7 @@
-import { pgTable, uuid, varchar, text, timestamp } from "drizzle-orm/pg-core";
-import { tenants } from "./tenants";
-import { meetings } from "./meetings";
-import { users } from "./users";
+import {pgTable, text, timestamp, uuid, varchar} from "drizzle-orm/pg-core";
+import {tenants} from "./tenants";
+import {meetings} from "./meetings";
+import {users} from "./users";
 
 export const protocols = pgTable("protocols", {
   id: uuid("id").defaultRandom().primaryKey(),

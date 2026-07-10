@@ -2,25 +2,27 @@
 
 import Link from "next/link";
 import {
-  SidebarGroup,
-  SidebarGroupLabel,
-  SidebarMenu,
-  SidebarMenuItem,
-  SidebarMenuButton,
+    SidebarGroup,
+    SidebarGroupLabel,
+    SidebarMenu,
+    SidebarMenuButton,
+    SidebarMenuItem,
 } from "@/components/ui/sidebar";
-import { IconReport, IconCoin } from "@tabler/icons-react";
+import {IconCoin, IconReport} from "@tabler/icons-react";
+import type {Permission} from "@/core/auth/permissions";
 
-const docs = [
-  { name: "Бюджет", url: "/finance/budget", icon: IconCoin },
-  { name: "Отчёты", url: "/reports", icon: IconReport },
+const docs: { name: string; url: string; icon: typeof IconCoin; perm?: Permission }[] = [
+  { name: "Бюджет", url: "/finance/budget", icon: IconCoin, perm: "budget:read" },
+  { name: "Отчёты", url: "/reports", icon: IconReport, perm: "report:read" },
 ];
 
-export function NavDocuments({ slug }: { slug: string }) {
+export function NavDocuments({ slug, permissions }: { slug: string; permissions?: Permission[] }) {
+  const visible = docs.filter((item) => !item.perm || permissions?.includes(item.perm));
   return (
     <SidebarGroup>
       <SidebarGroupLabel>Документы</SidebarGroupLabel>
       <SidebarMenu>
-        {docs.map((item) => (
+        {visible.map((item) => (
           <SidebarMenuItem key={item.url}>
             <SidebarMenuButton render={<Link href={`/${slug}${item.url}`} />}>
               <item.icon className="size-5" />

@@ -1,8 +1,10 @@
-import { ensureTenantExists } from "@/core/multi-tenant";
-import { db } from "@/core/db";
-import { meetings, meetingAgendas } from "@/core/db/schema/meetings";
-import { eq } from "drizzle-orm";
-import { MeetingTable } from "./meeting-table";
+import {ensureTenantExists} from "@/core/multi-tenant";
+import {db} from "@/core/db";
+import {meetingAgendas, meetings} from "@/core/db/schema/meetings";
+import {eq, inArray} from "drizzle-orm";
+import {MeetingTable} from "./meeting-table";
+import {getSession} from "@/core/auth/session";
+import {getPermissionsForRoles, type Permission} from "@/core/auth/permissions";
 
 export default async function MeetingsPage({
   params,
@@ -11,6 +13,10 @@ export default async function MeetingsPage({
 }) {
   const { tenantSlug } = await params;
   const tenantId = await ensureTenantExists(tenantSlug);
+  const session = await getSession();
+  const permissions: Permission[] = session
+    ? getPermissionsForRoles(session.user.roles)
+    : [];
 
   const meetingList = await db
     .select()
@@ -18,16 +24,26 @@ export default async function MeetingsPage({
     .where(eq(meetings.tenantId, tenantId))
     .orderBy(meetings.proposedDate);
 
-  const meetingData = await Promise.all(
-    meetingList.map(async (m) => {
-      const agendas = await db
+  const meetingIds = meetingList.map((m) => m.id);
+  const allAgendas = meetingIds.length > 0
+    ? await db
         .select()
         .from(meetingAgendas)
-        .where(eq(meetingAgendas.meetingId, m.id))
-        .orderBy(meetingAgendas.sortOrder);
-      return { ...m, agendas };
-    }),
-  );
+        .where(inArray(meetingAgendas.meetingId, meetingIds))
+        .orderBy(meetingAgendas.sortOrder)
+    : [];
+
+  const agendasByMeeting = new Map<string, typeof allAgendas>();
+  for (const a of allAgendas) {
+    const arr = agendasByMeeting.get(a.meetingId) ?? [];
+    arr.push(a);
+    agendasByMeeting.set(a.meetingId, arr);
+  }
+
+  const meetingData = meetingList.map((m) => ({
+    ...m,
+    agendas: agendasByMeeting.get(m.id) ?? [],
+  }));
 
   return (
     <div className="space-y-6">
@@ -37,7 +53,7 @@ export default async function MeetingsPage({
           <p className="text-sm text-zinc-500">{meetingData.length} шт.</p>
         </div>
       </div>
-      <MeetingTable slug={tenantSlug} meetings={meetingData} />
+      <MeetingTable slug={tenantSlug} meetings={meetingData} canManage={permissions.includes("meeting:write")} />
     </div>
   );
 }

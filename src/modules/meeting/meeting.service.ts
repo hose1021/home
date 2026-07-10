@@ -1,6 +1,7 @@
-import { db } from "@/core/db";
-import { meetings, meetingAgendas } from "@/core/db/schema/meetings";
-import { eq, and } from "drizzle-orm";
+import {db} from "@/core/db";
+import {meetingAgendas, meetings} from "@/core/db/schema/meetings";
+import {and, eq} from "drizzle-orm";
+import {writeAuditLog} from "@/core/audit/audit.service";
 
 export async function getMeetingById(tenantId: string, id: string) {
   const [m] = await db
@@ -51,6 +52,15 @@ export async function createMeeting(tenantId: string, userId: string, input: {
     );
   }
 
+  await writeAuditLog({
+    tenantId,
+    userId,
+    action: "create",
+    entityType: "meeting",
+    entityId: meeting.id,
+    newValues: { title: input.title, meetingType: input.meetingType, proposedDate: input.proposedDate },
+  });
+
   return meeting;
 }
 
@@ -63,18 +73,52 @@ export async function updateMeeting(tenantId: string, id: string, input: {
   actualDate?: Date | null;
   location?: string | null;
   onlineLink?: string | null;
-}) {
+}, userId: string) {
+  const [existing] = await db
+    .select()
+    .from(meetings)
+    .where(and(eq(meetings.id, id), eq(meetings.tenantId, tenantId)))
+    .limit(1);
+  if (!existing) return null;
+
   const [updated] = await db
     .update(meetings)
     .set({ ...input, updatedAt: new Date() })
     .where(and(eq(meetings.id, id), eq(meetings.tenantId, tenantId)))
     .returning();
+
+  await writeAuditLog({
+    tenantId,
+    userId,
+    action: "update",
+    entityType: "meeting",
+    entityId: id,
+    oldValues: existing as unknown as Record<string, unknown>,
+    newValues: input as unknown as Record<string, unknown>,
+  });
+
   return updated;
 }
 
-export async function deleteMeeting(tenantId: string, id: string) {
+export async function deleteMeeting(tenantId: string, id: string, userId: string) {
+  const [existing] = await db
+    .select()
+    .from(meetings)
+    .where(and(eq(meetings.id, id), eq(meetings.tenantId, tenantId)))
+    .limit(1);
+  if (!existing) return;
+
   await db
     .update(meetings)
     .set({ status: "cancelled", updatedAt: new Date() })
     .where(and(eq(meetings.id, id), eq(meetings.tenantId, tenantId)));
+
+  await writeAuditLog({
+    tenantId,
+    userId,
+    action: "delete",
+    entityType: "meeting",
+    entityId: id,
+    oldValues: { title: existing.title } as Record<string, unknown>,
+  });
 }
