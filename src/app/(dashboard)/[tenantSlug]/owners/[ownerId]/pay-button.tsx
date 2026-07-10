@@ -33,6 +33,7 @@ export function PayButton({
   entrance,
   floor,
   monthlyFee,
+  tariff,
   periods,
 }: {
   slug: string;
@@ -42,6 +43,7 @@ export function PayButton({
   entrance: number;
   floor: number;
   monthlyFee: number;
+  tariff: number;
   periods: { year: number; month: number; charged: number; paid: number }[];
 }) {
   const [open, setOpen] = useState(false);
@@ -68,6 +70,7 @@ export function PayButton({
         slug, ownerId, unitId, amount, year, month,
         method as "cash" | "bank_transfer" | "card" | "e_manat" | "pos_terminal",
         referenceNo || undefined,
+        tariff.toFixed(2),
       );
       setOpen(false);
       toast.success("Платёж проведён");

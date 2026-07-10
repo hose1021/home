@@ -11,6 +11,7 @@ import {ensureTenantExists} from "@/core/multi-tenant";
 import {getSession} from "@/core/auth/session";
 import {getPermissionsForRoles, type Permission} from "@/core/auth/permissions";
 import {PayButton} from "./pay-button";
+import {PaymentHistory} from "./payment-history";
 import {Card, CardContent, CardHeader, CardTitle} from "@/components/ui/card";
 import {Badge} from "@/components/ui/badge";
 import {Table, TableHeader, TableBody, TableRow, TableHead, TableCell} from "@/components/ui/table";
@@ -102,25 +103,50 @@ export default async function OwnerDetailsPage({
 
   const unitIds = ownerUnits.map((u) => u.id);
 
-  const paymentRows = unitIds.length > 0
-    ? await db
-        .select({
-          unitId: payments.unitId,
-          periodYear: payments.periodYear,
-          periodMonth: payments.periodMonth,
-          paid: sql<string>`coalesce(sum(${payments.amount}::numeric), 0)`,
-        })
-        .from(payments)
-        .where(and(
-          eq(payments.ownerId, owner.id),
-          eq(payments.tenantId, tenantId),
-          eq(payments.status, "confirmed"),
-        ))
-        .groupBy(payments.unitId, payments.periodYear, payments.periodMonth)
-    : [];
+  const [paymentAgg, paymentList] = unitIds.length > 0
+    ? await Promise.all([
+        db
+          .select({
+            unitId: payments.unitId,
+            periodYear: payments.periodYear,
+            periodMonth: payments.periodMonth,
+            paid: sql<string>`coalesce(sum(${payments.amount}::numeric), 0)`,
+          })
+          .from(payments)
+          .where(and(
+            eq(payments.ownerId, owner.id),
+            eq(payments.tenantId, tenantId),
+            eq(payments.status, "confirmed"),
+          ))
+          .groupBy(payments.unitId, payments.periodYear, payments.periodMonth),
+        db
+          .select({
+            id: payments.id,
+            amount: payments.amount,
+            tariffPerSqm: payments.tariffPerSqm,
+            periodYear: payments.periodYear,
+            periodMonth: payments.periodMonth,
+            paymentMethod: payments.paymentMethod,
+            referenceNo: payments.referenceNo,
+            notes: payments.notes,
+            paymentDate: payments.paymentDate,
+            unitId: payments.unitId,
+            unitNumber: units.unitNumber,
+            entrance: units.entrance,
+            floor: units.floor,
+          })
+          .from(payments)
+          .innerJoin(units, eq(units.id, payments.unitId))
+          .where(and(
+            eq(payments.ownerId, owner.id),
+            eq(payments.tenantId, tenantId),
+          ))
+          .orderBy(sql`${payments.paymentDate} DESC`),
+      ])
+    : [[], []];
 
   const paymentsByUnit = new Map<string, Map<string, number>>();
-  for (const p of paymentRows) {
+  for (const p of paymentAgg) {
     const inner = paymentsByUnit.get(p.unitId) ?? new Map<string, number>();
     inner.set(`${p.periodYear}-${p.periodMonth}`, Number(p.paid));
     paymentsByUnit.set(p.unitId, inner);
@@ -199,6 +225,7 @@ export default async function OwnerDetailsPage({
                             entrance={unit.entrance}
                             floor={unit.floor}
                             monthlyFee={monthlyFee}
+                            tariff={TARIFF}
                             periods={allPeriods}
                           />
                         )}
@@ -257,6 +284,20 @@ export default async function OwnerDetailsPage({
           )}
         </div>
       </div>
+
+      {paymentList.length > 0 && (
+        <Card>
+          <CardHeader><CardTitle>История платежей</CardTitle></CardHeader>
+          <CardContent>
+            <PaymentHistory
+              slug={tenantSlug}
+              ownerId={owner.id}
+              canEdit={canPay}
+              payments={paymentList}
+            />
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

@@ -13,6 +13,7 @@ export const payments = pgTable("payments", {
   unitId: uuid("unit_id").notNull().references(() => units.id),
   ownerId: uuid("owner_id").notNull().references(() => owners.id),
   amount: decimal("amount", { precision: 12, scale: 2 }).notNull(),
+  tariffPerSqm: decimal("tariff_per_sqm", { precision: 12, scale: 2 }).notNull().default("0.40"),
   periodYear: integer("period_year").notNull(),
   periodMonth: integer("period_month").notNull(),
   paymentDate: timestamp("payment_date", { withTimezone: true }).notNull(),
@@ -23,4 +24,5 @@ export const payments = pgTable("payments", {
   transactionId: uuid("transaction_id").references(() => transactions.id),
   notes: text("notes"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
