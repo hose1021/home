@@ -3,6 +3,7 @@
 import {revalidatePath} from "next/cache";
 import {requirePermission} from "@/core/auth/session";
 import {createTenant, deactivateTenant, updateTenant} from "./tenant.service";
+import {createTenantSchema, updateTenantSchema} from "./tenant.validators";
 
 export async function createTenantAction(input: {
   slug: string;
@@ -12,7 +13,7 @@ export async function createTenantAction(input: {
   phone?: string;
 }) {
   const session = await requirePermission("tenant:write");
-  const tenant = await createTenant(input, session.user.id);
+  const tenant = await createTenant(createTenantSchema.parse(input), session.user.id);
   revalidatePath("/admin/tenants");
   return { success: true, tenant };
 }
@@ -27,7 +28,7 @@ export async function updateTenantAction(
   },
 ) {
   const session = await requirePermission("tenant:write");
-  const updated = await updateTenant(id, input, session.user.id);
+  const updated = await updateTenant(id, updateTenantSchema.parse(input), session.user.id);
   revalidatePath("/admin/tenants", "layout");
   return { success: true, tenant: updated };
 }

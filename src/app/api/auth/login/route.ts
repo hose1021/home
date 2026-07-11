@@ -1,33 +1,29 @@
 import {type NextRequest, NextResponse} from "next/server";
 import {authenticateUser, createSession} from "@/core/auth/auth";
 import {getSessionCookieName} from "@/core/auth/session";
-import {db} from "@/core/db";
-import {tenants} from "@/core/db/schema/tenants";
-import {eq} from "drizzle-orm";
+import {z} from "zod";
+
+const loginSchema = z.object({
+  username: z.string().trim().min(1).max(100),
+  password: z.string().min(1).max(1024),
+});
 
 export async function POST(request: NextRequest) {
   try {
-    const { username, password } = await request.json();
-
-    if (!username || !password) {
+    const parsed = loginSchema.safeParse(await request.json());
+    if (!parsed.success) {
       return NextResponse.json({ error: "Username and password required" }, { status: 400 });
     }
 
-    const user = await authenticateUser(username, password);
+    const user = await authenticateUser(parsed.data.username, parsed.data.password);
     if (!user) {
       return NextResponse.json({ error: "Invalid username or password" }, { status: 401 });
     }
 
-    const [tenant] = await db
-      .select({ slug: tenants.slug })
-      .from(tenants)
-      .where(eq(tenants.id, user.tenantId))
-      .limit(1);
-
     const { token } = await createSession(
       user.id,
       user.tenantId,
-      request.headers.get("x-forwarded-for") ?? undefined,
+      getClientIp(request),
       request.headers.get("user-agent") ?? undefined,
     );
 
@@ -37,7 +33,6 @@ export async function POST(request: NextRequest) {
         username: user.username,
         fullName: user.fullName,
         tenantId: user.tenantId,
-        tenantSlug: tenant?.slug ?? null,
       },
     });
 
@@ -53,4 +48,9 @@ export async function POST(request: NextRequest) {
   } catch {
     return NextResponse.json({ error: "Login failed" }, { status: 500 });
   }
+}
+
+function getClientIp(request: NextRequest): string | undefined {
+  const value = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim();
+  return value?.slice(0, 45) || undefined;
 }

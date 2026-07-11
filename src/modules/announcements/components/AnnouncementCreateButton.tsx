@@ -4,22 +4,20 @@ import {useState} from "react";
 import {Dialog, DialogContent, DialogHeader, DialogTitle} from "@/components/ui/dialog";
 import {AnnouncementForm} from "@/modules/announcements/components/AnnouncementForm";
 import {IconBellPlus} from "@tabler/icons-react";
+import {Button} from "@/components/ui/button";
 
-export function AnnouncementCreateButton({ slug }: { slug: string }) {
+export function AnnouncementCreateButton() {
   const [open, setOpen] = useState(false);
   return (
     <>
-      <button
-        onClick={() => setOpen(true)}
-        className="inline-flex items-center gap-2 rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-700 dark:bg-zinc-100 dark:text-zinc-900"
-      >
+      <Button onClick={() => setOpen(true)}>
         <IconBellPlus className="size-4" />
         Добавить объявление
-      </button>
+      </Button>
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent>
           <DialogHeader><DialogTitle>Новое объявление</DialogTitle></DialogHeader>
-          <AnnouncementForm slug={slug} onDone={() => setOpen(false)} />
+          <AnnouncementForm onDone={() => setOpen(false)} />
         </DialogContent>
       </Dialog>
     </>

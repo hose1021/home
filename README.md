@@ -1,36 +1,52 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# MMMC Platform
 
-## Getting Started
+Платформа управления многоквартирным домом: собственники и помещения, финансы, собрания, объявления, заявки и аудит действий. Приложение построено как multi-tenant модульный монолит на Next.js 16, React 19, TypeScript, PostgreSQL и Drizzle ORM.
 
-First, run the development server:
+## Локальный запуск
+
+Требуются Bun и Docker.
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+cp .env.example .env
+docker compose up -d db
+bun install
+bun run db:migrate
+bun run db:seed
+bun run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Приложение откроется на [http://localhost:3000](http://localhost:3000). Значения seed по умолчанию задаются в `.env.example`; перед использованием вне локальной среды обязательно замените пароли.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Проверки качества
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Перед коммитом команды выполняются в указанном порядке:
 
-## Learn More
+```bash
+bun run lint
+bun run typecheck
+bun run test
+bun run build
+```
 
-To learn more about Next.js, take a look at the following resources:
+Unit-тесты запускаются Vitest. Playwright установлен, но E2E-конфигурация пока не добавлена, поэтому `bun run test:e2e` ещё не является рабочей проверкой.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## База данных
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```bash
+bun run db:generate  # создать миграцию из схемы
+bun run db:migrate   # применить миграции
+bun run db:seed      # заполнить демо-данными
+bun run db:studio    # открыть Drizzle Studio
+```
 
-## Deploy on Vercel
+Локальная база по умолчанию: `postgres://postgres:postgres@localhost:5432/mmcm`. Финансовые начисления seed не создаёт автоматически: их нужно сформировать на странице финансов.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Безопасность и конфигурация
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- Сессия хранится в httpOnly-cookie `session_token`.
+- Доступ к каждому tenant проверяется на сервере по slug и tenant ID; UI-скрытие кнопок не заменяет RBAC.
+- Публичная регистрация выключена по умолчанию. Включайте `ALLOW_PUBLIC_REGISTRATION=true` только для контролируемого onboarding-сценария.
+- `MONTHLY_TARIFF_PER_SQM` задаёт тариф в AZN за м², `BILLING_START_DATE` — первый расчётный месяц в формате `YYYY-MM`.
+- Файлы `.env*` не должны попадать в репозиторий, кроме уже отслеживаемого шаблона `.env.example`.
+
+Архитектурные соглашения и обязательные правила разработки описаны в `AGENTS.md`.

@@ -4,7 +4,10 @@ import {useState} from "react";
 import Link from "next/link";
 import {Dialog, DialogContent, DialogHeader, DialogTitle} from "@/components/ui/dialog";
 import {TicketCreateForm} from "./TicketCreateForm";
-import type {TicketStatus, TicketCategory, TicketPriority} from "../ticket.service";
+import type {TicketCategory, TicketPriority, TicketStatus} from "../ticket.service";
+import {Button} from "@/components/ui/button";
+import {Badge} from "@/components/ui/badge";
+import {IconCalendar, IconChevronRight, IconMapPin, IconPlus, IconTicket} from "@tabler/icons-react";
 
 export type TicketListItem = {
   id: string;
@@ -56,12 +59,10 @@ const CATEGORY_LABELS: Record<TicketCategory, string> = {
 };
 
 export function TicketList({
-  slug,
   tickets,
   canCreate,
   units,
 }: {
-  slug: string;
   tickets: TicketListItem[];
   canCreate: boolean;
   units: { id: string; unitNumber: string; entrance: number; floor: number; ownerName: string | null }[];
@@ -70,71 +71,69 @@ export function TicketList({
 
   return (
     <>
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">Заявки</h1>
-          <p className="text-sm text-zinc-500">{tickets.length} шт.</p>
+      <div className="page-shell">
+        <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
+          <div>
+            <p className="text-sm text-muted-foreground">Сервисная служба</p>
+            <h1 className="page-heading mt-1">Заявки</h1>
+            <p className="page-description">Обсуждение и контроль выполнения обращений · {tickets.length} шт.</p>
+          </div>
+          {canCreate && (
+            <Button onClick={() => setCreateOpen(true)}>
+              <IconPlus /> Новая заявка
+            </Button>
+          )}
         </div>
-        {canCreate && (
-          <button onClick={() => setCreateOpen(true)} className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-700 dark:bg-zinc-100 dark:text-zinc-900">
-            + Новая заявка
-          </button>
-        )}
-      </div>
 
-      <div className="space-y-3">
-        {tickets.map((t) => (
-          <Link
-            key={t.id}
-            href={`/${slug}/tickets/${t.id}`}
-            className="block rounded-lg border border-zinc-200 p-4 transition hover:border-zinc-300 dark:border-zinc-800 dark:hover:border-zinc-700"
-          >
-            <div className="flex items-start justify-between gap-4">
-              <div className="min-w-0 flex-1">
-                <h3 className="font-medium">{t.title}</h3>
-                <div className="mt-1 flex flex-wrap gap-2 text-xs text-zinc-500">
-                  <span>{CATEGORY_LABELS[t.category]}</span>
-                  <span>·</span>
-                  <span>Приоритет: {PRIORITY_LABELS[t.priority]}</span>
-                  {t.unitNumber ? (
-                    <>
-                      <span>·</span>
-                      <span>Блок {t.entrance}, эт. {t.floor}, кв. {t.unitNumber}</span>
-                    </>
-                  ) : (
-                    <>
-                      <span>·</span>
-                      <span>Двор</span>
-                    </>
+        <div className="space-y-3">
+          {tickets.map((t) => (
+            <Link
+              key={t.id}
+              href={`/tickets/${t.id}`}
+              className="surface-panel group block p-4 transition-colors hover:bg-muted/20 sm:p-5"
+            >
+              <div className="flex items-start gap-4">
+                <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
+                  <IconTicket className="size-5" />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
+                    <div>
+                      <h3 className="font-semibold">{t.title}</h3>
+                      <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                        <span className="font-medium text-foreground/70">{CATEGORY_LABELS[t.category]}</span>
+                        <span className="flex items-center gap-1"><IconMapPin className="size-3.5" />{t.unitNumber ? `Блок ${t.entrance}, эт. ${t.floor}, кв. ${t.unitNumber}` : "Двор / территория"}</span>
+                        <span className="flex items-center gap-1"><IconCalendar className="size-3.5" />{new Date(t.createdAt).toLocaleDateString("ru")}</span>
+                      </div>
+                    </div>
+                    <div className="flex shrink-0 items-center gap-2">
+                      <Badge variant="outline" className={t.priority === "urgent" ? "border-red-200 text-red-600" : "text-muted-foreground"}>{PRIORITY_LABELS[t.priority]}</Badge>
+                      <Badge className={`border-0 ${STATUS_COLORS[t.status]}`}>{STATUS_LABELS[t.status]}</Badge>
+                      <IconChevronRight className="size-4 text-muted-foreground" />
+                    </div>
+                  </div>
+                  {t.ownerName && <p className="mt-3 text-xs text-muted-foreground">Заявитель: {t.ownerName}{t.ownerPhone ? ` · ${t.ownerPhone}` : ""}</p>}
+                  {t.status === "rejected" && t.rejectionReason && (
+                    <p className="mt-3 rounded-lg bg-red-500/8 px-3 py-2 text-xs text-red-600">Причина отказа: {t.rejectionReason}</p>
                   )}
-                  {t.ownerName && (
-                    <>
-                      <span>·</span>
-                      <span>{t.ownerName}{t.ownerPhone ? ` ${t.ownerPhone}` : ""}</span>
-                    </>
-                  )}
-                  <span>·</span>
-                  <span>{new Date(t.createdAt).toLocaleDateString("ru")}</span>
                 </div>
-                {t.status === "rejected" && t.rejectionReason && (
-                  <p className="mt-1 text-xs text-red-600">Причина отказа: {t.rejectionReason}</p>
-                )}
               </div>
-              <span className={`shrink-0 rounded-full px-2.5 py-0.5 text-xs font-medium ${STATUS_COLORS[t.status]}`}>
-                {STATUS_LABELS[t.status]}
-              </span>
+            </Link>
+          ))}
+          {tickets.length === 0 && (
+            <div className="surface-panel flex flex-col items-center px-6 py-16 text-center">
+              <span className="flex size-10 items-center justify-center rounded-lg bg-muted text-muted-foreground"><IconTicket className="size-5" /></span>
+              <p className="mt-4 font-semibold">Заявок пока нет</p>
+              <p className="mt-1 text-sm text-muted-foreground">Новые обращения появятся здесь.</p>
             </div>
-          </Link>
-        ))}
-        {tickets.length === 0 && (
-          <p className="text-sm text-zinc-400">Нет заявок</p>
-        )}
+          )}
+        </div>
       </div>
 
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
         <DialogContent>
           <DialogHeader><DialogTitle>Новая заявка</DialogTitle></DialogHeader>
-          <TicketCreateForm slug={slug} units={units} onDone={() => setCreateOpen(false)} />
+          <TicketCreateForm units={units} onDone={() => setCreateOpen(false)} />
         </DialogContent>
       </Dialog>
     </>

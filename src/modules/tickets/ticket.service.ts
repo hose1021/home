@@ -1,7 +1,8 @@
 import {db} from "@/core/db";
-import {tickets, ticketComments} from "@/core/db/schema/tickets";
+import {ticketComments, tickets} from "@/core/db/schema/tickets";
 import {units} from "@/core/db/schema/units";
-import {ownerships, owners} from "@/core/db/schema/owners";
+import {owners, ownerships} from "@/core/db/schema/owners";
+import {users} from "@/core/db/schema/users";
 import {and, desc, eq} from "drizzle-orm";
 import {writeAuditLog} from "@/core/audit/audit.service";
 
@@ -31,6 +32,15 @@ type CreateTicketInput = {
 };
 
 export async function createTicket(tenantId: string, userId: string, input: CreateTicketInput) {
+  if (input.unitId) {
+    const [unit] = await db
+      .select({id: units.id})
+      .from(units)
+      .where(and(eq(units.id, input.unitId), eq(units.tenantId, tenantId), eq(units.status, "active")))
+      .limit(1);
+    if (!unit) throw new Error("Unit not found");
+  }
+
   const [ticket] = await db.insert(tickets).values({
     tenantId,
     unitId: input.unitId ?? null,
@@ -157,6 +167,13 @@ export async function assignTicket(tenantId: string, id: string, assignedTo: str
   const ticket = await getTicketById(tenantId, id);
   if (!ticket) throw new Error("Ticket not found");
 
+  const [assignee] = await db
+    .select({id: users.id})
+    .from(users)
+    .where(and(eq(users.id, assignedTo), eq(users.tenantId, tenantId), eq(users.isActive, true)))
+    .limit(1);
+  if (!assignee) throw new Error("Assignee not found");
+
   const [updated] = await db
     .update(tickets)
     .set({ assignedTo, updatedAt: new Date() })
@@ -263,7 +280,16 @@ export async function addComment(
   await db
     .update(tickets)
     .set({ updatedAt: new Date() })
-    .where(eq(tickets.id, ticketId));
+    .where(and(eq(tickets.id, ticketId), eq(tickets.tenantId, tenantId)));
+
+  await writeAuditLog({
+    tenantId,
+    userId,
+    action: "create",
+    entityType: "ticket_comment",
+    entityId: comment.id,
+    newValues: { ticketId, isInternal },
+  });
 
   return comment;
 }
@@ -281,6 +307,22 @@ export async function getUnitsForUser(tenantId: string, ownerId: string) {
     .where(and(eq(ownerships.tenantId, tenantId), eq(ownerships.ownerId, ownerId)))
     .orderBy(units.entrance, units.floor, units.unitNumber);
   return rows;
+}
+
+export async function userOwnsUnit(tenantId: string, userId: string, unitId: string): Promise<boolean> {
+  const [row] = await db
+    .select({id: ownerships.id})
+    .from(ownerships)
+    .innerJoin(owners, and(eq(owners.id, ownerships.ownerId), eq(owners.tenantId, tenantId)))
+    .innerJoin(units, and(eq(units.id, ownerships.unitId), eq(units.tenantId, tenantId)))
+    .where(and(
+      eq(ownerships.tenantId, tenantId),
+      eq(owners.userId, userId),
+      eq(units.id, unitId),
+      eq(units.status, "active"),
+    ))
+    .limit(1);
+  return Boolean(row);
 }
 
 export async function getAllUnits(tenantId: string) {

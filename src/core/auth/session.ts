@@ -2,7 +2,7 @@ import {cookies} from "next/headers";
 import {getSessionFromToken} from "./auth";
 import type {Permission, Role} from "./permissions";
 import {hasPermission} from "./permissions";
-import {ensureTenantExists} from "@/core/multi-tenant";
+import {ForbiddenError, UnauthorizedError} from "@/core/errors/app-error";
 
 const SESSION_COOKIE = "session_token";
 
@@ -29,31 +29,26 @@ export async function getSession(): Promise<Session | null> {
 
 export async function requireAuth(): Promise<Session> {
   const session = await getSession();
-  if (!session) throw new Error("Unauthorized");
+  if (!session) throw new UnauthorizedError();
   return session;
 }
 
 export async function requirePermission(permission: Permission): Promise<Session> {
   const session = await requireAuth();
   const allowed = session.user.roles.some((role) => hasPermission(role, permission));
-  if (!allowed) throw new Error(`Forbidden: missing permission "${permission}"`);
+  if (!allowed) throw new ForbiddenError(`Missing permission "${permission}"`);
   return session;
 }
 
-export async function requireTenantContext(slug: string): Promise<{ session: Session; tenantId: string }> {
+export async function requireTenantContext(): Promise<{ session: Session; tenantId: string }> {
   const session = await requireAuth();
-  const tenantId = await ensureTenantExists(slug);
-  if (session.user.tenantId !== tenantId) {
-    const hasAdmin = session.user.roles.includes("admin");
-    if (!hasAdmin) throw new Error("Forbidden: cross-tenant access denied");
-  }
-  return { session, tenantId };
+  return { session, tenantId: session.user.tenantId };
 }
 
-export async function requireTenantPermission(slug: string, permission: Permission): Promise<{ session: Session; tenantId: string }> {
-  const { session, tenantId } = await requireTenantContext(slug);
+export async function requireTenantPermission(permission: Permission): Promise<{ session: Session; tenantId: string }> {
+  const { session, tenantId } = await requireTenantContext();
   const allowed = session.user.roles.some((role) => hasPermission(role, permission));
-  if (!allowed) throw new Error(`Forbidden: missing permission "${permission}"`);
+  if (!allowed) throw new ForbiddenError(`Missing permission "${permission}"`);
   return { session, tenantId };
 }
 

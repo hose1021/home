@@ -1,7 +1,8 @@
 import {db} from "@/core/db";
 import {payments} from "@/core/db/schema/payments";
 import {units} from "@/core/db/schema/units";
-import {owners} from "@/core/db/schema/owners";
+import {owners, ownerships} from "@/core/db/schema/owners";
+import {charges} from "@/core/db/schema/charges";
 import {and, desc, eq} from "drizzle-orm";
 import {writeAuditLog} from "@/core/audit/audit.service";
 
@@ -15,9 +16,13 @@ type RegisterPaymentInput = {
   paymentMethod: "cash" | "bank_transfer" | "card" | "e_manat" | "pos_terminal";
   referenceNo?: string;
   notes?: string;
+  tariffPerSqm?: string;
 };
 
 export async function registerPayment(tenantId: string, input: RegisterPaymentInput, userId: string) {
+  validatePaymentValues(input);
+  await validatePaymentRelations(tenantId, input);
+
   const [payment] = await db
     .insert(payments)
     .values({
@@ -26,6 +31,7 @@ export async function registerPayment(tenantId: string, input: RegisterPaymentIn
       unitId: input.unitId,
       ownerId: input.ownerId,
       amount: input.amount,
+      tariffPerSqm: input.tariffPerSqm,
       periodYear: input.periodYear,
       periodMonth: input.periodMonth,
       paymentMethod: input.paymentMethod,
@@ -47,6 +53,77 @@ export async function registerPayment(tenantId: string, input: RegisterPaymentIn
   });
 
   return payment;
+}
+
+export async function ownerBelongsToUser(tenantId: string, ownerId: string, userId: string): Promise<boolean> {
+  const [owner] = await db
+    .select({id: owners.id})
+    .from(owners)
+    .where(and(
+      eq(owners.id, ownerId),
+      eq(owners.tenantId, tenantId),
+      eq(owners.userId, userId),
+      eq(owners.status, "active"),
+    ))
+    .limit(1);
+  return Boolean(owner);
+}
+
+export function validatePaymentValues(input: {
+  amount: string;
+  periodYear: number;
+  periodMonth: number;
+  paymentMethod: string;
+  tariffPerSqm?: string;
+}): void {
+  const amount = Number(input.amount);
+  if (!Number.isFinite(amount) || amount <= 0) throw new Error("Payment amount must be positive");
+  if (!Number.isInteger(input.periodYear) || input.periodYear < 2000 || input.periodYear > 2200) {
+    throw new Error("Invalid payment year");
+  }
+  if (!Number.isInteger(input.periodMonth) || input.periodMonth < 1 || input.periodMonth > 12) {
+    throw new Error("Invalid payment month");
+  }
+  if (!["cash", "bank_transfer", "card", "e_manat", "pos_terminal", "other"].includes(input.paymentMethod)) {
+    throw new Error("Invalid payment method");
+  }
+  if (input.tariffPerSqm !== undefined) {
+    const tariff = Number(input.tariffPerSqm);
+    if (!Number.isFinite(tariff) || tariff < 0) throw new Error("Invalid tariff");
+  }
+}
+
+async function validatePaymentRelations(tenantId: string, input: RegisterPaymentInput): Promise<void> {
+  const [unitRows, ownerRows, ownershipRows, chargeRows] = await Promise.all([
+    db.select({id: units.id}).from(units).where(and(
+      eq(units.id, input.unitId),
+      eq(units.tenantId, tenantId),
+      eq(units.status, "active"),
+    )).limit(1),
+    db.select({id: owners.id}).from(owners).where(and(
+      eq(owners.id, input.ownerId),
+      eq(owners.tenantId, tenantId),
+      eq(owners.status, "active"),
+    )).limit(1),
+    db.select({id: ownerships.id}).from(ownerships).where(and(
+      eq(ownerships.tenantId, tenantId),
+      eq(ownerships.unitId, input.unitId),
+      eq(ownerships.ownerId, input.ownerId),
+    )).limit(1),
+    input.chargeId
+      ? db.select({id: charges.id}).from(charges).where(and(
+          eq(charges.id, input.chargeId),
+          eq(charges.tenantId, tenantId),
+          eq(charges.unitId, input.unitId),
+          eq(charges.ownerId, input.ownerId),
+        )).limit(1)
+      : Promise.resolve([{id: "not-applicable"}]),
+  ]);
+
+  if (!unitRows[0]) throw new Error("Unit not found");
+  if (!ownerRows[0]) throw new Error("Owner not found");
+  if (!ownershipRows[0]) throw new Error("Owner does not own this unit");
+  if (!chargeRows[0]) throw new Error("Charge not found");
 }
 
 export async function confirmPayment(tenantId: string, paymentId: string, userId: string) {

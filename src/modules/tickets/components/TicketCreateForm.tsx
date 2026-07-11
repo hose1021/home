@@ -4,6 +4,7 @@ import {useState} from "react";
 import {createTicketAction} from "../ticket.actions";
 import type {TicketCategory, TicketPriority} from "../ticket.service";
 import {toast} from "sonner";
+import {Button} from "@/components/ui/button";
 
 const CATEGORIES: { value: TicketCategory; label: string }[] = [
   { value: "plumbing", label: "Сантехника" },
@@ -25,11 +26,9 @@ const PRIORITIES: { value: TicketPriority; label: string }[] = [
 ];
 
 export function TicketCreateForm({
-  slug,
   units,
   onDone,
 }: {
-  slug: string;
   units: { id: string; unitNumber: string; entrance: number; floor: number; ownerName: string | null }[];
   onDone: () => void;
 }) {
@@ -43,7 +42,7 @@ export function TicketCreateForm({
     const fd = new FormData(e.currentTarget);
     const unitId = fd.get("unitId") as string;
     try {
-      await createTicketAction(slug, {
+      await createTicketAction({
         unitId: unitId === "__yard__" ? null : (unitId || null),
         category: fd.get("category") as TicketCategory,
         priority: fd.get("priority") as TicketPriority,
@@ -102,10 +101,10 @@ export function TicketCreateForm({
       {error && <p className="text-sm text-red-500">{error}</p>}
 
       <div className="flex justify-end gap-3">
-        <button type="button" onClick={onDone} className="rounded-lg border border-zinc-300 px-4 py-2 text-sm hover:bg-zinc-50 dark:border-zinc-700 dark:hover:bg-zinc-800">Отмена</button>
-        <button type="submit" disabled={pending} className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-700 disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900">
+        <Button type="button" variant="outline" onClick={onDone}>Отмена</Button>
+        <Button type="submit" disabled={pending}>
           {pending ? "Создание..." : "Создать заявку"}
-        </button>
+        </Button>
       </div>
     </form>
   );

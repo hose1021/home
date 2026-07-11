@@ -7,7 +7,7 @@ import {db} from "@/core/db";
 import {meetingAgendas} from "@/core/db/schema/meetings";
 import {eq} from "drizzle-orm";
 
-export async function createMeetingAction(slug: string, input: {
+export async function createMeetingAction(input: {
   title: string;
   meetingType: "annual" | "extraordinary" | "board" | "audit";
   meetingFormat: "in_person" | "online" | "mixed";
@@ -16,16 +16,16 @@ export async function createMeetingAction(slug: string, input: {
   onlineLink?: string;
   agendas: { title: string; description?: string; sortOrder: number }[];
 }) {
-  const { session, tenantId } = await requireTenantPermission(slug, "meeting:write");
+  const { session, tenantId } = await requireTenantPermission("meeting:write");
   await createMeeting(tenantId, session.user.id, {
     ...input,
     proposedDate: new Date(input.proposedDate),
   });
-  revalidatePath(`/${slug}/meetings`);
+  revalidatePath("/meetings");
   return { success: true };
 }
 
-export async function updateMeetingAction(slug: string, id: string, input: {
+export async function updateMeetingAction(id: string, input: {
   title?: string;
   meetingType?: "annual" | "extraordinary" | "board" | "audit";
   meetingFormat?: "in_person" | "online" | "mixed";
@@ -34,28 +34,30 @@ export async function updateMeetingAction(slug: string, id: string, input: {
   location?: string | null;
   agendas?: { title: string; description?: string; sortOrder: number }[];
 }) {
-  const { session, tenantId } = await requireTenantPermission(slug, "meeting:write");
-  await updateMeeting(tenantId, id, {
-    ...input,
-    proposedDate: input.proposedDate ? new Date(input.proposedDate) : undefined,
+  const { session, tenantId } = await requireTenantPermission("meeting:write");
+  const {agendas, proposedDate, ...meetingInput} = input;
+  const updated = await updateMeeting(tenantId, id, {
+    ...meetingInput,
+    proposedDate: proposedDate ? new Date(proposedDate) : undefined,
   }, session.user.id);
+  if (!updated) throw new Error("Meeting not found");
 
-  if (input.agendas) {
+  if (agendas) {
     await db.delete(meetingAgendas).where(eq(meetingAgendas.meetingId, id));
-    if (input.agendas.length > 0) {
+    if (agendas.length > 0) {
       await db.insert(meetingAgendas).values(
-        input.agendas.map((a) => ({ meetingId: id, title: a.title, description: a.description ?? null, sortOrder: a.sortOrder })),
+        agendas.map((a) => ({ meetingId: id, title: a.title, description: a.description ?? null, sortOrder: a.sortOrder })),
       );
     }
   }
 
-  revalidatePath(`/${slug}/meetings`);
+  revalidatePath("/meetings");
   return { success: true };
 }
 
-export async function deleteMeetingAction(slug: string, id: string) {
-  const { session, tenantId } = await requireTenantPermission(slug, "meeting:write");
+export async function deleteMeetingAction(id: string) {
+  const { session, tenantId } = await requireTenantPermission("meeting:write");
   await deleteMeeting(tenantId, id, session.user.id);
-  revalidatePath(`/${slug}/meetings`);
+  revalidatePath("/meetings");
   return { success: true };
 }

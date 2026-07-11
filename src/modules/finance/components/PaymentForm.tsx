@@ -20,11 +20,9 @@ const METHODS = [
 ];
 
 export function PaymentForm({
-  slug,
   units,
   onDone,
 }: {
-  slug: string;
   units: UnitOption[];
   onDone: () => void;
 }) {
@@ -47,7 +45,7 @@ export function PaymentForm({
 
     setPending(true);
     try {
-      await registerPaymentAction(slug, {
+      await registerPaymentAction({
         unitId,
         ownerId: selected.ownerId,
         amount,
@@ -145,8 +143,7 @@ export function PaymentForm({
   );
 }
 
-export function PaymentDialog({ slug, units, open, onOpenChange }: {
-  slug: string;
+export function PaymentDialog({ units, open, onOpenChange }: {
   units: UnitOption[];
   open: boolean;
   onOpenChange: (o: boolean) => void;
@@ -158,7 +155,7 @@ export function PaymentDialog({ slug, units, open, onOpenChange }: {
         {units.length === 0 ? (
           <p className="text-sm text-zinc-400">Нет квартир с собственниками</p>
         ) : (
-          <PaymentForm slug={slug} units={units} onDone={() => onOpenChange(false)} />
+          <PaymentForm units={units} onDone={() => onOpenChange(false)} />
         )}
       </DialogContent>
     </Dialog>

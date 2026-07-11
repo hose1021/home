@@ -7,18 +7,17 @@ import {owners, ownerships} from "@/core/db/schema/owners";
 import {units} from "@/core/db/schema/units";
 import {payments} from "@/core/db/schema/payments";
 import {users} from "@/core/db/schema/users";
-import {ensureTenantExists} from "@/core/multi-tenant";
-import {getSession} from "@/core/auth/session";
-import {getPermissionsForRoles, type Permission} from "@/core/auth/permissions";
-import {MonthRow, type MonthPayment} from "./month-row";
+import {requireTenantPermission} from "@/core/auth/session";
+import {getPermissionsForRoles, hasStaffRole, type Permission} from "@/core/auth/permissions";
+import {type MonthPayment, MonthRow} from "./month-row";
 import {PaymentHistory} from "./payment-history";
 import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
+    Breadcrumb,
+    BreadcrumbItem,
+    BreadcrumbLink,
+    BreadcrumbList,
+    BreadcrumbPage,
+    BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 
 const TARIFF = Number(process.env.MONTHLY_TARIFF_PER_SQM ?? "0.40");
@@ -47,14 +46,14 @@ export default async function OwnerDetailsPage({
   params: Promise<{ tenantSlug: string; ownerId: string }>;
 }) {
   const { tenantSlug, ownerId } = await params;
-  const tenantId = await ensureTenantExists(tenantSlug);
-  const session = await getSession();
-  const permissions: Permission[] = session ? getPermissionsForRoles(session.user.roles) : [];
+  const { session, tenantId } = await requireTenantPermission(tenantSlug, "owner:read");
+  const permissions: Permission[] = getPermissionsForRoles(session.user.roles);
   const canPay = permissions.includes("payment:write");
 
   const [owner] = await db
     .select({
       id: owners.id,
+      userId: owners.userId,
       fullName: users.fullName,
       phone: users.phone,
       username: users.username,
@@ -66,6 +65,8 @@ export default async function OwnerDetailsPage({
     .limit(1);
 
   if (!owner) notFound();
+  const restrictToCurrentOwner = !hasStaffRole(session.user.roles);
+  if (restrictToCurrentOwner && owner.userId !== session.user.id) notFound();
 
   const ownerUnits = await db
     .select({
@@ -160,7 +161,7 @@ export default async function OwnerDetailsPage({
   }, 0);
 
   return (
-    <div className="mx-auto max-w-2xl space-y-6">
+    <div className="page-shell max-w-5xl">
       <Breadcrumb>
         <BreadcrumbList>
           <BreadcrumbItem>
@@ -174,8 +175,8 @@ export default async function OwnerDetailsPage({
       </Breadcrumb>
 
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">{owner.fullName}</h1>
-        <p className="mt-1 text-sm text-zinc-500">
+        <h1 className="page-heading">{owner.fullName}</h1>
+        <p className="page-description">
           {owner.phone ?? "нет телефона"}
           <span className="mx-2">·</span>
           {owner.username}
@@ -216,7 +217,7 @@ export default async function OwnerDetailsPage({
             }
 
             return (
-              <div key={unit.id} className="rounded-xl border border-zinc-200 dark:border-zinc-800 overflow-hidden">
+              <div key={unit.id} className="surface-panel overflow-hidden">
                 <div className="p-5">
                   <div className="flex items-start justify-between gap-4">
                     <div>
@@ -276,8 +277,8 @@ export default async function OwnerDetailsPage({
           })}
         </div>
       ) : (
-        <div className="rounded-xl border border-zinc-200 p-8 text-center dark:border-zinc-800">
-          <p className="text-zinc-400">Квартиры не привязаны</p>
+        <div className="surface-panel border-dashed p-10 text-center">
+          <p className="text-muted-foreground">Квартиры не привязаны</p>
         </div>
       )}
 

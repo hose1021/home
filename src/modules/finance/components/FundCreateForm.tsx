@@ -17,7 +17,7 @@ const FUND_TYPES = [
   { value: "special", label: "Специальный" },
 ];
 
-export function FundCreateForm({ slug, onDone }: { slug: string; onDone: () => void }) {
+export function FundCreateForm({ onDone }: { onDone: () => void }) {
   const [pending, setPending] = useState(false);
   const [name, setName] = useState("");
   const [type, setType] = useState("operating");
@@ -29,7 +29,7 @@ export function FundCreateForm({ slug, onDone }: { slug: string; onDone: () => v
     if (!name.trim()) { toast.error("Введите название фонда"); return; }
     setPending(true);
     try {
-      await createFundAction(slug, {
+      await createFundAction({
         name: name.trim(),
         type: type as "operating" | "reserve" | "repair" | "emergency" | "special",
         targetAmount: targetAmount || undefined,
@@ -80,8 +80,7 @@ export function FundCreateForm({ slug, onDone }: { slug: string; onDone: () => v
   );
 }
 
-export function FundCreateDialog({ slug, open, onOpenChange }: {
-  slug: string;
+export function FundCreateDialog({ open, onOpenChange }: {
   open: boolean;
   onOpenChange: (o: boolean) => void;
 }) {
@@ -89,7 +88,7 @@ export function FundCreateDialog({ slug, open, onOpenChange }: {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader><DialogTitle>Новый фонд</DialogTitle></DialogHeader>
-        <FundCreateForm slug={slug} onDone={() => onOpenChange(false)} />
+        <FundCreateForm onDone={() => onOpenChange(false)} />
       </DialogContent>
     </Dialog>
   );

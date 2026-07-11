@@ -11,11 +11,9 @@ import {Dialog, DialogContent, DialogHeader, DialogTitle} from "@/components/ui/
 type Template = { id: string; name: string; amount: string };
 
 export function ChargeGenerateForm({
-  slug,
   templates,
   onDone,
 }: {
-  slug: string;
   templates: Template[];
   onDone: () => void;
 }) {
@@ -37,7 +35,7 @@ export function ChargeGenerateForm({
     }
     setPending(true);
     try {
-      const res = await generateChargesAction(slug, {
+      const res = await generateChargesAction({
         templateId,
         periodYear: Number(year),
         periodMonth: Number(month),
@@ -106,8 +104,7 @@ export function ChargeGenerateForm({
   );
 }
 
-export function ChargeGenerateDialog({ slug, templates, open, onOpenChange }: {
-  slug: string;
+export function ChargeGenerateDialog({ templates, open, onOpenChange }: {
   templates: Template[];
   open: boolean;
   onOpenChange: (o: boolean) => void;
@@ -119,7 +116,7 @@ export function ChargeGenerateDialog({ slug, templates, open, onOpenChange }: {
         {templates.length === 0 ? (
           <p className="text-sm text-zinc-400">Нет активных шаблонов начислений</p>
         ) : (
-          <ChargeGenerateForm slug={slug} templates={templates} onDone={() => onOpenChange(false)} />
+          <ChargeGenerateForm templates={templates} onDone={() => onOpenChange(false)} />
         )}
       </DialogContent>
     </Dialog>

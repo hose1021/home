@@ -2,12 +2,11 @@
 
 import {useState} from "react";
 import {createOwnerAction} from "../owner.actions";
+import {Button} from "@/components/ui/button";
 
 export function OwnerCreateForm({
-  slug,
   onDone,
 }: {
-  slug: string;
   onDone: () => void;
 }) {
   const [error, setError] = useState<string | null>(null);
@@ -19,7 +18,7 @@ export function OwnerCreateForm({
     setError(null);
     const fd = new FormData(e.currentTarget);
     try {
-      await createOwnerAction(slug, {
+      await createOwnerAction({
         fullName: fd.get("fullName") as string,
         phone: (fd.get("phone") as string) || undefined,
         username: fd.get("username") as string,
@@ -98,8 +97,8 @@ export function OwnerCreateForm({
       {error && <p className="text-sm text-red-500">{error}</p>}
 
       <div className="flex justify-end gap-3">
-        <button type="button" onClick={onDone} className="rounded-lg border border-zinc-300 px-4 py-2 text-sm hover:bg-zinc-50 dark:border-zinc-700 dark:hover:bg-zinc-800">Отмена</button>
-        <button type="submit" disabled={pending} className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-700 disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900">{pending ? "Создание..." : "Создать"}</button>
+        <Button type="button" variant="outline" onClick={onDone}>Отмена</Button>
+        <Button type="submit" disabled={pending}>{pending ? "Создание..." : "Создать"}</Button>
       </div>
     </form>
   );

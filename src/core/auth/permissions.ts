@@ -55,6 +55,10 @@ export function getPermissionsForRoles(roles: Role[]): Permission[] {
   return Array.from(set);
 }
 
+export function hasStaffRole(roles: Role[]): boolean {
+  return roles.some((role) => role !== "owner");
+}
+
 export const ROLE_LABELS: Record<Role, string> = {
   admin: "Админ",
   management_member: "Правление",

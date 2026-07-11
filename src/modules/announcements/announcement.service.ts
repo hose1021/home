@@ -1,6 +1,6 @@
 import {db} from "@/core/db";
 import {announcements} from "@/core/db/schema/announcements";
-import {and, desc, eq} from "drizzle-orm";
+import {and, desc, eq, ne} from "drizzle-orm";
 import {writeAuditLog} from "@/core/audit/audit.service";
 
 type CreateInput = {
@@ -48,7 +48,7 @@ export async function getAnnouncementById(tenantId: string, id: string) {
 async function unflagOtherDashboard(tenantId: string, exceptId?: string) {
   const conditions = [eq(announcements.tenantId, tenantId), eq(announcements.isDashboard, true)];
   if (exceptId) {
-    conditions.push(eq(announcements.id, exceptId) as typeof conditions[0]);
+    conditions.push(ne(announcements.id, exceptId));
   }
   await db
     .update(announcements)
@@ -57,6 +57,7 @@ async function unflagOtherDashboard(tenantId: string, exceptId?: string) {
 }
 
 export async function createAnnouncement(tenantId: string, userId: string, input: CreateInput) {
+  validateAnnouncement(input);
   if (input.isDashboard) {
     await unflagOtherDashboard(tenantId);
   }
@@ -83,6 +84,7 @@ export async function createAnnouncement(tenantId: string, userId: string, input
 }
 
 export async function updateAnnouncement(tenantId: string, id: string, userId: string, input: UpdateInput) {
+  validateAnnouncement(input);
   if (input.isDashboard) {
     await unflagOtherDashboard(tenantId, id);
   }
@@ -93,6 +95,8 @@ export async function updateAnnouncement(tenantId: string, id: string, userId: s
     .where(and(eq(announcements.id, id), eq(announcements.tenantId, tenantId)))
     .returning();
 
+  if (!a) throw new Error("Announcement not found");
+
   await writeAuditLog({
     tenantId, userId,
     action: "update",
@@ -102,6 +106,12 @@ export async function updateAnnouncement(tenantId: string, id: string, userId: s
   });
 
   return a;
+}
+
+function validateAnnouncement(input: UpdateInput): void {
+  if (input.title !== undefined && !input.title.trim()) throw new Error("Title is required");
+  if (input.content !== undefined && !input.content.trim()) throw new Error("Content is required");
+  if (input.title !== undefined && input.title.length > 500) throw new Error("Title is too long");
 }
 
 export async function deleteAnnouncement(tenantId: string, id: string, userId: string) {

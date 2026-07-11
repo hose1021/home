@@ -14,19 +14,17 @@ import {NavMain} from "./nav-main";
 import {NavDocuments} from "./nav-documents";
 import {NavSecondary} from "./nav-secondary";
 import {NavUser} from "./nav-user";
-import {IconInnerShadowTop} from "@tabler/icons-react";
+import {IconBuildingCommunity} from "@tabler/icons-react";
 import Image from "next/image";
 import type {Permission} from "@/core/auth/permissions";
 
 export function AppSidebar({
-  slug,
   tenantName,
   tenantLogoUrl,
   userName,
   userEmail,
   permissions,
 }: {
-  slug: string;
   tenantName: string;
   tenantLogoUrl?: string | null;
   userName?: string;
@@ -34,28 +32,33 @@ export function AppSidebar({
   permissions?: Permission[];
 }) {
   return (
-    <Sidebar collapsible="offcanvas">
-      <SidebarHeader>
+    <Sidebar variant="inset" collapsible="icon">
+      <SidebarHeader className="border-b border-sidebar-border/70">
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton render={<Link href={`/${slug}`} />}>
+            <SidebarMenuButton size="lg" render={<Link href="/" />}>
               {tenantLogoUrl ? (
-                <Image src={tenantLogoUrl} alt={tenantName} width={20} height={20} className="size-5 shrink-0 rounded" />
+                <Image src={tenantLogoUrl} alt={tenantName} width={32} height={32} className="size-8 shrink-0 rounded-lg object-cover" />
               ) : (
-                <IconInnerShadowTop className="size-5 shrink-0" />
+                <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
+                  <IconBuildingCommunity className="size-4" />
+                </span>
               )}
-              <span className="text-base font-semibold">{tenantName}</span>
+              <span className="grid min-w-0 flex-1 text-left text-sm leading-tight">
+                <span className="truncate font-semibold">{tenantName}</span>
+                <span className="truncate text-xs text-sidebar-foreground/55">MMMC Platform</span>
+              </span>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarHeader>
       <SidebarContent>
-        <NavMain slug={slug} permissions={permissions} />
-        <NavDocuments slug={slug} permissions={permissions} />
-        <NavSecondary slug={slug} permissions={permissions} className="mt-auto" />
+        <NavMain permissions={permissions} />
+        <NavDocuments permissions={permissions} />
+        <NavSecondary permissions={permissions} className="mt-auto" />
       </SidebarContent>
       <SidebarFooter>
-        <NavUser slug={slug} userName={userName ?? slug} userEmail={userEmail} />
+        <NavUser userName={userName ?? "User"} userEmail={userEmail} />
       </SidebarFooter>
     </Sidebar>
   );

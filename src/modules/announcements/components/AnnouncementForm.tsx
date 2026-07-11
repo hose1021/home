@@ -2,6 +2,7 @@
 
 import {useState} from "react";
 import {createAnnouncementAction, updateAnnouncementAction} from "../announcement.actions";
+import {Button} from "@/components/ui/button";
 
 type AnnouncementData = {
   id: string;
@@ -13,11 +14,9 @@ type AnnouncementData = {
 };
 
 export function AnnouncementForm({
-  slug,
   announcement,
   onDone,
 }: {
-  slug: string;
   announcement?: AnnouncementData;
   onDone: () => void;
 }) {
@@ -40,9 +39,9 @@ export function AnnouncementForm({
       };
 
       if (isEdit) {
-        await updateAnnouncementAction(slug, announcement!.id, data);
+        await updateAnnouncementAction(announcement!.id, data);
       } else {
-        await createAnnouncementAction(slug, data);
+        await createAnnouncementAction(data);
       }
       onDone();
     } catch (err) {
@@ -89,10 +88,10 @@ export function AnnouncementForm({
       {error && <p className="text-sm text-red-500">{error}</p>}
 
       <div className="flex justify-end gap-3">
-        <button type="button" onClick={onDone} className="rounded-lg border border-zinc-300 px-4 py-2 text-sm hover:bg-zinc-50 dark:border-zinc-700 dark:hover:bg-zinc-800">Отмена</button>
-        <button type="submit" disabled={pending} className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-700 disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900">
+        <Button type="button" variant="outline" onClick={onDone}>Отмена</Button>
+        <Button type="submit" disabled={pending}>
           {pending ? "Сохранение..." : isEdit ? "Сохранить" : "Создать"}
-        </button>
+        </Button>
       </div>
     </form>
   );

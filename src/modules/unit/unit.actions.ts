@@ -7,38 +7,38 @@ import {db} from "@/core/db";
 import {buildings} from "@/core/db/schema/buildings";
 import {eq} from "drizzle-orm";
 
-export async function createUnitAction(slug: string, input: {
+export async function createUnitAction(input: {
   unitNumber: string;
   entrance: number;
   floor: number;
   type: "residential" | "commercial" | "parking" | "storage" | "other";
   area: string;
 }) {
-  const { session, tenantId } = await requireTenantPermission(slug, "unit:write");
+  const { session, tenantId } = await requireTenantPermission("unit:write");
   const [building] = await db.select().from(buildings).where(eq(buildings.tenantId, tenantId)).limit(1);
   if (!building) throw new Error("No building found. Create a building first.");
 
   await createUnit(tenantId, building.id, input, session.user.id);
-  revalidatePath(`/${slug}/units`);
+  revalidatePath("/units");
   return { success: true };
 }
 
-export async function updateUnitAction(slug: string, id: string, input: {
+export async function updateUnitAction(id: string, input: {
   unitNumber?: string;
   entrance?: number;
   floor?: number;
   type?: "residential" | "commercial" | "parking" | "storage" | "other";
   area?: string;
 }) {
-  const { session, tenantId } = await requireTenantPermission(slug, "unit:write");
+  const { session, tenantId } = await requireTenantPermission("unit:write");
   await updateUnit(tenantId, id, input, session.user.id);
-  revalidatePath(`/${slug}/units`);
+  revalidatePath("/units");
   return { success: true };
 }
 
-export async function deleteUnitAction(slug: string, id: string) {
-  const { session, tenantId } = await requireTenantPermission(slug, "unit:write");
+export async function deleteUnitAction(id: string) {
+  const { session, tenantId } = await requireTenantPermission("unit:write");
   await deleteUnit(tenantId, id, session.user.id);
-  revalidatePath(`/${slug}/units`);
+  revalidatePath("/units");
   return { success: true };
 }

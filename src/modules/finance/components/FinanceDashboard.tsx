@@ -1,14 +1,15 @@
 "use client";
 
 import {useState} from "react";
-import {Tabs, TabsList, TabsTrigger, TabsContent} from "@/components/ui/tabs";
+import {Tabs, TabsContent, TabsList, TabsTrigger} from "@/components/ui/tabs";
 import {Card, CardContent, CardHeader, CardTitle} from "@/components/ui/card";
 import {Badge} from "@/components/ui/badge";
 import {Button} from "@/components/ui/button";
-import {Table, TableHeader, TableBody, TableRow, TableHead, TableCell} from "@/components/ui/table";
+import {Table, TableBody, TableCell, TableHead, TableHeader, TableRow} from "@/components/ui/table";
 import {ChargeGenerateDialog} from "./ChargeGenerateForm";
 import {PaymentDialog} from "./PaymentForm";
-import {FundCreateDialog, FUND_TYPES} from "./FundCreateForm";
+import {FUND_TYPES, FundCreateDialog} from "./FundCreateForm";
+import {type Icon, IconCash, IconCoin, IconPigMoney, IconReceipt} from "@tabler/icons-react";
 
 type ChargeRow = {
   id: string;
@@ -79,7 +80,6 @@ const PAYMENT_METHODS: Record<string, string> = {
 const FUND_TYPE_LABELS: Record<string, string> = Object.fromEntries(FUND_TYPES.map((f) => [f.value, f.label]));
 
 export function FinanceDashboard({
-  slug,
   summary,
   charges,
   payments,
@@ -90,7 +90,6 @@ export function FinanceDashboard({
   canRegisterPayments,
   canManageFunds,
 }: {
-  slug: string;
   summary: {
     totalCharged: string;
     totalPaid: string;
@@ -111,39 +110,20 @@ export function FinanceDashboard({
   const [fundOpen, setFundOpen] = useState(false);
 
   return (
-    <div className="space-y-6">
+    <div className="page-shell">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Финансы</h1>
-          <p className="text-sm text-zinc-500">Учёт начислений, платежей и фондов</p>
+          <p className="text-sm text-muted-foreground">Финансовый центр</p>
+          <h1 className="page-heading mt-1">Финансы</h1>
+          <p className="page-description">Начисления, платежи и фонды в едином реестре</p>
         </div>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Card className="py-4">
-          <CardContent className="px-4">
-            <p className="text-sm text-zinc-500">Всего начислено</p>
-            <p className="mt-1 text-xl font-bold">{Number(summary.totalCharged).toFixed(2)} ₼</p>
-          </CardContent>
-        </Card>
-        <Card className="py-4">
-          <CardContent className="px-4">
-            <p className="text-sm text-zinc-500">Поступило</p>
-            <p className="mt-1 text-xl font-bold text-green-600">{Number(summary.totalPaid).toFixed(2)} ₼</p>
-          </CardContent>
-        </Card>
-        <Card className="py-4">
-          <CardContent className="px-4">
-            <p className="text-sm text-zinc-500">Задолженность</p>
-            <p className="mt-1 text-xl font-bold text-red-600">{Number(summary.totalDebt).toFixed(2)} ₼</p>
-          </CardContent>
-        </Card>
-        <Card className="py-4">
-          <CardContent className="px-4">
-            <p className="text-sm text-zinc-500">Фондов</p>
-            <p className="mt-1 text-xl font-bold">{summary.fundCount} шт.</p>
-          </CardContent>
-        </Card>
+        <FinanceSummary title="Всего начислено" value={`${Number(summary.totalCharged).toFixed(2)} ₼`} icon={IconReceipt} tone="indigo" />
+        <FinanceSummary title="Поступило" value={`${Number(summary.totalPaid).toFixed(2)} ₼`} icon={IconCash} tone="green" />
+        <FinanceSummary title="Задолженность" value={`${Number(summary.totalDebt).toFixed(2)} ₼`} icon={IconCoin} tone="red" />
+        <FinanceSummary title="Фондов" value={`${summary.fundCount} шт.`} icon={IconPigMoney} tone="amber" />
       </div>
 
       <Tabs defaultValue="charges">
@@ -155,12 +135,12 @@ export function FinanceDashboard({
 
         <TabsContent value="charges" className="space-y-4">
           <div className="flex items-center justify-between">
-            <p className="text-sm text-zinc-500">{charges.length} записей</p>
+            <p className="text-sm text-muted-foreground">{charges.length} записей</p>
             {canGenerateCharges && (
               <Button onClick={() => setChargeOpen(true)} size="sm">+ Начислить</Button>
             )}
           </div>
-          <div className="rounded-lg border border-zinc-200 dark:border-zinc-800">
+          <div className="surface-panel overflow-hidden">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -203,12 +183,12 @@ export function FinanceDashboard({
 
         <TabsContent value="payments" className="space-y-4">
           <div className="flex items-center justify-between">
-            <p className="text-sm text-zinc-500">{payments.length} записей</p>
+            <p className="text-sm text-muted-foreground">{payments.length} записей</p>
             {canRegisterPayments && (
               <Button onClick={() => setPaymentOpen(true)} size="sm">+ Платёж</Button>
             )}
           </div>
-          <div className="rounded-lg border border-zinc-200 dark:border-zinc-800">
+          <div className="surface-panel overflow-hidden">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -255,14 +235,14 @@ export function FinanceDashboard({
 
         <TabsContent value="funds" className="space-y-4">
           <div className="flex items-center justify-between">
-            <p className="text-sm text-zinc-500">{funds.length} фондов</p>
+            <p className="text-sm text-muted-foreground">{funds.length} фондов</p>
             {canManageFunds && (
               <Button onClick={() => setFundOpen(true)} size="sm">+ Фонд</Button>
             )}
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
             {funds.map((f) => (
-              <Card key={f.id} className="py-4">
+              <Card key={f.id} className="py-5">
                 <CardHeader className="px-4">
                   <div className="flex items-center justify-between">
                     <CardTitle className="text-base">{f.name}</CardTitle>
@@ -270,20 +250,20 @@ export function FinanceDashboard({
                   </div>
                 </CardHeader>
                 <CardContent className="px-4 space-y-2">
-                  {f.description && <p className="text-sm text-zinc-500">{f.description}</p>}
+                  {f.description && <p className="text-sm text-muted-foreground">{f.description}</p>}
                   <div className="flex items-center justify-between text-sm">
-                    <span className="text-zinc-500">Баланс</span>
+                    <span className="text-muted-foreground">Баланс</span>
                     <span className="font-bold text-lg">{Number(f.currentBalance).toFixed(2)} ₼</span>
                   </div>
                   {f.targetAmount && Number(f.targetAmount) > 0 && (
                     <div className="space-y-1">
-                      <div className="flex items-center justify-between text-xs text-zinc-400">
+                      <div className="flex items-center justify-between text-xs text-muted-foreground">
                         <span>Цель: {Number(f.targetAmount).toFixed(2)} ₼</span>
                         <span>{Math.min(100, (Number(f.currentBalance) / Number(f.targetAmount)) * 100).toFixed(0)}%</span>
                       </div>
-                      <div className="h-2 rounded-full bg-zinc-100 dark:bg-zinc-800">
+                      <div className="h-2 rounded-full bg-muted">
                         <div
-                          className="h-2 rounded-full bg-green-500"
+                          className="h-2 rounded-full bg-emerald-500"
                           style={{ width: `${Math.min(100, (Number(f.currentBalance) / Number(f.targetAmount)) * 100)}%` }}
                         />
                       </div>
@@ -299,9 +279,35 @@ export function FinanceDashboard({
         </TabsContent>
       </Tabs>
 
-      <ChargeGenerateDialog slug={slug} templates={templates} open={chargeOpen} onOpenChange={setChargeOpen} />
-      <PaymentDialog slug={slug} units={units} open={paymentOpen} onOpenChange={setPaymentOpen} />
-      <FundCreateDialog slug={slug} open={fundOpen} onOpenChange={setFundOpen} />
+      <ChargeGenerateDialog templates={templates} open={chargeOpen} onOpenChange={setChargeOpen} />
+      <PaymentDialog units={units} open={paymentOpen} onOpenChange={setPaymentOpen} />
+      <FundCreateDialog open={fundOpen} onOpenChange={setFundOpen} />
     </div>
+  );
+}
+
+const summaryTone = {
+  indigo: "bg-muted text-foreground",
+  green: "bg-muted text-foreground",
+  red: "bg-muted text-foreground",
+  amber: "bg-muted text-foreground",
+};
+
+function FinanceSummary({title, value, icon: IconComponent, tone}: {
+  title: string;
+  value: string;
+  icon: Icon;
+  tone: keyof typeof summaryTone;
+}) {
+  return (
+    <Card className="@container/card bg-gradient-to-t from-primary/5 to-card py-5">
+      <CardContent className="flex items-start justify-between gap-3 px-5">
+        <div>
+          <p className="text-sm font-medium text-muted-foreground">{title}</p>
+          <p className="mt-2 text-xl font-semibold tracking-tight tabular-nums @[250px]/card:text-2xl">{value}</p>
+        </div>
+        <span className={`flex size-9 items-center justify-center rounded-lg ${summaryTone[tone]}`}><IconComponent className="size-4" /></span>
+      </CardContent>
+    </Card>
   );
 }

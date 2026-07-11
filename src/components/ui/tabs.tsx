@@ -20,7 +20,7 @@ function Tabs({className, defaultValue, value: controlledValue, onValueChange, c
 
   return (
     <TabsContext.Provider value={{ value, setValue }}>
-      <div data-slot="tabs" className={cn("flex flex-col gap-2", className)} {...props}>
+      <div data-slot="tabs" className={cn("flex flex-col gap-4", className)} {...props}>
         {children}
       </div>
     </TabsContext.Provider>
@@ -49,7 +49,7 @@ function TabsTrigger({className, value, ...props}: React.ComponentProps<"button"
       data-state={isActive ? "active" : "inactive"}
       onClick={() => ctx?.setValue(value)}
       className={cn(
-        "data-[state=active]:bg-background dark:data-[state=active]:text-foreground focus-visible:outline-ring focus-visible:ring-[3px] inline-flex h-7 flex-1 items-center justify-center gap-1.5 rounded-md px-2 py-1 text-sm font-medium whitespace-nowrap transition-[color] data-[state=active]:shadow-sm",
+        "data-[state=active]:bg-background data-[state=active]:text-foreground focus-visible:outline-ring focus-visible:ring-[3px] inline-flex h-7 flex-1 items-center justify-center gap-1.5 rounded-md px-3 py-1 text-sm font-medium whitespace-nowrap transition-colors data-[state=active]:shadow-xs",
         className
       )}
       {...props}

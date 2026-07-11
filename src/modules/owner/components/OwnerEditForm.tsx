@@ -2,8 +2,9 @@
 
 import {useState} from "react";
 import {updateOwnerAction, updateOwnerPasswordAction} from "../owner.actions";
-import {ROLE_LABELS, ROLE_ORDER, type Role} from "@/core/auth/permissions";
+import {type Role, ROLE_LABELS, ROLE_ORDER} from "@/core/auth/permissions";
 import {toast} from "sonner";
+import {Button} from "@/components/ui/button";
 
 type OwnerData = {
   id: string;
@@ -15,12 +16,10 @@ type OwnerData = {
 };
 
 export function OwnerEditForm({
-  slug,
   owner,
   canManageRoles,
   onDone,
 }: {
-  slug: string;
   owner: OwnerData;
   canManageRoles?: boolean;
   onDone: () => void;
@@ -43,7 +42,7 @@ export function OwnerEditForm({
     setError(null);
     const fd = new FormData(e.currentTarget);
     try {
-      await updateOwnerAction(slug, owner.id, {
+      await updateOwnerAction(owner.id, {
         fullName: fd.get("fullName") as string,
         phone: (fd.get("phone") as string) || null,
         username: (fd.get("username") as string) || undefined,
@@ -64,7 +63,7 @@ export function OwnerEditForm({
     }
     setPwdPending(true);
     try {
-      await updateOwnerPasswordAction(slug, owner.id, newPassword);
+      await updateOwnerPasswordAction(owner.id, newPassword);
       setNewPassword("");
       toast.success("Пароль обновлён. Сессия пользователя сброшена.");
     } catch (err) {
@@ -123,14 +122,14 @@ export function OwnerEditForm({
               minLength={8}
               className="block w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900"
             />
-            <button
+            <Button
               type="button"
               onClick={handlePasswordChange}
               disabled={pwdPending || newPassword.length < 8}
-              className="shrink-0 rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-700 disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900"
+              className="shrink-0"
             >
               {pwdPending ? "..." : "Задать"}
-            </button>
+            </Button>
           </div>
         </div>
       )}
@@ -138,8 +137,8 @@ export function OwnerEditForm({
       {error && <p className="text-sm text-red-500">{error}</p>}
 
       <div className="flex justify-end gap-3">
-        <button type="button" onClick={onDone} className="rounded-lg border border-zinc-300 px-4 py-2 text-sm hover:bg-zinc-50 dark:border-zinc-700 dark:hover:bg-zinc-800">Отмена</button>
-        <button type="submit" disabled={pending} className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-700 disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900">{pending ? "Сохранение..." : "Сохранить"}</button>
+        <Button type="button" variant="outline" onClick={onDone}>Отмена</Button>
+        <Button type="submit" disabled={pending}>{pending ? "Сохранение..." : "Сохранить"}</Button>
       </div>
     </form>
   );

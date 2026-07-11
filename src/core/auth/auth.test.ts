@@ -1,5 +1,12 @@
-import {describe, it, expect} from "vitest";
-import {normalizeUsername, assertValidUsername, hashPassword, verifyPassword} from "./auth";
+import {describe, expect, it} from "vitest";
+import {
+    assertValidUsername,
+    hashPassword,
+    hashSessionToken,
+    normalizeUsername,
+    rolesFromDatabase,
+    verifyPassword
+} from "./auth";
 
 describe("normalizeUsername", () => {
   it("trims and lowercases with az locale", () => {
@@ -49,5 +56,27 @@ describe("hashPassword / verifyPassword", () => {
     const h1 = await hashPassword("same");
     const h2 = await hashPassword("same");
     expect(h1).not.toBe(h2);
+  });
+});
+
+describe("rolesFromDatabase", () => {
+  it("does not grant an implicit owner role when no assignment exists", () => {
+    expect(rolesFromDatabase([])).toEqual([]);
+  });
+
+  it("deduplicates role rows", () => {
+    expect(rolesFromDatabase([{role: "owner"}, {role: "owner"}, {role: "commandant"}]))
+      .toEqual(["owner", "commandant"]);
+  });
+});
+
+describe("hashSessionToken", () => {
+  it("creates a deterministic SHA-256 digest without retaining the raw token", () => {
+    const token = "raw-session-token";
+    const digest = hashSessionToken(token);
+
+    expect(digest).toHaveLength(64);
+    expect(digest).not.toBe(token);
+    expect(hashSessionToken(token)).toBe(digest);
   });
 });

@@ -2,14 +2,12 @@
 
 import {useState} from "react";
 import {toast} from "sonner";
-import {
-  changeTicketStatusAction,
-  rejectTicketAction,
-  addCommentAction,
-  deleteTicketAction,
-} from "../ticket.actions";
-import type { TicketStatus } from "../ticket.service";
-import { STATUS_LABELS, STATUS_COLORS, CATEGORY_LABELS, PRIORITY_LABELS } from "./TicketList";
+import {addCommentAction, changeTicketStatusAction, deleteTicketAction, rejectTicketAction,} from "../ticket.actions";
+import type {TicketStatus} from "../ticket.service";
+import {CATEGORY_LABELS, PRIORITY_LABELS, STATUS_COLORS, STATUS_LABELS} from "./TicketList";
+import {Button} from "@/components/ui/button";
+import {Badge} from "@/components/ui/badge";
+import {Textarea} from "@/components/ui/textarea";
 
 type Comment = {
   id: string;
@@ -40,14 +38,12 @@ type TicketDetailData = {
 };
 
 export function TicketDetail({
-  slug,
   ticket,
   comments,
   canManage,
   canComment,
   canDelete,
 }: {
-  slug: string;
   ticket: TicketDetailData;
   comments: Comment[];
   canManage: boolean;
@@ -67,7 +63,7 @@ export function TicketDetail({
       return;
     }
     try {
-      await changeTicketStatusAction(slug, ticket.id, newStatus);
+      await changeTicketStatusAction(ticket.id, newStatus);
       toast.success(`Статус: ${STATUS_LABELS[newStatus]}`);
     } catch (err) {
       toast.error((err as Error).message);
@@ -80,7 +76,7 @@ export function TicketDetail({
       return;
     }
     try {
-      await rejectTicketAction(slug, ticket.id, rejectReason.trim());
+      await rejectTicketAction(ticket.id, rejectReason.trim());
       toast.success("Заявка отклонена");
       setRejectOpen(false);
       setRejectReason("");
@@ -94,7 +90,7 @@ export function TicketDetail({
     if (!comment.trim()) return;
     setCommentPending(true);
     try {
-      await addCommentAction(slug, ticket.id, comment.trim());
+      await addCommentAction(ticket.id, comment.trim());
       setComment("");
       toast.success("Комментарий добавлен");
     } catch (err) {
@@ -107,8 +103,8 @@ export function TicketDetail({
   async function handleDelete() {
     if (!confirm("Удалить заявку безвозвратно?")) return;
     try {
-      await deleteTicketAction(slug, ticket.id);
-      window.location.href = `/${slug}/tickets`;
+      await deleteTicketAction(ticket.id);
+      window.location.href = `/tickets`;
     } catch (err) {
       toast.error((err as Error).message);
     }
@@ -122,13 +118,13 @@ export function TicketDetail({
   ] as const).filter((t) => t.status !== currentStatus);
 
   return (
-    <div className="space-y-6">
+    <div className="page-shell max-w-5xl">
       <div>
-        <a href={`/${slug}/tickets`} className="text-sm text-zinc-500 hover:text-zinc-700">← К списку</a>
+        <a href={`/tickets`} className="text-sm text-muted-foreground hover:text-foreground">← К списку</a>
         <div className="mt-2 flex items-start justify-between gap-4">
           <div className="min-w-0 flex-1">
-            <h1 className="text-2xl font-bold">{ticket.title}</h1>
-            <div className="mt-1 flex flex-wrap gap-2 text-xs text-zinc-500">
+            <h1 className="page-heading">{ticket.title}</h1>
+            <div className="mt-2 flex flex-wrap gap-2 text-xs text-muted-foreground">
               <span>{CATEGORY_LABELS[ticket.category as keyof typeof CATEGORY_LABELS] ?? ticket.category}</span>
               <span>·</span>
               <span>Приоритет: {PRIORITY_LABELS[ticket.priority as keyof typeof PRIORITY_LABELS] ?? ticket.priority}</span>
@@ -151,15 +147,15 @@ export function TicketDetail({
               </div>
             )}
           </div>
-          <span className={`shrink-0 rounded-full px-3 py-1 text-sm font-medium ${STATUS_COLORS[currentStatus] ?? ""}`}>
+          <Badge className={`shrink-0 border-0 ${STATUS_COLORS[currentStatus] ?? ""}`}>
             {STATUS_LABELS[currentStatus] ?? ticket.status}
-          </span>
+          </Badge>
         </div>
       </div>
 
-      <div className="rounded-lg border border-zinc-200 p-4 dark:border-zinc-800">
+      <div className="surface-panel p-5">
         <h2 className="mb-2 text-sm font-semibold">Описание</h2>
-        <p className="whitespace-pre-wrap text-sm text-zinc-700 dark:text-zinc-300">{ticket.description}</p>
+        <p className="whitespace-pre-wrap text-sm leading-6 text-muted-foreground">{ticket.description}</p>
         {ticket.status === "rejected" && ticket.rejectionReason && (
           <div className="mt-4 rounded-lg bg-red-50 p-3 dark:bg-red-950/30">
             <h3 className="text-xs font-semibold text-red-700 dark:text-red-400">Причина отклонения</h3>
@@ -169,45 +165,47 @@ export function TicketDetail({
       </div>
 
       {canManage && (
-        <div className="rounded-lg border border-zinc-200 p-4 dark:border-zinc-800">
+        <div className="surface-panel p-5">
           <h2 className="mb-3 text-sm font-semibold">Управление</h2>
           <div className="flex flex-wrap gap-2">
             {transitions.map((t) => (
-              <button
+              <Button
                 key={t.status}
                 onClick={() => handleStatusChange(t.status)}
-                className={`rounded-lg border px-3 py-1.5 text-sm transition ${t.className}`}
+                variant="outline"
+                size="sm"
+                className={t.className}
               >
                 {t.label}
-              </button>
+              </Button>
             ))}
           </div>
 
           {rejectOpen && (
             <div className="mt-3 space-y-2 rounded-lg border border-red-200 p-3 dark:border-red-900">
               <label className="block text-sm font-medium text-red-700 dark:text-red-400">Причина отклонения</label>
-              <textarea
+              <Textarea
                 value={rejectReason}
                 onChange={(e) => setRejectReason(e.target.value)}
                 placeholder="Укажите причину отказа..."
                 rows={3}
                 required
-                className="block w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900"
+                className="min-h-24"
               />
               <div className="flex gap-2">
-                <button
+                <Button
                   onClick={handleReject}
                   disabled={!rejectReason.trim()}
-                  className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50"
+                  variant="destructive"
                 >
                   Отклонить
-                </button>
-                <button
+                </Button>
+                <Button
                   onClick={() => { setRejectOpen(false); setRejectReason(""); }}
-                  className="rounded-lg border border-zinc-300 px-4 py-2 text-sm hover:bg-zinc-50 dark:border-zinc-700 dark:hover:bg-zinc-800"
+                  variant="outline"
                 >
                   Отмена
-                </button>
+                </Button>
               </div>
             </div>
           )}
@@ -215,16 +213,16 @@ export function TicketDetail({
       )}
 
       {canDelete && (
-        <div className="rounded-lg border border-zinc-200 p-4 dark:border-zinc-800">
-          <button onClick={handleDelete} className="text-xs text-red-500 hover:text-red-700">Удалить заявку</button>
+        <div className="surface-panel p-4">
+          <Button variant="ghost" size="sm" onClick={handleDelete} className="text-destructive">Удалить заявку</Button>
         </div>
       )}
 
-      <div className="rounded-lg border border-zinc-200 p-4 dark:border-zinc-800">
+      <div className="surface-panel p-5">
         <h2 className="mb-3 text-sm font-semibold">Комментарии ({comments.length})</h2>
         <div className="space-y-3">
           {comments.map((c) => (
-            <div key={c.id} className="rounded-lg bg-zinc-50 p-3 dark:bg-zinc-900">
+            <div key={c.id} className="rounded-lg bg-muted/50 p-3">
               <div className="flex items-center justify-between text-xs text-zinc-400">
                 <span className="font-medium text-zinc-600 dark:text-zinc-300">{c.authorName}</span>
                 <div className="flex items-center gap-2">
@@ -240,20 +238,19 @@ export function TicketDetail({
 
         {canComment && (
           <form onSubmit={handleComment} className="mt-4 space-y-2">
-            <textarea
+            <Textarea
               value={comment}
               onChange={(e) => setComment(e.target.value)}
               placeholder="Добавить комментарий..."
               rows={2}
-              className="block w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900"
+              className="min-h-20"
             />
-            <button
+            <Button
               type="submit"
               disabled={commentPending || !comment.trim()}
-              className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-700 disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900"
             >
               {commentPending ? "..." : "Отправить"}
-            </button>
+            </Button>
           </form>
         )}
       </div>

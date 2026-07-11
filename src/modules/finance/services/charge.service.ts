@@ -2,7 +2,7 @@ import {db} from "@/core/db";
 import {charges, chargeTemplates} from "@/core/db/schema/charges";
 import {units} from "@/core/db/schema/units";
 import {owners, ownerships} from "@/core/db/schema/owners";
-import {and, eq} from "drizzle-orm";
+import {and, eq, inArray} from "drizzle-orm";
 import {writeAuditLog} from "@/core/audit/audit.service";
 
 type GenerateChargesInput = {
@@ -13,6 +13,16 @@ type GenerateChargesInput = {
 };
 
 export async function generateMonthlyCharges(tenantId: string, input: GenerateChargesInput, userId: string) {
+  if (!Number.isInteger(input.periodYear) || input.periodYear < 2000 || input.periodYear > 2200) {
+    throw new Error("Invalid charge year");
+  }
+  if (!Number.isInteger(input.periodMonth) || input.periodMonth < 1 || input.periodMonth > 12) {
+    throw new Error("Invalid charge month");
+  }
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(input.dueDate) || Number.isNaN(Date.parse(input.dueDate))) {
+    throw new Error("Invalid due date");
+  }
+
   const [template] = await db
     .select()
     .from(chargeTemplates)
@@ -33,8 +43,23 @@ export async function generateMonthlyCharges(tenantId: string, input: GenerateCh
     ))
     .where(eq(units.tenantId, tenantId));
 
+  const existingUnitIds = unitList.length > 0
+    ? await db
+        .select({unitId: charges.unitId})
+        .from(charges)
+        .where(and(
+          eq(charges.tenantId, tenantId),
+          eq(charges.templateId, template.id),
+          eq(charges.periodYear, input.periodYear),
+          eq(charges.periodMonth, input.periodMonth),
+          inArray(charges.unitId, unitList.map((unit) => unit.unitId)),
+        ))
+    : [];
+  const existingUnits = new Set(existingUnitIds.map((row) => row.unitId));
+
   const chargeValues = unitList
     .filter((u): u is typeof u & { ownerId: string } => u.ownerId !== null)
+    .filter((u) => !existingUnits.has(u.unitId))
     .map((u) => {
       return {
         tenantId,
@@ -49,6 +74,8 @@ export async function generateMonthlyCharges(tenantId: string, input: GenerateCh
         createdBy: userId,
       };
     });
+
+  if (chargeValues.length === 0) return [];
 
   const created = await db.insert(charges).values(chargeValues).returning();
 

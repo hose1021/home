@@ -2,6 +2,7 @@
 
 import {useState} from "react";
 import {createMeetingAction, updateMeetingAction} from "../meeting.actions";
+import {Button} from "@/components/ui/button";
 
 type MeetingData = {
   id: string;
@@ -14,11 +15,9 @@ type MeetingData = {
 };
 
 export function MeetingForm({
-  slug,
   meeting,
   onDone,
 }: {
-  slug: string;
   meeting?: MeetingData;
   onDone: () => void;
 }) {
@@ -45,9 +44,9 @@ export function MeetingForm({
       };
 
       if (isEdit) {
-        await updateMeetingAction(slug, meeting.id, data);
+        await updateMeetingAction(meeting.id, data);
       } else {
-        await createMeetingAction(slug, data);
+        await createMeetingAction(data);
       }
       onDone();
     } catch (err) {
@@ -113,16 +112,16 @@ export function MeetingForm({
             </div>
           ))}
         </div>
-        <button type="button" onClick={() => setAgendas([...agendas, ""])} className="mt-2 text-xs text-zinc-500 hover:text-zinc-700">+ Добавить пункт</button>
+        <Button type="button" variant="ghost" size="sm" onClick={() => setAgendas([...agendas, ""])} className="mt-2">+ Добавить пункт</Button>
       </div>
 
       {error && <p className="text-sm text-red-500">{error}</p>}
 
       <div className="flex justify-end gap-3">
-        <button type="button" onClick={onDone} className="rounded-lg border border-zinc-300 px-4 py-2 text-sm hover:bg-zinc-50 dark:border-zinc-700 dark:hover:bg-zinc-800">Отмена</button>
-        <button type="submit" disabled={pending} className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-700 disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900">
+        <Button type="button" variant="outline" onClick={onDone}>Отмена</Button>
+        <Button type="submit" disabled={pending}>
           {pending ? "Сохранение..." : isEdit ? "Сохранить" : "Создать"}
-        </button>
+        </Button>
       </div>
     </form>
   );

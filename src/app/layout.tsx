@@ -4,6 +4,7 @@ import "./globals.css";
 import {TooltipProvider} from "@/components/ui/tooltip";
 import {Toaster} from "@/components/ui/sonner";
 import {PLATFORM_NAME} from "@/core/config";
+import {ThemeProvider} from "@/components/theme-provider";
 
 const inter = Inter({
   variable: "--font-sans",
@@ -21,15 +22,14 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html
-      lang="az"
-      className={`${inter.variable} dark h-full antialiased`}
-    >
-      <body className="min-h-full flex flex-col bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100">
-        <TooltipProvider>
-          {children}
-          <Toaster />
-        </TooltipProvider>
+    <html lang="az" className={`${inter.variable} h-full`} suppressHydrationWarning>
+      <body className="flex min-h-full flex-col">
+        <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
+          <TooltipProvider>
+            {children}
+            <Toaster richColors />
+          </TooltipProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

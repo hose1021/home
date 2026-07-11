@@ -1,27 +1,35 @@
 import {type NextRequest, NextResponse} from "next/server";
 import {createSession, createUser} from "@/core/auth/auth";
 import {getSessionCookieName} from "@/core/auth/session";
+import {getTenantSlug} from "@/core/config";
 import {db} from "@/core/db";
 import {tenants} from "@/core/db/schema/tenants";
-import {eq} from "drizzle-orm";
+import {and, eq} from "drizzle-orm";
+import {z} from "zod";
+
+const registrationSchema = z.object({
+  username: z.string().trim().min(3).max(100).regex(/^\p{L}+\.\p{L}+$/u),
+  password: z.string().min(8).max(1024),
+  name: z.string().trim().min(2).max(255),
+});
 
 export async function POST(request: NextRequest) {
+  if (process.env.ALLOW_PUBLIC_REGISTRATION !== "true") {
+    return NextResponse.json({ error: "Public registration is disabled" }, { status: 403 });
+  }
+
   try {
-    const { username, password, name, tenantSlug } = await request.json();
-
-    if (!username || !password || !name) {
-      return NextResponse.json({ error: "Username, password, and name required" }, { status: 400 });
+    const parsed = registrationSchema.safeParse(await request.json());
+    if (!parsed.success) {
+      return NextResponse.json({ error: "Invalid registration data" }, { status: 400 });
     }
 
-    if (password.length < 8) {
-      return NextResponse.json({ error: "Password must be at least 8 characters" }, { status: 400 });
-    }
-
-    const slug = tenantSlug || "demo-mmmc";
+    const { username, password, name } = parsed.data;
+    const slug = getTenantSlug();
     const [tenant] = await db
       .select()
       .from(tenants)
-      .where(eq(tenants.slug, slug))
+      .where(and(eq(tenants.slug, slug), eq(tenants.status, "active")))
       .limit(1);
 
     if (!tenant) {
@@ -38,7 +46,7 @@ export async function POST(request: NextRequest) {
     const { token } = await createSession(
       user.id,
       user.tenantId,
-      request.headers.get("x-forwarded-for") ?? undefined,
+      getClientIp(request),
       request.headers.get("user-agent") ?? undefined,
     );
 
@@ -48,7 +56,6 @@ export async function POST(request: NextRequest) {
         username: user.username,
         fullName: user.fullName,
         tenantId: user.tenantId,
-        tenantSlug: tenant.slug,
       },
     });
 
@@ -62,7 +69,18 @@ export async function POST(request: NextRequest) {
 
     return response;
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Registration failed";
-    return NextResponse.json({ error: message }, { status: 500 });
+    if (isUniqueViolation(error)) {
+      return NextResponse.json({ error: "Username already exists" }, { status: 409 });
+    }
+    return NextResponse.json({ error: "Registration failed" }, { status: 500 });
   }
+}
+
+function getClientIp(request: NextRequest): string | undefined {
+  const value = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim();
+  return value?.slice(0, 45) || undefined;
+}
+
+function isUniqueViolation(error: unknown): boolean {
+  return typeof error === "object" && error !== null && "code" in error && error.code === "23505";
 }

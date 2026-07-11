@@ -9,6 +9,21 @@
 - Vitest 4 (unit) — Playwright declared but **no config exists**, `test:e2e` will fail
 - Deploy: Docker → Cloudflare Pages (`output: "standalone"`)
 
+## Design System (required)
+- The product UI follows the official shadcn block language, specifically the composition patterns from `login-04`, `dashboard-01`, `sidebar-09`, and `sidebar-16`. New work must extend this system instead of introducing a separate visual style.
+- Overall direction: neutral zinc/black-and-white palette, restrained borders, `rounded-lg`/`rounded-xl`, subtle `shadow-sm`, compact spacing, strong typography hierarchy, and minimal decoration. Do not add glassmorphism, neon gradients, colored page glows, oversized radii, or arbitrary shadows.
+- Use the shared primitives in `src/components/ui/` (`Button`, `Card`, `Badge`, `Input`, `Textarea`, `Table`, `Tabs`, `Dialog`, `DropdownMenu`, etc.) instead of styling raw HTML controls. Add missing primitives with `npx shadcn@latest add <component>` and adapt them to the existing Base UI setup.
+- Dashboard shell: keep the inset, icon-collapsible sidebar; sticky `--header-height` top bar; tenant brand in `SidebarHeader`; permission-filtered navigation groups; and profile dropdown in `SidebarFooter`. Preserve mobile sheet behavior and RBAC visibility.
+- Every dashboard route must use `.page-shell`. Page intros use an optional muted eyebrow, `.page-heading`, and `.page-description`; actions sit to the right on desktop and stack below on mobile.
+- Main content containers use `.surface-panel` or `Card`. Summary metrics follow `dashboard-01`: a four-card responsive grid, subtle `from-primary/5 to-card` vertical gradient, tabular numbers, and a small muted icon tile.
+- Tables live inside an overflow-safe `.surface-panel`; headers use `bg-muted/50`; rows use `hover:bg-muted/50`; secondary values use `text-muted-foreground`. Avoid hardcoded `zinc-*` table borders when semantic tokens exist.
+- Empty states use a dashed `.surface-panel`, centered muted icon, short title, and one-line explanation. Do not leave bare `Нет данных` text floating on a page.
+- Forms and dialogs use a consistent vertical rhythm (`space-y-4`), semantic labels, shadcn inputs/selects/textareas, an outline cancel button, and a default primary submit button. Destructive actions use the destructive variant and require confirmation where appropriate.
+- Status and role metadata use `Badge`; icon-only actions use `Button` with `variant="ghost"`, an icon size, and an accessible `aria-label`. Do not create one-off pill/button CSS if a primitive variant covers it.
+- Login keeps the `login-04` split-card composition: form on the left, branded visual panel on desktop, one-column form on mobile. Authentication behavior must remain unchanged.
+- Dark mode is first-class. Prefer semantic tokens (`background`, `foreground`, `card`, `muted`, `border`, `primary`, `destructive`) so both themes work without duplicate color rules.
+- Validate visual changes at desktop and mobile widths. At minimum run lint, typecheck, tests, and build; visually check `/`, the dashboard, one list page, and one detail/dialog flow when those areas change.
+
 ## Commands (run in this order before committing)
 - `bun run lint` — ESLint `--max-warnings 0` (fails on warnings)
 - `bun run typecheck` — `tsc --noEmit`

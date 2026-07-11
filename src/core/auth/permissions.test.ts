@@ -1,12 +1,13 @@
-import {describe, it, expect} from "vitest";
+import {describe, expect, it} from "vitest";
 import {
-  hasPermission,
-  getPermissionsForRole,
-  getPermissionsForRoles,
-  hasAnyPermission,
-  ROLE_LABELS,
-  ROLE_ORDER,
-  type Permission,
+    getPermissionsForRole,
+    getPermissionsForRoles,
+    hasAnyPermission,
+    hasPermission,
+    hasStaffRole,
+    type Permission,
+    ROLE_LABELS,
+    ROLE_ORDER,
 } from "./permissions";
 
 describe("hasPermission", () => {
@@ -111,6 +112,22 @@ describe("hasAnyPermission", () => {
 
   it("returns false for empty roles", () => {
     expect(hasAnyPermission([], "owner:read")).toBe(false);
+  });
+});
+
+describe("hasStaffRole", () => {
+  it("does not treat an owner-only account as staff", () => {
+    expect(hasStaffRole(["owner"])).toBe(false);
+  });
+
+  it("recognizes every non-owner role, including mixed accounts", () => {
+    expect(hasStaffRole(["management_member"])).toBe(true);
+    expect(hasStaffRole(["owner", "commandant"])).toBe(true);
+    expect(hasStaffRole(["admin"])).toBe(true);
+  });
+
+  it("does not treat an account without roles as staff", () => {
+    expect(hasStaffRole([])).toBe(false);
   });
 });
 

@@ -1,9 +1,10 @@
 import {db} from "@/core/db";
 import {sessions, userRoles, users} from "@/core/db/schema/users";
 import {owners} from "@/core/db/schema/owners";
-import {and, eq, gt} from "drizzle-orm";
+import {tenants} from "@/core/db/schema/tenants";
+import {and, eq, gt, isNull, or} from "drizzle-orm";
 import bcrypt from "bcryptjs";
-import crypto from "crypto";
+import crypto from "node:crypto";
 import type {Role} from "./permissions";
 
 const SALT_ROUNDS = 12;
@@ -81,9 +82,20 @@ export async function createUser(input: {
 export async function authenticateUser(usernameInput: string, password: string) {
   const username = normalizeUsername(usernameInput);
   const [user] = await db
-    .select()
+    .select({
+      id: users.id,
+      tenantId: users.tenantId,
+      username: users.username,
+      fullName: users.fullName,
+      passwordHash: users.passwordHash,
+    })
     .from(users)
-    .where(eq(users.username, username))
+    .innerJoin(tenants, eq(tenants.id, users.tenantId))
+    .where(and(
+      eq(users.username, username),
+      eq(users.isActive, true),
+      eq(tenants.status, "active"),
+    ))
     .limit(1);
 
   if (!user) return null;
@@ -108,7 +120,7 @@ export async function createSession(userId: string, tenantId: string, ipAddress?
     .values({
       userId,
       tenantId,
-      token,
+      token: hashSessionToken(token),
       ipAddress: ipAddress ?? null,
       userAgent: userAgent ?? null,
       expiresAt,
@@ -119,6 +131,7 @@ export async function createSession(userId: string, tenantId: string, ipAddress?
 }
 
 export async function getSessionFromToken(token: string): Promise<SessionUser | null> {
+  const tokenHash = hashSessionToken(token);
   const [result] = await db
     .select({
       userId: sessions.userId,
@@ -128,7 +141,14 @@ export async function getSessionFromToken(token: string): Promise<SessionUser | 
     })
     .from(sessions)
     .innerJoin(users, eq(users.id, sessions.userId))
-    .where(and(eq(sessions.token, token), gt(sessions.expiresAt, new Date())))
+    .innerJoin(tenants, eq(tenants.id, sessions.tenantId))
+    .where(and(
+      or(eq(sessions.token, tokenHash), eq(sessions.token, token)),
+      gt(sessions.expiresAt, new Date()),
+      eq(sessions.tenantId, users.tenantId),
+      eq(users.isActive, true),
+      eq(tenants.status, "active"),
+    ))
     .limit(1);
 
   if (!result) return null;
@@ -136,9 +156,16 @@ export async function getSessionFromToken(token: string): Promise<SessionUser | 
   const roleRows = await db
     .select({ role: userRoles.role })
     .from(userRoles)
-    .where(eq(userRoles.userId, result.userId));
+    .where(and(
+      eq(userRoles.userId, result.userId),
+      or(
+        eq(userRoles.scopeTenantId, result.tenantId),
+        and(eq(userRoles.role, "admin"), isNull(userRoles.scopeTenantId)),
+      ),
+    ));
 
-  const roles = roleRows.length > 0 ? roleRows.map((r) => r.role) : (["owner"] as Role[]);
+  const roles = rolesFromDatabase(roleRows);
+  if (roles.length === 0) return null;
 
   return {
     id: result.userId,
@@ -149,8 +176,19 @@ export async function getSessionFromToken(token: string): Promise<SessionUser | 
   };
 }
 
+export function rolesFromDatabase(rows: ReadonlyArray<{role: Role}>): Role[] {
+  return [...new Set(rows.map((row) => row.role))];
+}
+
+export function hashSessionToken(token: string): string {
+  return crypto.createHash("sha256").update(token).digest("hex");
+}
+
 export async function deleteSession(token: string) {
-  await db.delete(sessions).where(eq(sessions.token, token));
+  await db.delete(sessions).where(or(
+    eq(sessions.token, hashSessionToken(token)),
+    eq(sessions.token, token),
+  ));
 }
 
 export async function deleteUserSessions(userId: string) {
