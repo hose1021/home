@@ -1,4 +1,4 @@
-import {decimal, integer, pgTable, timestamp, uuid, varchar} from "drizzle-orm/pg-core";
+import {decimal, integer, pgTable, timestamp, unique, uuid, varchar} from "drizzle-orm/pg-core";
 import {tenants} from "./tenants";
 import {buildings} from "./buildings";
 
@@ -16,5 +16,6 @@ export const units = pgTable("units", {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 }, (table) => ({
-  unitPerBuildingUnique: { columns: [table.tenantId, table.buildingId, table.unitNumber], name: "uq_units_tenant_building_number" },
+  unitPerBuildingUnique: unique("uq_units_tenant_building_number").on(table.tenantId, table.buildingId, table.unitNumber),
+  tenantIdUnique: unique("uq_units_tenant_id").on(table.tenantId, table.id),
 }));

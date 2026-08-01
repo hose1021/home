@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/sidebar";
 import {
     IconBell,
+    IconBuilding,
     IconCalendarEvent,
     IconChecklist,
     IconCoin,
@@ -25,6 +26,7 @@ import {usePathname} from "next/navigation";
 const navItems: { title: string; url: string; icon: typeof IconDashboard; perm?: Permission }[] = [
   { title: "Дашборд", url: "/", icon: IconDashboard },
   { title: "Собственники", url: "/owners", icon: IconUsers, perm: "owner:read" },
+  { title: "Квартиры", url: "/units", icon: IconBuilding, perm: "unit:read" },
   { title: "Финансы", url: "/finance", icon: IconCoin, perm: "finance:read" },
   { title: "Объявления", url: "/announcements", icon: IconBell, perm: "announcement:read" },
   { title: "Голосования", url: "/voting", icon: IconChecklist, perm: "voting:read" },

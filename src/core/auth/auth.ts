@@ -143,7 +143,7 @@ export async function getSessionFromToken(token: string): Promise<SessionUser | 
     .innerJoin(users, eq(users.id, sessions.userId))
     .innerJoin(tenants, eq(tenants.id, sessions.tenantId))
     .where(and(
-      or(eq(sessions.token, tokenHash), eq(sessions.token, token)),
+      eq(sessions.token, tokenHash),
       gt(sessions.expiresAt, new Date()),
       eq(sessions.tenantId, users.tenantId),
       eq(users.isActive, true),
@@ -185,10 +185,7 @@ export function hashSessionToken(token: string): string {
 }
 
 export async function deleteSession(token: string) {
-  await db.delete(sessions).where(or(
-    eq(sessions.token, hashSessionToken(token)),
-    eq(sessions.token, token),
-  ));
+  await db.delete(sessions).where(eq(sessions.token, hashSessionToken(token)));
 }
 
 export async function deleteUserSessions(userId: string) {

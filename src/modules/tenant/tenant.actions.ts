@@ -4,6 +4,7 @@ import {revalidatePath} from "next/cache";
 import {requirePermission} from "@/core/auth/session";
 import {createTenant, deactivateTenant, updateTenant} from "./tenant.service";
 import {createTenantSchema, updateTenantSchema} from "./tenant.validators";
+import {uuidSchema} from "@/core/validation/action-schemas";
 
 export async function createTenantAction(input: {
   slug: string;
@@ -27,6 +28,7 @@ export async function updateTenantAction(
     status?: "active" | "suspended" | "archived";
   },
 ) {
+  id = uuidSchema.parse(id);
   const session = await requirePermission("tenant:write");
   const updated = await updateTenant(id, updateTenantSchema.parse(input), session.user.id);
   revalidatePath("/admin/tenants", "layout");
@@ -34,6 +36,7 @@ export async function updateTenantAction(
 }
 
 export async function deactivateTenantAction(id: string) {
+  id = uuidSchema.parse(id);
   const session = await requirePermission("tenant:write");
   const updated = await deactivateTenant(id, session.user.id);
   revalidatePath("/admin/tenants");

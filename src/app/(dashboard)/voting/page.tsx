@@ -2,14 +2,11 @@ import {db} from "@/core/db";
 import {votes, votingOptions, votings} from "@/core/db/schema/votings";
 import {eq, sql} from "drizzle-orm";
 import {requireTenantPermission} from "@/core/auth/session";
-import {getPermissionsForRoles, type Permission} from "@/core/auth/permissions";
-import {Button} from "@/components/ui/button";
 import {Badge} from "@/components/ui/badge";
-import {IconChecklist, IconPlus} from "@tabler/icons-react";
+import {IconChecklist} from "@tabler/icons-react";
 
 export default async function VotingPage() {
-  const { session, tenantId } = await requireTenantPermission("voting:read");
-  const permissions: Permission[] = getPermissionsForRoles(session.user.roles);
+  const { tenantId } = await requireTenantPermission("voting:read");
 
   const rows = await db
     .select({
@@ -69,9 +66,6 @@ export default async function VotingPage() {
           <h1 className="page-heading mt-1">Голосования</h1>
           <p className="page-description">Управление голосованиями собственников</p>
         </div>
-        {permissions.includes("voting:write") && (
-          <Button><IconPlus /> Создать голосование</Button>
-        )}
       </div>
 
       <div className="space-y-3">

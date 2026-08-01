@@ -20,7 +20,6 @@ const METHODS = [
 ];
 
 export function PayButton({
-  slug,
   ownerId,
   unitId,
   unitNumber,
@@ -32,7 +31,6 @@ export function PayButton({
   month,
   alreadyPaid,
 }: {
-  slug: string;
   ownerId: string;
   unitId: string;
   unitNumber: string;
@@ -61,7 +59,7 @@ export function PayButton({
     setPending(true);
     try {
       await payForUnitAction(
-        slug, ownerId, unitId, amount, year, month,
+        ownerId, unitId, amount, year, month,
         method as "cash" | "bank_transfer" | "card" | "e_manat" | "pos_terminal",
         referenceNo || undefined,
         tariff.toFixed(2),

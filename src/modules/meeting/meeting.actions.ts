@@ -6,6 +6,18 @@ import {createMeeting, deleteMeeting, updateMeeting} from "./meeting.service";
 import {db} from "@/core/db";
 import {meetingAgendas} from "@/core/db/schema/meetings";
 import {eq} from "drizzle-orm";
+import {uuidSchema} from "@/core/validation/action-schemas";
+import {z} from "zod";
+
+const meetingInputSchema = z.object({
+  title: z.string().trim().min(1).max(255),
+  meetingType: z.enum(["annual", "extraordinary", "board", "audit"]),
+  meetingFormat: z.enum(["in_person", "online", "mixed"]),
+  proposedDate: z.string().min(1).refine((value) => !Number.isNaN(Date.parse(value)), "Invalid meeting date"),
+  location: z.string().trim().max(255).optional(),
+  onlineLink: z.string().url().max(2000).optional(),
+  agendas: z.array(z.object({ title: z.string().trim().min(1).max(255), description: z.string().trim().max(2000).optional(), sortOrder: z.number().int().min(0).max(1000) })).max(100),
+});
 
 export async function createMeetingAction(input: {
   title: string;
@@ -16,6 +28,7 @@ export async function createMeetingAction(input: {
   onlineLink?: string;
   agendas: { title: string; description?: string; sortOrder: number }[];
 }) {
+  input = meetingInputSchema.parse(input);
   const { session, tenantId } = await requireTenantPermission("meeting:write");
   await createMeeting(tenantId, session.user.id, {
     ...input,
@@ -34,6 +47,8 @@ export async function updateMeetingAction(id: string, input: {
   location?: string | null;
   agendas?: { title: string; description?: string; sortOrder: number }[];
 }) {
+  id = uuidSchema.parse(id);
+  input = meetingInputSchema.partial().parse(input);
   const { session, tenantId } = await requireTenantPermission("meeting:write");
   const {agendas, proposedDate, ...meetingInput} = input;
   const updated = await updateMeeting(tenantId, id, {
@@ -56,6 +71,7 @@ export async function updateMeetingAction(id: string, input: {
 }
 
 export async function deleteMeetingAction(id: string) {
+  id = uuidSchema.parse(id);
   const { session, tenantId } = await requireTenantPermission("meeting:write");
   await deleteMeeting(tenantId, id, session.user.id);
   revalidatePath("/meetings");

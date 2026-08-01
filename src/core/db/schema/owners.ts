@@ -1,4 +1,4 @@
-import {boolean, date, pgTable, text, timestamp, uuid, varchar} from "drizzle-orm/pg-core";
+import {boolean, date, foreignKey, pgTable, text, timestamp, unique, uuid, varchar} from "drizzle-orm/pg-core";
 import {tenants} from "./tenants";
 import {units} from "./units";
 import {users} from "./users";
@@ -15,7 +15,9 @@ export const owners = pgTable("owners", {
   status: varchar("status", { length: 20 }).default("active"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
-});
+}, (table) => ({
+  tenantIdUnique: unique("uq_owners_tenant_id").on(table.tenantId, table.id),
+}));
 
 export const ownerships = pgTable("ownerships", {
   id: uuid("id").defaultRandom().primaryKey(),
@@ -26,5 +28,15 @@ export const ownerships = pgTable("ownerships", {
   documentUrl: text("document_url"),
   isPrimary: boolean("is_primary").default(true),
 }, (table) => ({
-  ownerUnitUnique: { columns: [table.ownerId, table.unitId], name: "uq_ownerships_owner_unit" },
+  ownerUnitUnique: unique("uq_ownerships_owner_unit").on(table.ownerId, table.unitId),
+  tenantOwnerForeignKey: foreignKey({
+    columns: [table.tenantId, table.ownerId],
+    foreignColumns: [owners.tenantId, owners.id],
+    name: "fk_ownerships_tenant_owner",
+  }),
+  tenantUnitForeignKey: foreignKey({
+    columns: [table.tenantId, table.unitId],
+    foreignColumns: [units.tenantId, units.id],
+    name: "fk_ownerships_tenant_unit",
+  }),
 }));

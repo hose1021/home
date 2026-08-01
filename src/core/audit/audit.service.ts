@@ -1,6 +1,8 @@
 import {db} from "@/core/db";
 import {auditLogs} from "@/core/db/schema/audit-logs";
 
+type AuditExecutor = Pick<typeof db, "insert">;
+
 interface AuditEntry {
   tenantId: string;
   userId: string;
@@ -12,8 +14,8 @@ interface AuditEntry {
   ipAddress?: string | null;
 }
 
-export async function writeAuditLog(entry: AuditEntry) {
-  await db.insert(auditLogs).values({
+export async function writeAuditLog(entry: AuditEntry, executor: AuditExecutor = db) {
+  await executor.insert(auditLogs).values({
     tenantId: entry.tenantId,
     userId: entry.userId,
     action: entry.action,

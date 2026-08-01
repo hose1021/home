@@ -1,4 +1,4 @@
-import {boolean, date, decimal, integer, pgTable, timestamp, uuid, varchar} from "drizzle-orm/pg-core";
+import {boolean, date, decimal, integer, pgTable, timestamp, unique, uuid, varchar} from "drizzle-orm/pg-core";
 import {tenants} from "./tenants";
 import {units} from "./units";
 import {owners} from "./owners";
@@ -30,4 +30,12 @@ export const charges = pgTable("charges", {
   status: varchar("status", { length: 20 }).notNull().default("pending").$type<"pending" | "paid" | "partially_paid" | "overdue" | "cancelled">(),
   createdBy: uuid("created_by").notNull().references(() => users.id),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-});
+}, (table) => ({
+  periodUnitTemplateUnique: unique("uq_charges_tenant_template_unit_period").on(
+    table.tenantId,
+    table.templateId,
+    table.unitId,
+    table.periodYear,
+    table.periodMonth,
+  ),
+}));

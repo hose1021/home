@@ -57,7 +57,7 @@ export function OwnerCreateForm({
             </div>
             <div>
               <label className="block text-sm font-medium">Пароль</label>
-              <input name="password" type="password" minLength={8} required className="mt-1 block w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900" />
+              <input name="password" type="password" minLength={12} required className="mt-1 block w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900" />
             </div>
           </div>
         </div>

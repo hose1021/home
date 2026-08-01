@@ -17,7 +17,8 @@ export async function listMeetings(tenantId: string) {
     .select()
     .from(meetings)
     .where(eq(meetings.tenantId, tenantId))
-    .orderBy(meetings.proposedDate);
+    .orderBy(meetings.proposedDate)
+    .limit(500);
 }
 
 export async function createMeeting(tenantId: string, userId: string, input: {

@@ -87,7 +87,8 @@ export async function listTickets(tenantId: string, filter?: {
     .select()
     .from(tickets)
     .where(and(...conditions))
-    .orderBy(desc(tickets.createdAt));
+    .orderBy(desc(tickets.createdAt))
+    .limit(500);
 }
 
 export async function listTicketsWithDetails(tenantId: string, filter?: {
@@ -111,9 +112,10 @@ export async function listTicketsWithDetails(tenantId: string, filter?: {
       unitNumber: units.unitNumber,
     })
     .from(tickets)
-    .leftJoin(units, eq(units.id, tickets.unitId))
+    .leftJoin(units, and(eq(units.id, tickets.unitId), eq(units.tenantId, tenantId)))
     .where(and(...conditions))
-    .orderBy(desc(tickets.createdAt));
+    .orderBy(desc(tickets.createdAt))
+    .limit(500);
 }
 
 export async function updateTicketStatus(

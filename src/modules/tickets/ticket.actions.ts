@@ -17,6 +17,18 @@ import {
     updateTicketStatus,
     userOwnsUnit,
 } from "./ticket.service";
+import {uuidSchema} from "@/core/validation/action-schemas";
+import {z} from "zod";
+
+const ticketCreateSchema = z.object({
+  unitId: uuidSchema.nullable().optional(),
+  category: z.enum(["plumbing", "electrical", "cleaning", "structural", "elevator", "pest_control", "yard", "security", "other"]),
+  priority: z.enum(["low", "medium", "high", "urgent"]).optional(),
+  title: z.string().trim().min(1).max(255),
+  description: z.string().trim().min(1).max(20000),
+});
+
+const ticketUpdateSchema = ticketCreateSchema.omit({ unitId: true }).partial();
 
 export async function createTicketAction(input: {
   unitId?: string | null;
@@ -25,6 +37,7 @@ export async function createTicketAction(input: {
   title: string;
   description: string;
 }) {
+  input = ticketCreateSchema.parse(input);
   const { session, tenantId } = await requireTenantPermission("ticket:write");
   if (!hasStaffRole(session.user.roles) && input.unitId) {
     const ownsUnit = await userOwnsUnit(tenantId, session.user.id, input.unitId);
@@ -41,6 +54,8 @@ export async function updateTicketAction(id: string, input: {
   category?: TicketCategory;
   priority?: TicketPriority;
 }) {
+  id = uuidSchema.parse(id);
+  input = ticketUpdateSchema.parse(input);
   const { session, tenantId } = await requireTenantPermission("ticket:write");
   requireTicketStaff(session.user.roles);
   await updateTicket(tenantId, id, input, session.user.id);
@@ -50,6 +65,9 @@ export async function updateTicketAction(id: string, input: {
 }
 
 export async function changeTicketStatusAction(id: string, newStatus: TicketStatus, rejectionReason?: string) {
+  id = uuidSchema.parse(id);
+  newStatus = z.enum(["pending", "in_progress", "done", "rejected"]).parse(newStatus);
+  rejectionReason = rejectionReason === undefined ? undefined : z.string().trim().max(2000).parse(rejectionReason);
   const { session, tenantId } = await requireTenantPermission("ticket:write");
   requireTicketStaff(session.user.roles);
   await updateTicketStatus(tenantId, id, newStatus, session.user.id, rejectionReason);
@@ -59,6 +77,8 @@ export async function changeTicketStatusAction(id: string, newStatus: TicketStat
 }
 
 export async function rejectTicketAction(id: string, rejectionReason: string) {
+  id = uuidSchema.parse(id);
+  rejectionReason = z.string().trim().min(1).max(2000).parse(rejectionReason);
   const { session, tenantId } = await requireTenantPermission("ticket:write");
   requireTicketStaff(session.user.roles);
   await updateTicketStatus(tenantId, id, "rejected", session.user.id, rejectionReason);
@@ -68,6 +88,8 @@ export async function rejectTicketAction(id: string, rejectionReason: string) {
 }
 
 export async function assignTicketAction(id: string, assignedTo: string) {
+  id = uuidSchema.parse(id);
+  assignedTo = uuidSchema.parse(assignedTo);
   const { session, tenantId } = await requireTenantPermission("ticket:write");
   requireTicketStaff(session.user.roles);
   await assignTicket(tenantId, id, assignedTo, session.user.id);
@@ -77,6 +99,7 @@ export async function assignTicketAction(id: string, assignedTo: string) {
 }
 
 export async function deleteTicketAction(id: string) {
+  id = uuidSchema.parse(id);
   const { session, tenantId } = await requireTenantPermission("ticket:write");
   if (!hasStaffRole(session.user.roles)) {
     const ticket = await getTicketById(tenantId, id);
@@ -90,6 +113,9 @@ export async function deleteTicketAction(id: string) {
 }
 
 export async function addCommentAction(ticketId: string, content: string, isInternal = false) {
+  ticketId = uuidSchema.parse(ticketId);
+  content = z.string().trim().min(1).max(10000).parse(content);
+  isInternal = z.boolean().parse(isInternal);
   const { session, tenantId } = await requireTenantPermission("ticket:read");
   const ticket = await getTicketById(tenantId, ticketId);
   if (!ticket) throw new Error("Ticket not found");

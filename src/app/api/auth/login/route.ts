@@ -2,6 +2,7 @@ import {type NextRequest, NextResponse} from "next/server";
 import {authenticateUser, createSession} from "@/core/auth/auth";
 import {getSessionCookieName} from "@/core/auth/session";
 import {z} from "zod";
+import {clearLoginFailures, isLoginRateLimited, recordLoginFailure} from "@/core/auth/login-rate-limit";
 
 const loginSchema = z.object({
   username: z.string().trim().min(1).max(100),
@@ -10,20 +11,34 @@ const loginSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
-    const parsed = loginSchema.safeParse(await request.json());
+    let body: unknown;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+    }
+    const parsed = loginSchema.safeParse(body);
     if (!parsed.success) {
       return NextResponse.json({ error: "Username and password required" }, { status: 400 });
     }
 
+    const ip = getClientIp(request);
+    if (isLoginRateLimited(ip, parsed.data.username)) {
+      return NextResponse.json({ error: "Too many login attempts" }, { status: 429 });
+    }
+
     const user = await authenticateUser(parsed.data.username, parsed.data.password);
     if (!user) {
+      recordLoginFailure(ip, parsed.data.username);
       return NextResponse.json({ error: "Invalid username or password" }, { status: 401 });
     }
+
+    clearLoginFailures(ip, parsed.data.username);
 
     const { token } = await createSession(
       user.id,
       user.tenantId,
-      getClientIp(request),
+      ip,
       request.headers.get("user-agent") ?? undefined,
     );
 

@@ -8,12 +8,11 @@ import {
     SidebarMenuButton,
     SidebarMenuItem,
 } from "@/components/ui/sidebar";
-import {IconCoin, IconReport} from "@tabler/icons-react";
+import {IconReport} from "@tabler/icons-react";
 import type {Permission} from "@/core/auth/permissions";
 import {usePathname} from "next/navigation";
 
-const docs: { name: string; url: string; icon: typeof IconCoin; perm?: Permission }[] = [
-  { name: "Бюджет", url: "/finance/budget", icon: IconCoin, perm: "budget:read" },
+const docs: { name: string; url: string; icon: typeof IconReport; perm?: Permission }[] = [
   { name: "Отчёты", url: "/reports", icon: IconReport, perm: "report:read" },
 ];
 

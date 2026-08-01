@@ -11,6 +11,8 @@ import {requireTenantPermission} from "@/core/auth/session";
 import {getPermissionsForRoles, hasStaffRole, type Permission} from "@/core/auth/permissions";
 import {type MonthPayment, MonthRow} from "./month-row";
 import {PaymentHistory} from "./payment-history";
+import {OwnerUnitsSection} from "./owner-units-section";
+import {OwnerUnitCard} from "./OwnerUnitCard";
 import {
     Breadcrumb,
     BreadcrumbItem,
@@ -211,7 +213,8 @@ export default async function OwnerDetailsPage({
         <OwnerMetric icon={IconBuilding} label="Тариф в месяц" value={`${totalMonthlyFee.toFixed(2)} ₼`} />
       </div>
 
-      {ownerUnits.length > 0 ? (
+      <OwnerUnitsSection ownerId={ownerId} units={ownerUnits} canManage={canPay}>
+        {ownerUnits.length > 0 ? (
         <div className="space-y-4">
           {ownerUnits.map((unit) => {
             const area = Number(unit.area);
@@ -230,7 +233,7 @@ export default async function OwnerDetailsPage({
             }
 
             return (
-              <div key={unit.id} className="surface-panel overflow-hidden">
+              <OwnerUnitCard key={unit.id} ownerId={owner.id} unit={unit} canManage={canPay}>
                 <div className="bg-muted/20 p-5 sm:p-6">
                   <div className="flex items-start justify-between gap-4">
                     <div>
@@ -284,7 +287,7 @@ export default async function OwnerDetailsPage({
                     </div>
                   ))}
                 </div>
-              </div>
+              </OwnerUnitCard>
             );
           })}
         </div>
@@ -293,6 +296,7 @@ export default async function OwnerDetailsPage({
           <p className="text-muted-foreground">Квартиры не привязаны</p>
         </div>
       )}
+      </OwnerUnitsSection>
 
       {paymentList.length > 0 && (
         <div className="space-y-3">

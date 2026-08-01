@@ -1,6 +1,7 @@
 import {db} from "@/core/db";
 import {units} from "@/core/db/schema/units";
-import {and, eq} from "drizzle-orm";
+import {owners, ownerships} from "@/core/db/schema/owners";
+import {and, eq, ne, sql} from "drizzle-orm";
 import {writeAuditLog} from "@/core/audit/audit.service";
 
 export async function getUnitById(tenantId: string, id: string) {
@@ -17,7 +18,8 @@ export async function listUnits(tenantId: string) {
     .select()
     .from(units)
     .where(eq(units.tenantId, tenantId))
-    .orderBy(units.unitNumber);
+    .orderBy(units.unitNumber)
+    .limit(1000);
 }
 
 export async function createUnit(tenantId: string, buildingId: string, input: {
@@ -97,4 +99,32 @@ export async function deleteUnit(tenantId: string, id: string, userId: string) {
     entityId: id,
     oldValues: { unitNumber: existing.unitNumber } as Record<string, unknown>,
   });
+}
+
+export async function listUnitsWithOwners(tenantId: string) {
+  return await db
+    .select({
+      id: units.id,
+      unitNumber: units.unitNumber,
+      entrance: units.entrance,
+      floor: units.floor,
+      type: units.type,
+      area: units.area,
+      status: units.status,
+      ownerIds: sql<string[]>`coalesce(array_agg(distinct ${owners.id}) filter (where ${owners.id} is not null), '{}')`,
+      ownerNames: sql<string[]>`coalesce(array_agg(distinct ${owners.fullName}) filter (where ${owners.fullName} is not null), '{}')`,
+      ownerCount: sql<number>`coalesce(count(distinct ${owners.id}) filter (where ${owners.id} is not null), 0)::int`,
+    })
+    .from(units)
+    .leftJoin(ownerships, and(
+      eq(ownerships.unitId, units.id),
+      eq(ownerships.tenantId, tenantId),
+    ))
+    .leftJoin(owners, and(
+      eq(owners.id, ownerships.ownerId),
+      ne(owners.status, "deleted"),
+    ))
+    .where(and(eq(units.tenantId, tenantId), ne(units.status, "deleted")))
+    .groupBy(units.id)
+    .orderBy(units.entrance, units.floor, units.unitNumber);
 }

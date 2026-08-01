@@ -9,7 +9,7 @@ import {z} from "zod";
 
 const registrationSchema = z.object({
   username: z.string().trim().min(3).max(100).regex(/^\p{L}+\.\p{L}+$/u),
-  password: z.string().min(8).max(1024),
+  password: z.string().min(12).max(128),
   name: z.string().trim().min(2).max(255),
 });
 

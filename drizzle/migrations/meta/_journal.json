@@ -120,6 +120,20 @@
       "when": 1783740300978,
       "tag": "0016_nappy_bill_hollister",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1783740300979,
+      "tag": "0017_integrity_and_payment_ledger",
+      "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1783740300980,
+      "tag": "0018_finance_tenant_foreign_keys",
+      "breakpoints": true
     }
   ]
 }

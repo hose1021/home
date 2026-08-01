@@ -39,6 +39,7 @@ export async function generateMonthlyCharges(tenantId: string, input: GenerateCh
     .from(units)
     .leftJoin(ownerships, and(
       eq(ownerships.unitId, units.id),
+      eq(ownerships.tenantId, tenantId),
       eq(ownerships.isPrimary, true),
     ))
     .where(eq(units.tenantId, tenantId));
@@ -77,14 +78,26 @@ export async function generateMonthlyCharges(tenantId: string, input: GenerateCh
 
   if (chargeValues.length === 0) return [];
 
-  const created = await db.insert(charges).values(chargeValues).returning();
+  const created = await db
+    .insert(charges)
+    .values(chargeValues)
+    .onConflictDoNothing({ target: [
+      charges.tenantId,
+      charges.templateId,
+      charges.unitId,
+      charges.periodYear,
+      charges.periodMonth,
+    ] })
+    .returning();
+
+  if (created.length === 0) return [];
 
   await writeAuditLog({
     tenantId,
     userId,
     action: "create",
     entityType: "charge",
-    entityId: created[0]?.id ?? "batch",
+    entityId: created[0].id,
     newValues: { count: created.length, period: `${input.periodYear}-${input.periodMonth}` },
   });
 
@@ -101,7 +114,8 @@ export async function listCharges(tenantId: string, periodYear?: number, periodM
     .select()
     .from(charges)
     .where(and(...conditions))
-    .orderBy(charges.dueDate);
+    .orderBy(charges.dueDate)
+    .limit(500);
 }
 
 export async function listChargesWithDetails(tenantId: string, filter?: {
@@ -129,11 +143,12 @@ export async function listChargesWithDetails(tenantId: string, filter?: {
       templateName: chargeTemplates.name,
     })
     .from(charges)
-    .leftJoin(units, eq(units.id, charges.unitId))
-    .leftJoin(owners, eq(owners.id, charges.ownerId))
-    .leftJoin(chargeTemplates, eq(chargeTemplates.id, charges.templateId))
+    .leftJoin(units, and(eq(units.id, charges.unitId), eq(units.tenantId, tenantId)))
+    .leftJoin(owners, and(eq(owners.id, charges.ownerId), eq(owners.tenantId, tenantId)))
+    .leftJoin(chargeTemplates, and(eq(chargeTemplates.id, charges.templateId), eq(chargeTemplates.tenantId, tenantId)))
     .where(and(...conditions))
-    .orderBy(charges.dueDate);
+    .orderBy(charges.dueDate)
+    .limit(500);
 }
 
 export async function listChargeTemplates(tenantId: string) {

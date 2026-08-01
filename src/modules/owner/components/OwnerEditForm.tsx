@@ -119,7 +119,7 @@ export function OwnerEditForm({
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
               placeholder="Новый пароль"
-              minLength={8}
+              minLength={12}
               className="block w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900"
             />
             <Button
