@@ -2,8 +2,8 @@ import {db} from "@/core/db";
 import {owners, ownerships} from "@/core/db/schema/owners";
 import {units} from "@/core/db/schema/units";
 import {userRoles, users} from "@/core/db/schema/users";
-import {charges} from "@/core/db/schema/charges";
-import {and, eq, inArray, ne, sql} from "drizzle-orm";
+import {and, eq, ne, sql} from "drizzle-orm";
+import {getOwnerPaymentFlags} from "@/modules/finance/services/payment.service";
 import {OwnerTable} from "./owner-table";
 import {requireTenantPermission} from "@/core/auth/session";
 import {getPermissionsForRoles, hasStaffRole, type Permission} from "@/core/auth/permissions";
@@ -50,44 +50,11 @@ export default async function OwnersPage({
 
   const ownerIds = [...new Set(rows.map((r) => r.id))];
 
-  const [prevCharges, thisCharges] = ownerIds.length > 0
-    ? await Promise.all([
-        db
-          .select({
-            ownerId: charges.ownerId,
-            status: charges.status,
-          })
-          .from(charges)
-          .where(and(
-            eq(charges.tenantId, tenantId),
-            eq(charges.periodYear, prevYear),
-            eq(charges.periodMonth, prevMonth),
-            inArray(charges.ownerId, ownerIds),
-          )),
-        db
-          .select({
-            ownerId: charges.ownerId,
-            status: charges.status,
-          })
-          .from(charges)
-          .where(and(
-            eq(charges.tenantId, tenantId),
-            eq(charges.periodYear, currentYear),
-            eq(charges.periodMonth, currentMonth),
-            inArray(charges.ownerId, ownerIds),
-          )),
-      ])
-    : [[], []];
-
-  const notPaidPrev = new Set(
-    prevCharges
-      .filter((c) => c.status !== "paid")
-      .map((c) => c.ownerId),
-  );
-  const paidThisMonth = new Set(
-    thisCharges
-      .filter((c) => c.status === "paid")
-      .map((c) => c.ownerId),
+  const paymentFlags = await getOwnerPaymentFlags(
+    tenantId,
+    ownerIds,
+    {year: prevYear, month: prevMonth},
+    {year: currentYear, month: currentMonth},
   );
 
   const grouped = rows.reduce<Record<string, {
@@ -112,8 +79,8 @@ export default async function OwnersPage({
         roles: [],
         unitNumbers: row.unitNumbers,
         unitCount: row.unitNumbers.length,
-        hasDebt: notPaidPrev.has(row.id),
-        hasPaid: paidThisMonth.has(row.id),
+        hasDebt: paymentFlags.get(row.id)?.hasDebt ?? false,
+        hasPaid: paymentFlags.get(row.id)?.hasPaid ?? false,
       };
     }
     if (row.role) acc[row.id].roles.push(row.role);

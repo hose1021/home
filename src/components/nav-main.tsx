@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/sidebar";
 import {
     IconBell,
+    IconBriefcase,
     IconBuilding,
     IconCalendarEvent,
     IconChecklist,
@@ -33,6 +34,7 @@ const navItems: { title: string; url: string; icon: typeof IconDashboard; perm?:
   { title: "Собрания", url: "/meetings", icon: IconCalendarEvent, perm: "meeting:read" },
   { title: "Заявки", url: "/tickets", icon: IconTicket, perm: "ticket:read" },
   { title: "Подрядчики", url: "/contractors", icon: IconTool, perm: "contractor:read" },
+  { title: "Коменданты", url: "/commandants", icon: IconBriefcase, perm: "settings:read" },
   { title: "Аудит", url: "/audit", icon: IconShieldCheck, perm: "audit:read" },
 ];
 

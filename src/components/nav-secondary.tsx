@@ -7,7 +7,7 @@ import type {Permission} from "@/core/auth/permissions";
 import {usePathname} from "next/navigation";
 
 const secondary: { title: string; url: string; icon: typeof IconSettings; perm?: Permission }[] = [
-  { title: "Настройки", url: "/settings", icon: IconSettings, perm: "settings:read" },
+  { title: "Настройки", url: "/settings", icon: IconSettings },
   { title: "Помощь", url: "#", icon: IconHelp },
 ];
 

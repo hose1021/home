@@ -20,8 +20,12 @@ export function NavUser({userName, userEmail}: {userName: string; userEmail?: st
   const initials = userName.split(" ").filter(Boolean).slice(0, 2).map((part) => part[0]).join("").toUpperCase();
 
   async function logout() {
-    await fetch("/api/auth/logout", {method: "POST"});
-    router.push("/login");
+    try {
+      await fetch("/api/auth/logout", {method: "POST"});
+    } catch {
+      // clear session client-side anyway; server session expires on its own
+    }
+    router.replace("/login");
     router.refresh();
   }
 
@@ -44,17 +48,19 @@ export function NavUser({userName, userEmail}: {userName: string; userEmail?: st
             <IconSelector className="ml-auto size-4" />
           </DropdownMenuTrigger>
           <DropdownMenuContent className="min-w-56 rounded-lg" side={isMobile ? "bottom" : "right"} align="end" sideOffset={4}>
-            <DropdownMenuLabel className="p-0 font-normal">
-              <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
-                <Avatar className="size-8 rounded-lg">
-                  <AvatarFallback className="rounded-lg">{initials || "U"}</AvatarFallback>
-                </Avatar>
-                <div className="grid min-w-0 flex-1 leading-tight">
-                  <span className="truncate font-medium">{userName}</span>
-                  {userEmail && <span className="truncate text-xs text-muted-foreground">{userEmail}</span>}
+            <DropdownMenuGroup>
+              <DropdownMenuLabel className="p-0 font-normal">
+                <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
+                  <Avatar className="size-8 rounded-lg">
+                    <AvatarFallback className="rounded-lg">{initials || "U"}</AvatarFallback>
+                  </Avatar>
+                  <div className="grid min-w-0 flex-1 leading-tight">
+                    <span className="truncate font-medium">{userName}</span>
+                    {userEmail && <span className="truncate text-xs text-muted-foreground">{userEmail}</span>}
+                  </div>
                 </div>
-              </div>
-            </DropdownMenuLabel>
+              </DropdownMenuLabel>
+            </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
               <DropdownMenuItem onClick={() => router.push("/")}><IconUser /> Профиль</DropdownMenuItem>

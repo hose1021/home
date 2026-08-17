@@ -2,12 +2,14 @@ import {db} from "@/core/db";
 import {meetingAgendas, meetings} from "@/core/db/schema/meetings";
 import {eq, inArray} from "drizzle-orm";
 import {MeetingTable} from "./meeting-table";
+import {MeetingAddButton} from "./meeting-add-button";
 import {requireTenantPermission} from "@/core/auth/session";
 import {getPermissionsForRoles, type Permission} from "@/core/auth/permissions";
 
 export default async function MeetingsPage() {
   const { session, tenantId } = await requireTenantPermission("meeting:read");
   const permissions: Permission[] = getPermissionsForRoles(session.user.roles);
+  const canManage = permissions.includes("meeting:write");
 
   const meetingList = await db
     .select()
@@ -44,8 +46,9 @@ export default async function MeetingsPage() {
           <h1 className="page-heading mt-1">Собрания</h1>
           <p className="page-description">Повестки, даты и статусы · {meetingData.length} шт.</p>
         </div>
+        {canManage && <MeetingAddButton />}
       </div>
-      <MeetingTable meetings={meetingData} canManage={permissions.includes("meeting:write")} />
+      <MeetingTable meetings={meetingData} canManage={canManage} />
     </div>
   );
 }

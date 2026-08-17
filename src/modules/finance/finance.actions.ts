@@ -3,11 +3,9 @@
 import {revalidatePath} from "next/cache";
 import {requireTenantPermission} from "@/core/auth/session";
 import {generateMonthlyCharges} from "./services/charge.service";
-import {ownerBelongsToUser, registerPayment} from "./services/payment.service";
+import {markChargePaidIfSettled, ownerBelongsToUser, registerPayment} from "./services/payment.service";
 import {db} from "@/core/db";
 import {funds} from "@/core/db/schema/funds";
-import {payments} from "@/core/db/schema/payments";
-import {and, eq} from "drizzle-orm";
 import {writeAuditLog} from "@/core/audit/audit.service";
 import {hasStaffRole} from "@/core/auth/permissions";
 import {ForbiddenError} from "@/core/errors/app-error";
@@ -65,41 +63,7 @@ export async function registerPaymentAction(input: {
 export async function markChargePaidAction(chargeId: string) {
   chargeId = uuidSchema.parse(chargeId);
   const { session, tenantId } = await requireTenantPermission("charge:write");
-  const { charges } = await import("@/core/db/schema/charges");
-  const [existing] = await db
-    .select()
-    .from(charges)
-    .where(and(eq(charges.id, chargeId), eq(charges.tenantId, tenantId)))
-    .limit(1);
-  if (!existing) throw new Error("Charge not found");
-
-  const chargePayments = await db
-    .select({amount: payments.amount})
-    .from(payments)
-    .where(and(
-      eq(payments.tenantId, tenantId),
-      eq(payments.chargeId, chargeId),
-      eq(payments.status, "confirmed"),
-    ));
-  const paid = chargePayments.reduce((sum, payment) => sum + Number(payment.amount), 0);
-  if (paid < Number(existing.amount)) {
-    throw new Error("A charge can only be marked paid after the full amount is registered");
-  }
-
-  await db
-    .update(charges)
-    .set({ status: "paid" })
-    .where(and(eq(charges.id, chargeId), eq(charges.tenantId, tenantId)));
-
-  await writeAuditLog({
-    tenantId,
-    userId: session.user.id,
-    action: "update",
-    entityType: "charge",
-    entityId: chargeId,
-    oldValues: { status: existing.status } as Record<string, unknown>,
-    newValues: { status: "paid" } as Record<string, unknown>,
-  });
+  await markChargePaidIfSettled(tenantId, chargeId, session.user.id);
 
   revalidatePath("/finance");
   return { success: true };

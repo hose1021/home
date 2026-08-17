@@ -17,7 +17,7 @@ import {MeetingForm} from "@/modules/meeting/components/MeetingForm";
 import {deleteMeetingAction} from "@/modules/meeting/meeting.actions";
 import {Button} from "@/components/ui/button";
 import {Badge} from "@/components/ui/badge";
-import {IconCalendarEvent, IconPlus} from "@tabler/icons-react";
+import {IconCalendarEvent} from "@tabler/icons-react";
 
 type Agenda = { id: string; title: string; description: string | null; sortOrder: number };
 type Meeting = {
@@ -33,7 +33,6 @@ type Meeting = {
 };
 
 export function MeetingTable({ meetings, canManage }: { meetings: Meeting[]; canManage?: boolean }) {
-  const [createOpen, setCreateOpen] = useState(false);
   const [editing, setEditing] = useState<Meeting | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
@@ -46,12 +45,6 @@ export function MeetingTable({ meetings, canManage }: { meetings: Meeting[]; can
 
   return (
     <>
-      <div className="flex items-center justify-end">
-        {canManage && (
-          <Button onClick={() => setCreateOpen(true)}><IconPlus /> Создать собрание</Button>
-        )}
-      </div>
-
       <div className="space-y-3">
         {meetings.map((m) => (
           <div key={m.id} className="surface-panel p-5">
@@ -89,13 +82,6 @@ export function MeetingTable({ meetings, canManage }: { meetings: Meeting[]; can
         ))}
         {meetings.length === 0 && <div className="surface-panel flex flex-col items-center border-dashed px-6 py-16 text-center"><IconCalendarEvent className="size-8 text-muted-foreground" /><p className="mt-3 font-medium">Собраний пока нет</p><p className="mt-1 text-sm text-muted-foreground">Новые собрания и повестки появятся здесь.</p></div>}
       </div>
-
-      <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-        <DialogContent>
-          <DialogHeader><DialogTitle>Создать собрание</DialogTitle></DialogHeader>
-          <MeetingForm onDone={() => setCreateOpen(false)} />
-        </DialogContent>
-      </Dialog>
 
       <Dialog open={!!editing} onOpenChange={(o) => { if (!o) setEditing(null); }}>
         <DialogContent>

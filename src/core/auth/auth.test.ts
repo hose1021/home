@@ -3,6 +3,7 @@ import {
     assertValidUsername,
     hashPassword,
     hashSessionToken,
+    hasPlatformAdminRole,
     normalizeUsername,
     rolesFromDatabase,
     verifyPassword
@@ -67,6 +68,14 @@ describe("rolesFromDatabase", () => {
   it("deduplicates role rows", () => {
     expect(rolesFromDatabase([{role: "owner"}, {role: "owner"}, {role: "commandant"}]))
       .toEqual(["owner", "commandant"]);
+  });
+});
+
+describe("hasPlatformAdminRole", () => {
+  it("requires an unscoped admin role", () => {
+    expect(hasPlatformAdminRole([{role: "admin", scopeTenantId: null}])).toBe(true);
+    expect(hasPlatformAdminRole([{role: "admin", scopeTenantId: "tenant-a"}])).toBe(false);
+    expect(hasPlatformAdminRole([{role: "owner", scopeTenantId: null}])).toBe(false);
   });
 });
 

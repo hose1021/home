@@ -6,17 +6,18 @@ import {payments} from "@/core/db/schema/payments";
 import {tickets} from "@/core/db/schema/tickets";
 import {units} from "@/core/db/schema/units";
 import {userRoles, users} from "@/core/db/schema/users";
-import {managementMembers} from "@/core/db/schema/management-members";
 import {requireTenantContext} from "@/core/auth/session";
 import {getTenantById} from "@/modules/tenant/tenant.service";
 import {getDashboardAnnouncement} from "@/modules/announcements/announcement.service";
 import {and, desc, eq, inArray, sql} from "drizzle-orm";
 import {Badge} from "@/components/ui/badge";
 import {hasAnyPermission, hasStaffRole} from "@/core/auth/permissions";
+import {getTenantOutstandingDebt} from "@/modules/finance/services/payment.service";
+import {getActiveCommandant} from "@/modules/commandants/commandant.service";
+import {CommandantCard} from "./commandant-card";
 import {
     type Icon,
     IconBell,
-    IconBuilding,
     IconCalendarEvent,
     IconCash,
     IconChevronRight,
@@ -43,11 +44,7 @@ export default async function DashboardPage() {
         .from(owners)
         .where(eq(owners.tenantId, tenantId));
 
-    const [debtResult] = await db
-        .select({ total: sql<string>`coalesce(sum(${charges.amount}::numeric), 0)` })
-        .from(charges)
-        .where(and(eq(charges.tenantId, tenantId), eq(charges.status, "pending")));
-
+    const outstandingDebt = await getTenantOutstandingDebt(tenantId);
     const [ticketCount] = await db
         .select({count: sql<number>`count(*)`})
         .from(tickets)
@@ -94,7 +91,7 @@ export default async function DashboardPage() {
                 eq(userRoles.scopeTenantId, tenantId),
             ),
         )
-        .innerJoin(
+        .leftJoin(
             owners,
             and(eq(owners.userId, users.id), eq(owners.tenantId, tenantId)),
         )
@@ -126,15 +123,8 @@ export default async function DashboardPage() {
         (b.role === "commandant" ? 1 : 0) - (a.role === "commandant" ? 1 : 0),
     );
 
-    // Комендант (строительный менеджер, не собственник)
-    const [commandant] = await db
-        .select({fullName: managementMembers.fullName})
-        .from(managementMembers)
-        .where(and(
-            eq(managementMembers.tenantId, tenantId),
-            eq(managementMembers.isActive, true),
-        ))
-        .limit(1);
+    // Комендант — отдельная сущность, не обязательно собственник
+    const commandant = await getActiveCommandant(tenantId);
 
     return (
         <div className="page-shell">
@@ -172,7 +162,7 @@ export default async function DashboardPage() {
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                 <DashboardCard title="Квартиры" value={String(unitCount?.count ?? 0)} caption="Всего помещений" icon={IconHome} tone="indigo" />
                 <DashboardCard title="Собственники" value={String(ownerCount?.count ?? 0)} caption="Активных профилей" icon={IconUsersGroup} tone="cyan" />
-                <DashboardCard title="Задолженность" value={`${Number(debtResult?.total ?? 0).toFixed(2)} ₼`} caption="Ожидает оплаты" icon={IconCash} tone="amber" />
+                <DashboardCard title="Задолженность" value={`${Number(outstandingDebt).toFixed(2)} ₼`} caption="Ожидает оплаты" icon={IconCash} tone="amber" />
                 <DashboardCard title="Активные заявки" value={String(ticketCount?.count ?? 0)} caption="На обсуждении" icon={IconTicket} tone="violet" />
             </div>
 
@@ -193,7 +183,7 @@ export default async function DashboardPage() {
                                     <div className="flex min-w-0 items-center gap-3">
                                         <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-muted text-xs font-semibold text-foreground">{getInitials(member.fullName)}</span>
                                         <div className="min-w-0">
-                                            {canBrowseOwners ? (
+                                            {canBrowseOwners && member.ownerId ? (
                                                 <Link href={`/owners/${member.ownerId}`} className="truncate font-medium hover:text-primary">{member.fullName}</Link>
                                             ) : (
                                                 <p className="truncate font-medium">{member.fullName}</p>
@@ -216,10 +206,10 @@ export default async function DashboardPage() {
                     ) : (
                         <EmptyState text="Состав правления не указан" />
                     )}
-                    <div className="mt-4 flex items-center justify-between rounded-lg bg-muted/60 px-4 py-3 text-sm">
-                        <span className="flex items-center gap-2 text-muted-foreground"><IconBuilding className="size-4" /> Комендант</span>
-                        <span className="font-medium">{commandant?.fullName ?? "Не назначен"}</span>
-                    </div>
+                    <CommandantCard
+                        commandant={commandant}
+                        canBrowseOwners={canBrowseOwners}
+                    />
                 </section>
 
                 <section className="surface-panel p-5 sm:p-6">

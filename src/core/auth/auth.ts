@@ -2,7 +2,7 @@ import {db} from "@/core/db";
 import {sessions, userRoles, users} from "@/core/db/schema/users";
 import {owners} from "@/core/db/schema/owners";
 import {tenants} from "@/core/db/schema/tenants";
-import {and, eq, gt, isNull, or} from "drizzle-orm";
+import {and, eq, gt, isNull, ne, or} from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import crypto from "node:crypto";
 import type {Role} from "./permissions";
@@ -16,6 +16,7 @@ export type SessionUser = {
   username: string;
   fullName: string;
   roles: Role[];
+  isPlatformAdmin: boolean;
 };
 
 const USERNAME_PATTERN = /^\p{L}+\.\p{L}+$/u;
@@ -154,7 +155,7 @@ export async function getSessionFromToken(token: string): Promise<SessionUser | 
   if (!result) return null;
 
   const roleRows = await db
-    .select({ role: userRoles.role })
+    .select({ role: userRoles.role, scopeTenantId: userRoles.scopeTenantId })
     .from(userRoles)
     .where(and(
       eq(userRoles.userId, result.userId),
@@ -173,11 +174,16 @@ export async function getSessionFromToken(token: string): Promise<SessionUser | 
     username: result.username,
     fullName: result.fullName,
     roles,
+    isPlatformAdmin: hasPlatformAdminRole(roleRows),
   };
 }
 
 export function rolesFromDatabase(rows: ReadonlyArray<{role: Role}>): Role[] {
   return [...new Set(rows.map((row) => row.role))];
+}
+
+export function hasPlatformAdminRole(rows: ReadonlyArray<{role: Role; scopeTenantId: string | null}>): boolean {
+  return rows.some((row) => row.role === "admin" && row.scopeTenantId === null);
 }
 
 export function hashSessionToken(token: string): string {
@@ -190,4 +196,10 @@ export async function deleteSession(token: string) {
 
 export async function deleteUserSessions(userId: string) {
   await db.delete(sessions).where(eq(sessions.userId, userId));
+}
+
+export async function deleteOtherUserSessions(userId: string, currentToken?: string) {
+  const conditions = [eq(sessions.userId, userId)];
+  if (currentToken) conditions.push(ne(sessions.token, hashSessionToken(currentToken)));
+  await db.delete(sessions).where(and(...conditions));
 }

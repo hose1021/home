@@ -7,6 +7,14 @@ import {and, eq, desc, inArray, sum} from "drizzle-orm";
 import {writeAuditLog} from "@/core/audit/audit.service";
 import {isExpenseCode, isIncomeCode} from "@/modules/finance/constants";
 
+export type BudgetStatus = "draft" | "pending_approval" | "approved" | "rejected";
+
+export function assertBudgetEditable(status: BudgetStatus | null | undefined): void {
+  if (status === "approved") {
+    throw new Error("Утверждённый бюджет нельзя изменять");
+  }
+}
+
 export async function getBudget(tenantId: string) {
   const [b] = await db
     .select()
@@ -51,7 +59,7 @@ export async function createBudget(
 export async function updateBudgetStatus(
   tenantId: string,
   budgetId: string,
-  status: "draft" | "pending_approval" | "approved" | "rejected",
+  status: BudgetStatus,
   userId: string,
 ) {
   const [b] = await db
@@ -120,11 +128,12 @@ export async function addBudgetItem(
   userId: string,
 ) {
   const [b] = await db
-    .select({ id: budgets.id })
+    .select({ id: budgets.id, status: budgets.status })
     .from(budgets)
     .where(and(eq(budgets.id, budgetId), eq(budgets.tenantId, tenantId)))
     .limit(1);
   if (!b) throw new Error("Бюджет не найден");
+  assertBudgetEditable(b.status);
 
   const [item] = await db.insert(budgetItems).values({
     budgetId,
@@ -162,7 +171,7 @@ export async function updateBudgetItem(
     .where(and(eq(budgets.id, budgetId), eq(budgets.tenantId, tenantId)))
     .limit(1);
   if (!budget) throw new Error("Бюджет не найден");
-  if (budget.status === "approved") throw new Error("Утверждённый бюджет нельзя изменять");
+  assertBudgetEditable(budget.status);
 
   const [item] = await db
     .select()
@@ -200,7 +209,7 @@ export async function deleteBudgetItem(
     .where(and(eq(budgets.id, budgetId), eq(budgets.tenantId, tenantId)))
     .limit(1);
   if (!budget) throw new Error("Бюджет не найден");
-  if (budget.status === "approved") throw new Error("Утверждённый бюджет нельзя изменять");
+  assertBudgetEditable(budget.status);
 
   const [item] = await db
     .select()

@@ -7,9 +7,9 @@ import {invalidateTenantCache} from "@/core/multi-tenant";
 type CreateTenantInput = {
   slug: string;
   name: string;
-  taxId?: string;
-  address?: string;
-  phone?: string;
+  taxId?: string | null;
+  address?: string | null;
+  phone?: string | null;
 };
 
 type UpdateTenantInput = Partial<CreateTenantInput> & {

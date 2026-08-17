@@ -1,7 +1,7 @@
 "use server";
 
 import {revalidatePath} from "next/cache";
-import {requirePermission} from "@/core/auth/session";
+import {requirePlatformPermission, requireTenantMutation} from "@/core/auth/session";
 import {createTenant, deactivateTenant, updateTenant} from "./tenant.service";
 import {createTenantSchema, updateTenantSchema} from "./tenant.validators";
 import {uuidSchema} from "@/core/validation/action-schemas";
@@ -13,7 +13,7 @@ export async function createTenantAction(input: {
   address?: string;
   phone?: string;
 }) {
-  const session = await requirePermission("tenant:write");
+  const session = await requirePlatformPermission("tenant:write");
   const tenant = await createTenant(createTenantSchema.parse(input), session.user.id);
   revalidatePath("/admin/tenants");
   return { success: true, tenant };
@@ -29,7 +29,7 @@ export async function updateTenantAction(
   },
 ) {
   id = uuidSchema.parse(id);
-  const session = await requirePermission("tenant:write");
+  const session = await requireTenantMutation(id);
   const updated = await updateTenant(id, updateTenantSchema.parse(input), session.user.id);
   revalidatePath("/admin/tenants", "layout");
   return { success: true, tenant: updated };
@@ -37,7 +37,7 @@ export async function updateTenantAction(
 
 export async function deactivateTenantAction(id: string) {
   id = uuidSchema.parse(id);
-  const session = await requirePermission("tenant:write");
+  const session = await requireTenantMutation(id);
   const updated = await deactivateTenant(id, session.user.id);
   revalidatePath("/admin/tenants");
   return { success: true, tenant: updated };

@@ -134,6 +134,13 @@
       "when": 1783740300980,
       "tag": "0018_finance_tenant_foreign_keys",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1786960822217,
+      "tag": "0019_regular_jane_foster",
+      "breakpoints": true
     }
   ]
 }

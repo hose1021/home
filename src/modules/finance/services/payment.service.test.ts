@@ -1,5 +1,5 @@
 import {describe, expect, it} from "vitest";
-import {validatePaymentValues} from "./payment.service";
+import {deriveChargeStatus, validatePaymentValues} from "./payment.service";
 
 const validPayment = {
   amount: "25.50",
@@ -28,5 +28,20 @@ describe("validatePaymentValues", () => {
 
   it("rejects a negative tariff", () => {
     expect(() => validatePaymentValues({...validPayment, tariffPerSqm: "-0.01"})).toThrow("tariff");
+  });
+});
+
+describe("deriveChargeStatus", () => {
+  it("keeps unpaid charges pending", () => {
+    expect(deriveChargeStatus("100.00", 0)).toBe("pending");
+  });
+
+  it("marks partial confirmed payments as partially paid", () => {
+    expect(deriveChargeStatus("100.00", 9999)).toBe("partially_paid");
+  });
+
+  it("marks fully settled charges as paid", () => {
+    expect(deriveChargeStatus("100.00", 10000)).toBe("paid");
+    expect(deriveChargeStatus("100.00", 12500)).toBe("paid");
   });
 });

@@ -1,8 +1,9 @@
+import {redirect} from "next/navigation";
 import {cookies} from "next/headers";
 import {getSessionFromToken} from "./auth";
 import type {Permission, Role} from "./permissions";
 import {hasPermission} from "./permissions";
-import {ForbiddenError, UnauthorizedError} from "@/core/errors/app-error";
+import {ForbiddenError, TenantMismatchError} from "@/core/errors/app-error";
 
 const SESSION_COOKIE = "session_token";
 
@@ -13,6 +14,7 @@ export type Session = {
     username: string;
     fullName: string;
     roles: Role[];
+    isPlatformAdmin: boolean;
   };
 };
 
@@ -29,7 +31,7 @@ export async function getSession(): Promise<Session | null> {
 
 export async function requireAuth(): Promise<Session> {
   const session = await getSession();
-  if (!session) throw new UnauthorizedError();
+  if (!session) redirect("/login");
   return session;
 }
 
@@ -37,6 +39,12 @@ export async function requirePermission(permission: Permission): Promise<Session
   const session = await requireAuth();
   const allowed = session.user.roles.some((role) => hasPermission(role, permission));
   if (!allowed) throw new ForbiddenError(`Missing permission "${permission}"`);
+  return session;
+}
+
+export async function requirePlatformPermission(permission: Permission): Promise<Session> {
+  const session = await requirePermission(permission);
+  if (!session.user.isPlatformAdmin) throw new ForbiddenError("Platform admin permission required");
   return session;
 }
 
@@ -50,6 +58,16 @@ export async function requireTenantPermission(permission: Permission): Promise<{
   const allowed = session.user.roles.some((role) => hasPermission(role, permission));
   if (!allowed) throw new ForbiddenError(`Missing permission "${permission}"`);
   return { session, tenantId };
+}
+
+export function canMutateTenant(session: Session, tenantId: string): boolean {
+  return session.user.isPlatformAdmin || session.user.tenantId === tenantId;
+}
+
+export async function requireTenantMutation(tenantId: string): Promise<Session> {
+  const session = await requirePermission("tenant:write");
+  if (!canMutateTenant(session, tenantId)) throw new TenantMismatchError();
+  return session;
 }
 
 export function getSessionCookieName() {
