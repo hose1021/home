@@ -212,7 +212,9 @@
       "parking": "Parking",
       "storage": "Storage",
       "other": "Other"
-    }
+    },
+    "registry": "Premises registry",
+    "description": "All units and non-residential premises · {count} total"
   },
   "finance": {
     "title": "Finance",

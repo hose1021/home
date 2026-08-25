@@ -212,7 +212,9 @@
       "parking": "Dayanacaq",
       "storage": "Anbar",
       "other": "Digər"
-    }
+    },
+    "registry": "Otaqlar reyestri",
+    "description": "Bütün mənzillər və qeyri-yaşayış otaqları · {count} ədəd"
   },
   "finance": {
     "title": "Maliyyə",
