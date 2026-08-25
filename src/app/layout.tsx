@@ -12,8 +12,8 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: `${PLATFORM_NAME} — Mənzil Mülkiyyətçilərinin Müştərək Cəmiyyəti`,
-  description: "SaaS-платформа для управления объединениями собственников в Азербайджане",
+  title: `${PLATFORM_NAME} — MMMC`,
+  description: "Multi-tenant platform for managing homeowners associations",
 };
 
 export default function RootLayout({
@@ -22,7 +22,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="az" className={`${inter.variable} h-full`} suppressHydrationWarning>
+    <html className={`${inter.variable} h-full`} suppressHydrationWarning>
       <body className="flex min-h-full flex-col">
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
           <TooltipProvider>

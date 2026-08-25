@@ -7,6 +7,7 @@ import {Button} from "@/components/ui/button";
 import {Label} from "@/components/ui/label";
 import {Input} from "@/components/ui/input";
 import {Dialog, DialogContent, DialogHeader, DialogTitle} from "@/components/ui/dialog";
+import {useTranslations} from "next-intl";
 
 type Template = { id: string; name: string; amount: string };
 
@@ -17,6 +18,8 @@ export function ChargeGenerateForm({
   templates: Template[];
   onDone: () => void;
 }) {
+  const t = useTranslations("finance");
+  const tc = useTranslations("common");
   const [pending, setPending] = useState(false);
   const [templateId, setTemplateId] = useState(templates[0]?.id ?? "");
   const [year, setYear] = useState(String(new Date().getFullYear()));
@@ -26,11 +29,11 @@ export function ChargeGenerateForm({
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!templateId) {
-      toast.error("Выберите шаблон");
+      toast.error(t("charges.selectTemplate"));
       return;
     }
     if (!dueDate) {
-      toast.error("Укажите срок оплаты");
+      toast.error(t("charges.dueDate"));
       return;
     }
     setPending(true);
@@ -41,7 +44,7 @@ export function ChargeGenerateForm({
         periodMonth: Number(month),
         dueDate,
       });
-      toast.success(`Создано начислений: ${res.count}`);
+      toast.success(`${t("charges.generated")}: ${res.count}`);
       onDone();
     } catch (err) {
       toast.error((err as Error).message);
@@ -50,37 +53,33 @@ export function ChargeGenerateForm({
     }
   }
 
-  const months = [
-    { value: "1", label: "Январь" }, { value: "2", label: "Февраль" },
-    { value: "3", label: "Март" }, { value: "4", label: "Апрель" },
-    { value: "5", label: "Май" }, { value: "6", label: "Июнь" },
-    { value: "7", label: "Июль" }, { value: "8", label: "Август" },
-    { value: "9", label: "Сентябрь" }, { value: "10", label: "Октябрь" },
-    { value: "11", label: "Ноябрь" }, { value: "12", label: "Декабрь" },
-  ];
+  const months = Array.from({length: 12}, (_, i) => ({
+    value: String(i + 1),
+    label: tc(`months.${i + 1}`),
+  }));
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div>
-        <Label>Шаблон начисления</Label>
+        <Label>{t("charges.template")}</Label>
         <select
           value={templateId}
           onChange={(e) => setTemplateId(e.target.value)}
           className="mt-1 block w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900"
         >
-          {templates.map((t) => (
-            <option key={t.id} value={t.id}>{t.name} ({Number(t.amount).toFixed(2)} ₼)</option>
+          {templates.map((tmpl) => (
+            <option key={tmpl.id} value={tmpl.id}>{tmpl.name} ({Number(tmpl.amount).toFixed(2)} {tc("currency")})</option>
           ))}
         </select>
       </div>
 
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <Label>Год</Label>
+          <Label>{tc("year")}</Label>
           <Input value={year} onChange={(e) => setYear(e.target.value)} type="number" min={2024} max={2030} className="mt-1" />
         </div>
         <div>
-          <Label>Месяц</Label>
+          <Label>{tc("month")}</Label>
           <select
             value={month}
             onChange={(e) => setMonth(e.target.value)}
@@ -92,13 +91,13 @@ export function ChargeGenerateForm({
       </div>
 
       <div>
-        <Label>Срок оплаты</Label>
+        <Label>{t("charges.dueDate")}</Label>
         <Input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} className="mt-1" />
       </div>
 
       <div className="flex justify-end gap-3 pt-2">
-        <Button type="button" variant="outline" onClick={onDone}>Отмена</Button>
-        <Button type="submit" disabled={pending}>{pending ? "Создание..." : "Сгенерировать"}</Button>
+        <Button type="button" variant="outline" onClick={onDone}>{tc("cancel")}</Button>
+        <Button type="submit" disabled={pending}>{pending ? t("charges.generating") : t("charges.generate")}</Button>
       </div>
     </form>
   );
@@ -109,12 +108,13 @@ export function ChargeGenerateDialog({ templates, open, onOpenChange }: {
   open: boolean;
   onOpenChange: (o: boolean) => void;
 }) {
+  const t = useTranslations("finance");
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
-        <DialogHeader><DialogTitle>Начисление по шаблону</DialogTitle></DialogHeader>
+        <DialogHeader><DialogTitle>{t("charges.generateTitle")}</DialogTitle></DialogHeader>
         {templates.length === 0 ? (
-          <p className="text-sm text-zinc-400">Нет активных шаблонов начислений</p>
+          <p className="text-sm text-zinc-400">{t("charges.noCharges")}</p>
         ) : (
           <ChargeGenerateForm templates={templates} onDone={() => onOpenChange(false)} />
         )}

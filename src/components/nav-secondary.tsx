@@ -1,18 +1,21 @@
 "use client";
 
-import Link from "next/link";
+import {Link} from "@/i18n/navigation";
 import {SidebarGroup, SidebarMenu, SidebarMenuButton, SidebarMenuItem,} from "@/components/ui/sidebar";
 import {IconHelp, IconSettings} from "@tabler/icons-react";
 import type {Permission} from "@/core/auth/permissions";
-import {usePathname} from "next/navigation";
-
-const secondary: { title: string; url: string; icon: typeof IconSettings; perm?: Permission }[] = [
-  { title: "Настройки", url: "/settings", icon: IconSettings },
-  { title: "Помощь", url: "#", icon: IconHelp },
-];
+import {usePathname} from "@/i18n/navigation";
+import {useTranslations} from "next-intl";
 
 export function NavSecondary({ permissions, className }: { permissions?: Permission[]; className?: string }) {
+  const t = useTranslations("nav");
   const pathname = usePathname();
+
+  const secondary: { title: string; url: string; icon: typeof IconSettings; perm?: Permission }[] = [
+    { title: t("settings"), url: "/settings", icon: IconSettings },
+    { title: t("help"), url: "#", icon: IconHelp },
+  ];
+
   const visible = secondary.filter((item) => !item.perm || permissions?.includes(item.perm));
   return (
     <SidebarGroup className={className}>

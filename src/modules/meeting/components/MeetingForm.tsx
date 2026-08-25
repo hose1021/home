@@ -3,6 +3,7 @@
 import {useState} from "react";
 import {createMeetingAction, updateMeetingAction} from "../meeting.actions";
 import {Button} from "@/components/ui/button";
+import {useTranslations} from "next-intl";
 
 type MeetingData = {
   id: string;
@@ -21,6 +22,8 @@ export function MeetingForm({
   meeting?: MeetingData;
   onDone: () => void;
 }) {
+  const tm = useTranslations("meetings");
+  const tc = useTranslations("common");
   const isEdit = !!meeting;
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
@@ -59,40 +62,38 @@ export function MeetingForm({
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div>
-        <label className="block text-sm font-medium">Название</label>
+        <label className="block text-sm font-medium">{tm("name")}</label>
         <input name="title" defaultValue={meeting?.title} required className="mt-1 block w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900" />
       </div>
 
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium">Тип</label>
+          <label className="block text-sm font-medium">{tm("type")}</label>
           <select name="meetingType" defaultValue={meeting?.meetingType ?? "annual"} className="mt-1 block w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900">
-            <option value="annual">Годовое</option>
-            <option value="extraordinary">Внеочередное</option>
-            <option value="board">Правление</option>
-            <option value="audit">Ревизия</option>
+            <option value="annual">{tm("types.annual")}</option>
+            <option value="extraordinary">{tm("types.extraordinary")}</option>
           </select>
         </div>
         <div>
-          <label className="block text-sm font-medium">Формат</label>
+          <label className="block text-sm font-medium">{tc("format")}</label>
           <select name="meetingFormat" defaultValue={meeting?.meetingFormat ?? "in_person"} className="mt-1 block w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900">
-            <option value="in_person">Очно</option>
-            <option value="online">Онлайн</option>
-            <option value="mixed">Смешанно</option>
+            <option value="in_person">{tc("formatInPerson")}</option>
+            <option value="online">{tc("formatOnline")}</option>
+            <option value="mixed">{tc("formatMixed")}</option>
           </select>
         </div>
         <div>
-          <label className="block text-sm font-medium">Дата</label>
+          <label className="block text-sm font-medium">{tc("date")}</label>
           <input name="proposedDate" type="date" defaultValue={meeting ? new Date(meeting.proposedDate).toISOString().slice(0, 10) : undefined} required className="mt-1 block w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900" />
         </div>
         <div>
-          <label className="block text-sm font-medium">Место</label>
+          <label className="block text-sm font-medium">{tc("location")}</label>
           <input name="location" defaultValue={meeting?.location ?? ""} className="mt-1 block w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900" />
         </div>
       </div>
 
       <div>
-        <label className="block text-sm font-medium">Повестка дня</label>
+        <label className="block text-sm font-medium">{tm("agenda")}</label>
         <div className="mt-1 space-y-2">
           {agendas.map((_, i) => (
             <div key={i} className="flex gap-2">
@@ -103,7 +104,7 @@ export function MeetingForm({
                   next[i] = e.target.value;
                   setAgendas(next);
                 }}
-                placeholder={`Пункт ${i + 1}`}
+                placeholder={`${tm("agenda")} ${i + 1}`}
                 className="block w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900"
               />
               {agendas.length > 1 && (
@@ -112,15 +113,15 @@ export function MeetingForm({
             </div>
           ))}
         </div>
-        <Button type="button" variant="ghost" size="sm" onClick={() => setAgendas([...agendas, ""])} className="mt-2">+ Добавить пункт</Button>
+        <Button type="button" variant="ghost" size="sm" onClick={() => setAgendas([...agendas, ""])} className="mt-2">+ {tc("addItem")}</Button>
       </div>
 
       {error && <p className="text-sm text-red-500">{error}</p>}
 
       <div className="flex justify-end gap-3">
-        <Button type="button" variant="outline" onClick={onDone}>Отмена</Button>
+        <Button type="button" variant="outline" onClick={onDone}>{tc("cancel")}</Button>
         <Button type="submit" disabled={pending}>
-          {pending ? "Сохранение..." : isEdit ? "Сохранить" : "Создать"}
+          {pending ? tc("save") + "..." : isEdit ? tc("save") : tc("create")}
         </Button>
       </div>
     </form>

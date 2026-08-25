@@ -1,6 +1,6 @@
 "use client";
 
-import {useRouter} from "next/navigation";
+import {useRouter} from "@/i18n/navigation";
 import {IconBell, IconLogout, IconSelector, IconSettings, IconUser,} from "@tabler/icons-react";
 import {Avatar, AvatarFallback} from "@/components/ui/avatar";
 import {
@@ -13,8 +13,10 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {SidebarMenu, SidebarMenuButton, SidebarMenuItem, useSidebar} from "@/components/ui/sidebar";
+import {useTranslations} from "next-intl";
 
 export function NavUser({userName, userEmail}: {userName: string; userEmail?: string}) {
+  const t = useTranslations("auth");
   const {isMobile} = useSidebar();
   const router = useRouter();
   const initials = userName.split(" ").filter(Boolean).slice(0, 2).map((part) => part[0]).join("").toUpperCase();
@@ -63,12 +65,12 @@ export function NavUser({userName, userEmail}: {userName: string; userEmail?: st
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
-              <DropdownMenuItem onClick={() => router.push("/")}><IconUser /> Профиль</DropdownMenuItem>
-              <DropdownMenuItem><IconBell /> Уведомления</DropdownMenuItem>
-              <DropdownMenuItem><IconSettings /> Настройки</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => router.push("/")}><IconUser /> {t("profile")}</DropdownMenuItem>
+              <DropdownMenuItem><IconBell /> {t("notifications")}</DropdownMenuItem>
+              <DropdownMenuItem><IconSettings /> {t("settings")}</DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
-            <DropdownMenuItem variant="destructive" onClick={logout}><IconLogout /> Выйти</DropdownMenuItem>
+            <DropdownMenuItem variant="destructive" onClick={logout}><IconLogout /> {t("logout")}</DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </SidebarMenuItem>

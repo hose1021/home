@@ -20,7 +20,7 @@ const chargeInputSchema = z.object({
 });
 const fundInputSchema = z.object({
   name: z.string().trim().min(1).max(255),
-  type: z.enum(["operating", "reserve", "repair", "emergency", "special"]),
+  type: z.enum(["reserve", "repair", "improvement", "emergency", "other"]),
   description: z.string().trim().max(2000).optional(),
   targetAmount: moneySchema.optional(),
 });
@@ -71,7 +71,7 @@ export async function markChargePaidAction(chargeId: string) {
 
 export async function createFundAction(input: {
   name: string;
-  type: "operating" | "reserve" | "repair" | "emergency" | "special";
+  type: "reserve" | "repair" | "improvement" | "emergency" | "other";
   description?: string;
   targetAmount?: string;
 }) {

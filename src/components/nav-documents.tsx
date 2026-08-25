@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import {Link} from "@/i18n/navigation";
 import {
     SidebarGroup,
     SidebarGroupLabel,
@@ -10,18 +10,21 @@ import {
 } from "@/components/ui/sidebar";
 import {IconReport} from "@tabler/icons-react";
 import type {Permission} from "@/core/auth/permissions";
-import {usePathname} from "next/navigation";
-
-const docs: { name: string; url: string; icon: typeof IconReport; perm?: Permission }[] = [
-  { name: "Отчёты", url: "/reports", icon: IconReport, perm: "report:read" },
-];
+import {usePathname} from "@/i18n/navigation";
+import {useTranslations} from "next-intl";
 
 export function NavDocuments({ permissions }: { permissions?: Permission[] }) {
+  const t = useTranslations("nav");
   const pathname = usePathname();
+
+  const docs: { name: string; url: string; icon: typeof IconReport; perm?: Permission }[] = [
+    { name: t("reports"), url: "/reports", icon: IconReport, perm: "report:read" },
+  ];
+
   const visible = docs.filter((item) => !item.perm || permissions?.includes(item.perm));
   return (
     <SidebarGroup>
-      <SidebarGroupLabel className="px-3 text-[10px] font-semibold uppercase tracking-[0.12em] text-sidebar-foreground/45">Документы</SidebarGroupLabel>
+      <SidebarGroupLabel className="px-3 text-[10px] font-semibold uppercase tracking-[0.12em] text-sidebar-foreground/45">{t("documents")}</SidebarGroupLabel>
       <SidebarMenu>
         {visible.map((item) => (
           <SidebarMenuItem key={item.url}>

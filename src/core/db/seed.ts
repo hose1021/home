@@ -294,7 +294,7 @@ async function seed() {
             {
                 tenantId: tenant.id,
                 name: "Əsaslı Fond",
-                type: "operating",
+                type: "improvement",
                 targetAmount: "50000.00",
                 currentBalance: "25000.00"
             },

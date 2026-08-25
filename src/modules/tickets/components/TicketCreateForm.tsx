@@ -5,25 +5,7 @@ import {createTicketAction} from "../ticket.actions";
 import type {TicketCategory, TicketPriority} from "../ticket.service";
 import {toast} from "sonner";
 import {Button} from "@/components/ui/button";
-
-const CATEGORIES: { value: TicketCategory; label: string }[] = [
-  { value: "plumbing", label: "Сантехника" },
-  { value: "electrical", label: "Электрика" },
-  { value: "cleaning", label: "Уборка" },
-  { value: "structural", label: "Конструктив" },
-  { value: "elevator", label: "Лифт" },
-  { value: "pest_control", label: "Дезинсекция" },
-  { value: "yard", label: "Двор / территория" },
-  { value: "security", label: "Безопасность" },
-  { value: "other", label: "Другое" },
-];
-
-const PRIORITIES: { value: TicketPriority; label: string }[] = [
-  { value: "low", label: "Низкий" },
-  { value: "medium", label: "Обычный" },
-  { value: "high", label: "Высокий" },
-  { value: "urgent", label: "Срочный" },
-];
+import {useTranslations} from "next-intl";
 
 export function TicketCreateForm({
   units,
@@ -32,8 +14,18 @@ export function TicketCreateForm({
   units: { id: string; unitNumber: string; entrance: number; floor: number; ownerName: string | null }[];
   onDone: () => void;
 }) {
+  const t = useTranslations("tickets");
+  const tc = useTranslations("common");
+  const td = useTranslations("dashboard");
+  const tu = useTranslations("units");
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  function categoryLabel(c: TicketCategory) { return t(`categories.${c}`); }
+  function priorityLabel(p: TicketPriority) { return t(`priorities.${p}`); }
+
+  const categories: TicketCategory[] = ["plumbing", "electrical", "cleaning", "structural", "elevator", "pest_control", "yard", "security", "other"];
+  const priorities: TicketPriority[] = ["low", "medium", "high", "urgent"];
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -49,7 +41,7 @@ export function TicketCreateForm({
         title: fd.get("title") as string,
         description: fd.get("description") as string,
       });
-      toast.success("Заявка создана");
+      toast.success(tc("create") + "...");
       onDone();
     } catch (err) {
       setError((err as Error).message);
@@ -61,53 +53,51 @@ export function TicketCreateForm({
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div>
-        <label className="block text-sm font-medium">Тема</label>
+        <label className="block text-sm font-medium">{t("subject")}</label>
         <input name="title" required maxLength={500} className="mt-1 block w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900" />
       </div>
 
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium">Категория</label>
+          <label className="block text-sm font-medium">{t("category")}</label>
           <select name="category" required className="mt-1 block w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900">
-            {CATEGORIES.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
+            {categories.map((c) => <option key={c} value={c}>{categoryLabel(c)}</option>)}
           </select>
         </div>
         <div>
-          <label className="block text-sm font-medium">Приоритет</label>
+          <label className="block text-sm font-medium">{t("priority")}</label>
           <select name="priority" className="mt-1 block w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900">
-            {PRIORITIES.map((p) => <option key={p.value} value={p.value}>{p.label}</option>)}
+            {priorities.map((p) => <option key={p} value={p}>{priorityLabel(p)}</option>)}
           </select>
         </div>
       </div>
 
       <div>
-        <label className="block text-sm font-medium">Место</label>
+        <label className="block text-sm font-medium">{t("location")}</label>
         <select name="unitId" className="mt-1 block w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900">
-          <option value="__yard__">Двор / общая территория</option>
+          <option value="__yard__">{t("yard")}</option>
           {units.map((u) => (
             <option key={u.id} value={u.id}>
-              Блок {u.entrance}, этаж {u.floor}, кв. {u.unitNumber}{u.ownerName ? ` — ${u.ownerName}` : ""}
+              {td("block")} {u.entrance}, {tu("floor")} {u.floor}, {tu("unitNumber")} {u.unitNumber}{u.ownerName ? ` — ${u.ownerName}` : ""}
             </option>
           ))}
         </select>
-        <p className="mt-1 text-xs text-zinc-400">Выберите квартиру или общую территорию</p>
+        <p className="mt-1 text-xs text-zinc-400">{t("selectUnit")}</p>
       </div>
 
       <div>
-        <label className="block text-sm font-medium">Описание</label>
+        <label className="block text-sm font-medium">{tc("description")}</label>
         <textarea name="description" required rows={4} className="mt-1 block w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900" />
       </div>
 
       {error && <p className="text-sm text-red-500">{error}</p>}
 
       <div className="flex justify-end gap-3">
-        <Button type="button" variant="outline" onClick={onDone}>Отмена</Button>
+        <Button type="button" variant="outline" onClick={onDone}>{tc("cancel")}</Button>
         <Button type="submit" disabled={pending}>
-          {pending ? "Создание..." : "Создать заявку"}
+          {pending ? t("creating") : t("createTicket")}
         </Button>
       </div>
     </form>
   );
 }
-
-export { CATEGORIES, PRIORITIES };

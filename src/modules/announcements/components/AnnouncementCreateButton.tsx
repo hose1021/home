@@ -5,18 +5,20 @@ import {Dialog, DialogContent, DialogHeader, DialogTitle} from "@/components/ui/
 import {AnnouncementForm} from "@/modules/announcements/components/AnnouncementForm";
 import {IconBellPlus} from "@tabler/icons-react";
 import {Button} from "@/components/ui/button";
+import {useTranslations} from "next-intl";
 
 export function AnnouncementCreateButton() {
+  const t = useTranslations("announcements");
   const [open, setOpen] = useState(false);
   return (
     <>
       <Button onClick={() => setOpen(true)}>
         <IconBellPlus className="size-4" />
-        Добавить объявление
+        {t("create")}
       </Button>
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent>
-          <DialogHeader><DialogTitle>Новое объявление</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{t("create")}</DialogTitle></DialogHeader>
           <AnnouncementForm onDone={() => setOpen(false)} />
         </DialogContent>
       </Dialog>
