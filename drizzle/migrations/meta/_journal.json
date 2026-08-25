@@ -150,10 +150,10 @@
       "breakpoints": true
     },
     {
-      "idx": 18,
+      "idx": 21,
       "version": "7",
       "when": 1785060100000,
-      "tag": "0018_drop_debts",
+      "tag": "0021_drop_debts",
       "breakpoints": true
     }
   ]

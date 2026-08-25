@@ -6,6 +6,7 @@ import {
     SidebarGroupLabel,
     SidebarMenu,
     SidebarMenuButton,
+    SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import {IconCoin, IconReport} from "@tabler/icons-react";
 import type {Permission} from "@/core/auth/permissions";
