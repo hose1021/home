@@ -7,42 +7,12 @@ import {requireTenantPermission} from "@/core/auth/session";
 import {db} from "@/core/db";
 import {payments} from "@/core/db/schema/payments";
 import {writeAuditLog} from "@/core/audit/audit.service";
-import {ownerBelongsToUser, refundPayment, registerPayment, validatePaymentValues} from "@/modules/finance/services/payment.service";
+import {ownerBelongsToUser, PaymentError, refundPayment, validatePaymentValues} from "@/modules/finance/services/payment.service";
 import {hasStaffRole} from "@/core/auth/permissions";
 import {ForbiddenError} from "@/core/errors/app-error";
-import {paymentInputSchema, uuidSchema} from "@/core/validation/action-schemas";
+import {uuidSchema} from "@/core/validation/action-schemas";
 import {z} from "zod";
 
-export async function payForUnitAction(
-  ownerId: string,
-  unitId: string,
-  amount: string,
-  periodYear: number,
-  periodMonth: number,
-  paymentMethod: "cash" | "bank_transfer" | "card" | "e_manat" | "pos_terminal",
-  referenceNo: string | undefined,
-  tariffPerSqm: string,
-) {
-  ownerId = uuidSchema.parse(ownerId);
-  unitId = uuidSchema.parse(unitId);
-  const validated = paymentInputSchema.parse({ unitId, ownerId, amount, periodYear, periodMonth, paymentMethod, referenceNo, tariffPerSqm });
-  const { session, tenantId } = await requireTenantPermission("payment:write");
-  await requireOwnerPaymentAccess(tenantId, ownerId, session.user.id, session.user.roles);
-
-  const payment = await registerPayment(tenantId, {
-    unitId: validated.unitId,
-    ownerId: validated.ownerId,
-    amount: validated.amount,
-    tariffPerSqm: validated.tariffPerSqm,
-    periodYear: validated.periodYear,
-    periodMonth: validated.periodMonth,
-    paymentMethod: validated.paymentMethod,
-    referenceNo: validated.referenceNo,
-  }, session.user.id);
-
-  revalidatePath(`/owners/${ownerId}`);
-  return { success: true, payment };
-}
 
 export async function editPaymentAction(
   ownerId: string,
@@ -166,14 +136,19 @@ export async function deletePaymentAction(
 }
 
 export async function refundPaymentAction(ownerId: string, paymentId: string) {
+  const t = await getTranslations("payments.errors");
   ownerId = uuidSchema.parse(ownerId);
   paymentId = uuidSchema.parse(paymentId);
   const { session, tenantId } = await requireTenantPermission("payment:write");
   await requireOwnerPaymentAccess(tenantId, ownerId, session.user.id, session.user.roles);
-  const payment = await refundPayment(tenantId, paymentId, session.user.id);
-  if (!payment) throw new Error("Платёж не найден");
-  revalidatePath(`/owners/${ownerId}`);
-  return { success: true, payment };
+  try {
+    const payment = await refundPayment(tenantId, paymentId, session.user.id);
+    revalidatePath(`/owners/${ownerId}`);
+    return { success: true, payment };
+  } catch (err) {
+    if (err instanceof PaymentError) throw new Error(t(err.code));
+    throw err;
+  }
 }
 
 async function requireOwnerPaymentAccess(

@@ -525,6 +525,10 @@
     "year": "Year",
     "editTitle": "Edit payment",
     "editForbidden": "Confirmed payments cannot be edited",
-    "deleteForbidden": "Confirmed payments cannot be deleted"
+    "deleteForbidden": "Confirmed payments cannot be deleted",
+    "errors": {
+      "not_found": "Payment not found",
+      "immutable_status": "Only confirmed payments can be refunded"
+    }
   }
 }

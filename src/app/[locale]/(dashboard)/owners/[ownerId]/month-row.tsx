@@ -4,7 +4,7 @@ import {useState} from "react";
 import {useTranslations} from "next-intl";
 import {Dialog, DialogContent, DialogHeader, DialogTitle} from "@/components/ui/dialog";
 import {toast} from "sonner";
-import {payForUnitAction} from "./pay-action";
+import {registerPaymentAction} from "@/modules/finance/finance.actions";
 import {Button} from "@/components/ui/button";
 import {Input} from "@/components/ui/input";
 import {IconAlertCircle, IconCheck} from "@tabler/icons-react";
@@ -69,12 +69,12 @@ export function MonthRow({
     if (Number(amount) <= 0) { toast.error(tp("enterAmount")); return; }
     setPending(true);
     try {
-      await payForUnitAction(
-        ownerId, unitId, amount, year, month,
-        method,
-        referenceNo || undefined,
-        tariff.toFixed(2),
-      );
+      await registerPaymentAction({
+        ownerId, unitId, amount, periodYear: year, periodMonth: month,
+        paymentMethod: method,
+        referenceNo: referenceNo || undefined,
+        tariffPerSqm: tariff.toFixed(2),
+      });
       setPayOpen(false);
       toast.success(tp("paidSuccess"));
     } catch (err) {

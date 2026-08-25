@@ -5,7 +5,22 @@ import {owners, ownerships} from "@/core/db/schema/owners";
 import {charges} from "@/core/db/schema/charges";
 import {and, desc, eq, inArray, sql} from "drizzle-orm";
 import {writeAuditLog} from "@/core/audit/audit.service";
+import {AppError} from "@/core/errors/app-error";
 
+/** Domain error with a machine code; server actions translate codes via next-intl (ADR 0001). */
+export class PaymentError extends AppError {
+  constructor(code: "not_found" | "immutable_status", message: string = code) {
+    super(message, code === "not_found" ? 404 : 409, code);
+    this.name = "PaymentError";
+  }
+}
+
+const IMMUTABLE_PAYMENT_STATUSES: readonly string[] = ["confirmed", "rejected", "refunded"];
+
+/** Canonical mutability rule (CONTEXT.md): a payment outside the immutable set may be edited or deleted. Pure. */
+export function canMutatePayment(status: string): boolean {
+  return !IMMUTABLE_PAYMENT_STATUSES.includes(status);
+}
 type RegisterPaymentInput = {
   chargeId?: string;
   unitId: string;
@@ -294,8 +309,8 @@ export async function refundPayment(tenantId: string, paymentId: string, userId:
       .from(payments)
       .where(and(eq(payments.id, paymentId), eq(payments.tenantId, tenantId)))
       .limit(1);
-    if (!existing) return null;
-    if (existing.status !== "confirmed") throw new Error("Only confirmed payments can be refunded");
+    if (!existing) throw new PaymentError("not_found");
+    if (existing.status !== "confirmed") throw new PaymentError("immutable_status", "Only confirmed payments can be refunded");
 
     const [updated] = await tx
       .update(payments)

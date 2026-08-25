@@ -525,6 +525,10 @@
     "year": "İl",
     "editTitle": "Ödənişi redaktə et",
     "editForbidden": "Təsdiqlənmiş ödənişləri redaktə etmək olmaz",
-    "deleteForbidden": "Təsdiqlənmiş ödənişləri silmək olmaz"
+    "deleteForbidden": "Təsdiqlənmiş ödənişləri silmək olmaz",
+    "errors": {
+      "not_found": "Ödəniş tapılmadı",
+      "immutable_status": "Yalnız təsdiqlənmiş ödənişləri qaytarmaq olar"
+    }
   }
 }

@@ -46,6 +46,7 @@ export async function registerPaymentAction(input: {
   periodYear: number;
   periodMonth: number;
   paymentMethod: "cash" | "bank_transfer" | "card" | "e_manat" | "pos_terminal";
+  tariffPerSqm?: string;
   referenceNo?: string;
   notes?: string;
 }) {
@@ -57,6 +58,7 @@ export async function registerPaymentAction(input: {
   }
   await registerPayment(tenantId, input, session.user.id);
   revalidatePath("/finance");
+  revalidatePath(`/owners/${input.ownerId}`);
   return { success: true };
 }
 
