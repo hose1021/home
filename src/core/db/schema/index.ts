@@ -11,7 +11,6 @@ export { funds } from "./funds";
 export { transactions, journalEntries } from "./transactions";
 export { chargeTemplates, charges } from "./charges";
 export { payments } from "./payments";
-export { debts } from "./debts";
 export { tickets, ticketComments } from "./tickets";
 export { workOrders } from "./work-orders";
 export { contractors, contracts } from "./contractors";

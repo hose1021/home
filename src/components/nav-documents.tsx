@@ -6,9 +6,8 @@ import {
     SidebarGroupLabel,
     SidebarMenu,
     SidebarMenuButton,
-    SidebarMenuItem,
 } from "@/components/ui/sidebar";
-import {IconReport} from "@tabler/icons-react";
+import {IconCoin, IconReport} from "@tabler/icons-react";
 import type {Permission} from "@/core/auth/permissions";
 import {usePathname} from "@/i18n/navigation";
 import {useTranslations} from "next-intl";
@@ -17,7 +16,8 @@ export function NavDocuments({ permissions }: { permissions?: Permission[] }) {
   const t = useTranslations("nav");
   const pathname = usePathname();
 
-  const docs: { name: string; url: string; icon: typeof IconReport; perm?: Permission }[] = [
+  const docs: { name: string; url: string; icon: typeof IconCoin; perm?: Permission }[] = [
+    { name: t("budget"), url: "/finance/budget", icon: IconCoin, perm: "budget:read" },
     { name: t("reports"), url: "/reports", icon: IconReport, perm: "report:read" },
   ];
 

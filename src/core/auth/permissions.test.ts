@@ -18,7 +18,7 @@ describe("hasPermission", () => {
       "resident:read", "resident:write", "voting:read", "voting:write",
       "meeting:read", "meeting:write", "protocol:read", "protocol:write", "protocol:sign",
       "finance:read", "finance:write", "charge:read", "charge:write",
-      "payment:read", "payment:write", "debt:read", "debt:write",
+      "payment:read", "payment:write",
       "fund:read", "fund:write", "budget:read", "budget:write",
       "contractor:read", "contractor:write", "work_order:read", "work_order:write",
       "ticket:read", "ticket:write", "document:read", "document:write",

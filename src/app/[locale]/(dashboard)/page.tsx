@@ -8,10 +8,10 @@ import {userRoles, users} from "@/core/db/schema/users";
 import {requireTenantContext} from "@/core/auth/session";
 import {getTenantById} from "@/modules/tenant/tenant.service";
 import {getDashboardAnnouncement} from "@/modules/announcements/announcement.service";
+import {getTenantDebtSummary} from "@/modules/finance/services/debt.service";
 import {and, desc, eq, inArray, sql} from "drizzle-orm";
 import {Badge} from "@/components/ui/badge";
 import {hasAnyPermission, hasStaffRole} from "@/core/auth/permissions";
-import {getTenantOutstandingDebt} from "@/modules/finance/services/payment.service";
 import {getActiveCommandant} from "@/modules/commandants/commandant.service";
 import {CommandantCard} from "./commandant-card";
 import {getTranslations} from "next-intl/server";
@@ -46,7 +46,7 @@ export default async function DashboardPage() {
         .from(owners)
         .where(eq(owners.tenantId, tenantId));
 
-    const outstandingDebt = await getTenantOutstandingDebt(tenantId);
+    const {totalDebt} = await getTenantDebtSummary(tenantId);
     const [ticketCount] = await db
         .select({count: sql<number>`count(*)`})
         .from(tickets)
@@ -165,7 +165,7 @@ export default async function DashboardPage() {
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                 <DashboardCard title={t("dashboard.units")} value={String(unitCount?.count ?? 0)} caption={t("dashboard.unitsCaption")} icon={IconHome} tone="indigo" />
                 <DashboardCard title={t("dashboard.owners")} value={String(ownerCount?.count ?? 0)} caption={t("dashboard.ownersCaption")} icon={IconUsersGroup} tone="cyan" />
-                <DashboardCard title={t("dashboard.debt")} value={`${Number(outstandingDebt).toFixed(2)} ${t("common.currency")}`} caption={t("dashboard.debtCaption")} icon={IconCash} tone="amber" />
+                <DashboardCard title={t("dashboard.debt")} value={`${totalDebt.toFixed(2)} ${t("common.currency")}`} caption={t("dashboard.debtCaption")} icon={IconCash} tone="amber" />
                 <DashboardCard title={t("dashboard.activeTickets")} value={String(ticketCount?.count ?? 0)} caption={t("dashboard.activeTicketsCaption")} icon={IconTicket} tone="violet" />
             </div>
 

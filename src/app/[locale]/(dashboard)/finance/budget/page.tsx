@@ -1,86 +1,108 @@
 import {requireTenantPermission} from "@/core/auth/session";
-import {db} from "@/core/db";
-import {budgetItems, budgets} from "@/core/db/schema/budgets";
-import {eq} from "drizzle-orm";
-import {isExpenseCode, isIncomeCode} from "@/modules/finance/constants";
-import {getTranslations} from "next-intl/server";
+import {getPermissionsForRoles, type Permission} from "@/core/auth/permissions";
+import {getBudget, getBudgetHistory, getBudgetItems, getMonthlyFeeIncome} from "@/modules/finance/services/budget.service";
+import {BudgetTable} from "./budget-table";
+import {BudgetCreateForm} from "./budget-create-form";
+import {Badge} from "@/components/ui/badge";
+import {BudgetActions} from "./budget-actions";
+import {BudgetHistory} from "./budget-history";
+
+const STATUS_LABELS: Record<string, string> = {
+  draft: "Черновик",
+  pending_approval: "На утверждении",
+  approved: "Утверждён",
+  rejected: "Отклонён",
+};
 
 export default async function BudgetPage() {
-  const {tenantId} = await requireTenantPermission("budget:read");
-  const t = await getTranslations("budget");
+  const { session, tenantId } = await requireTenantPermission("budget:read");
+  const permissions: Permission[] = getPermissionsForRoles(session.user.roles);
+  const canEdit = permissions.includes("budget:write");
 
-  const budget = (await db.select().from(budgets).where(eq(budgets.tenantId, tenantId)).limit(1))[0];
+  const budget = await getBudget(tenantId);
+
   if (!budget) {
     return (
       <div className="page-shell">
         <div>
-          <p className="text-sm text-muted-foreground">{t("eyebrow")}</p>
-          <h1 className="page-heading mt-1">{t("title")}</h1>
-          <p className="page-description">{t("notApproved")}</p>
+          <p className="text-sm text-muted-foreground">Финансовое планирование</p>
+          <h1 className="page-heading mt-1">Бюджет</h1>
+          <p className="page-description">Ежемесячный план доходов и расходов</p>
         </div>
-        <div className="surface-panel border-dashed p-10 text-center text-sm text-muted-foreground">{t("notApprovedHint")}</div>
+        {canEdit ? (
+          <BudgetCreateForm />
+        ) : (
+          <div className="surface-panel border-dashed p-10 text-center text-sm text-muted-foreground">
+            Бюджет не создан. Обратитесь к администратору.
+          </div>
+        )}
       </div>
     );
   }
 
-  const allItems = await db
-    .select()
-    .from(budgetItems)
-    .where(eq(budgetItems.budgetId, budget.id))
-    .orderBy(budgetItems.accountCode);
+  const items = await getBudgetItems(budget.id, tenantId);
+  const monthlyFeeIncome = await getMonthlyFeeIncome(tenantId);
+  const history = await getBudgetHistory(tenantId, budget.id);
+  const balance = Number(budget.totalIncome) - Number(budget.totalExpense);
 
-  const incomeItems = allItems.filter((i) => isIncomeCode(i.accountCode));
-  const expenseItems = allItems.filter((i) => isExpenseCode(i.accountCode));
+  const statusVariant: Record<string, "secondary" | "outline" | "default" | "destructive"> = {
+    draft: "secondary",
+    pending_approval: "outline",
+    approved: "default",
+    rejected: "destructive",
+  };
 
   return (
-    <div className="page-shell">
-      <div>
-        <p className="text-sm text-muted-foreground">{t("eyebrow")}</p>
-        <h1 className="page-heading mt-1">{t("title")} {budget.year}</h1>
-        <p className="page-description">{t("description")}</p>
+    <div className="page-shell max-w-6xl">
+      <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
+        <div>
+          <p className="text-sm text-muted-foreground">Финансовое планирование</p>
+          <div className="flex items-center gap-3">
+            <h1 className="page-heading mt-1">Бюджет {budget.year}</h1>
+            <Badge variant={statusVariant[budget.status ?? "draft"] ?? "secondary"}>
+              {STATUS_LABELS[budget.status ?? "draft"] ?? budget.status}
+            </Badge>
+          </div>
+          <p className="page-description">План доходов и расходов на месяц</p>
+        </div>
+        {canEdit && (
+          <BudgetActions
+            budgetId={budget.id}
+            status={budget.status ?? "draft"}
+          />
+        )}
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-2">
-        <div className="surface-panel p-5">
-          <h2 className="mb-4 text-sm font-semibold text-green-700 dark:text-green-400">{t("incomeHeading")}</h2>
-          <div className="space-y-2">
-            {incomeItems.map((item) => (
-              <div key={item.id} className="flex items-center justify-between text-sm">
-                <div className="flex-1">
-                  <span className="text-zinc-500">{item.accountCode}</span>
-                  {" — "}
-                  <span>{item.notes}</span>
-                </div>
-                <span className="ml-4 font-medium tabular-nums">{Number(item.plannedAmount).toFixed(2)} AZN</span>
-              </div>
-            ))}
-            <div className="border-t border-zinc-200 pt-2 flex items-center justify-between text-sm font-bold dark:border-zinc-700">
-              <span>{t("total")}</span>
-              <span>{Number(budget.totalIncome).toFixed(2)} AZN</span>
-            </div>
-          </div>
+      <div className="grid gap-4 sm:grid-cols-3">
+        <div className="surface-panel p-4">
+          <p className="text-xs text-muted-foreground">Доходы</p>
+          <p className="mt-1 text-xl font-semibold tabular-nums text-emerald-600">
+            {Number(budget.totalIncome).toFixed(2)} ₼
+          </p>
         </div>
-
-        <div className="surface-panel p-5">
-          <h2 className="mb-4 text-sm font-semibold text-red-700 dark:text-red-400">{t("expenseHeading")}</h2>
-          <div className="space-y-2">
-            {expenseItems.map((item) => (
-              <div key={item.id} className="flex items-center justify-between text-sm">
-                <div className="flex-1">
-                  <span className="text-zinc-500">{item.accountCode}</span>
-                  {" — "}
-                  <span>{item.notes}</span>
-                </div>
-                <span className="ml-4 font-medium tabular-nums">{Number(item.plannedAmount).toFixed(2)} AZN</span>
-              </div>
-            ))}
-            <div className="border-t border-zinc-200 pt-2 flex items-center justify-between text-sm font-bold dark:border-zinc-700">
-              <span>{t("total")}</span>
-              <span>{Number(budget.totalExpense).toFixed(2)} AZN</span>
-            </div>
-          </div>
+        <div className="surface-panel p-4">
+          <p className="text-xs text-muted-foreground">Расходы</p>
+          <p className="mt-1 text-xl font-semibold tabular-nums text-red-600">
+            {Number(budget.totalExpense).toFixed(2)} ₼
+          </p>
+        </div>
+        <div className="surface-panel p-4">
+          <p className="text-xs text-muted-foreground">Баланс</p>
+          <p className={`mt-1 text-xl font-semibold tabular-nums ${balance >= 0 ? "text-emerald-600" : "text-red-600"}`}>
+            {balance >= 0 ? "+" : ""}{balance.toFixed(2)} ₼
+          </p>
         </div>
       </div>
+
+      <BudgetTable
+        budgetId={budget.id}
+        items={items}
+        canEdit={canEdit}
+        totalIncome={budget.totalIncome}
+        totalExpense={budget.totalExpense}
+        monthlyFeeIncome={monthlyFeeIncome}
+      />
+      <BudgetHistory history={history} />
     </div>
   );
 }

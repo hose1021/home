@@ -26,26 +26,8 @@ import {Badge} from "@/components/ui/badge";
 import {Card, CardContent} from "@/components/ui/card";
 import {IconBuilding, IconCash, IconHome, IconRulerMeasure} from "@tabler/icons-react";
 import {getTranslations} from "next-intl/server";
+import {buildPeriods, getDebtConfig, unitDebt, type BillingPeriod} from "@/modules/finance/services/debt.service";
 
-const TARIFF = Number(process.env.MONTHLY_TARIFF_PER_SQM ?? "0.40");
-
-const now = new Date();
-const currentYear = now.getFullYear();
-const currentMonth = now.getMonth() + 1;
-
-const startDate = process.env.BILLING_START_DATE ?? "2025-01";
-const [startYear, startMonthRaw] = startDate.split("-").map(Number);
-const startMonth = startMonthRaw ?? 1;
-
-function buildAllPeriods(): { year: number; month: number }[] {
-  const out: { year: number; month: number }[] = [];
-  for (let y = startYear; y <= currentYear; y++) {
-    const minM = y === startYear ? startMonth : 1;
-    const maxM = y === currentYear ? currentMonth : 12;
-    for (let m = minM; m <= maxM; m++) out.push({ year: y, month: m });
-  }
-  return out;
-}
 
 export default async function OwnerDetailsPage({
   params,
@@ -158,18 +140,16 @@ export default async function OwnerDetailsPage({
     });
   }
 
-  const grandDebt = ownerUnits.reduce((sum, unit) => {
-    const area = Number(unit.area);
-    const monthlyFee = area * TARIFF;
-    let debt = 0;
-    for (const { year, month } of buildAllPeriods()) {
-      const paid = paymentsByUnit.get(unit.id)?.get(`${year}-${month}`) ?? 0;
-      debt += Math.max(0, monthlyFee - paid);
-    }
-    return sum + debt;
-  }, 0);
+  const cfg = getDebtConfig();
+  const periods = buildPeriods(cfg.billingStart);
+  const getPaid = (unitId: string, p: BillingPeriod) => paymentsByUnit.get(unitId)?.get(`${p.year}-${p.month}`) ?? 0;
+
+  const grandDebt = ownerUnits.reduce(
+    (sum, unit) => sum + unitDebt(Number(unit.area) * cfg.tariffPerSqm, periods, (p) => getPaid(unit.id, p)),
+    0,
+  );
   const totalArea = ownerUnits.reduce((sum, unit) => sum + Number(unit.area), 0);
-  const totalMonthlyFee = totalArea * TARIFF;
+  const totalMonthlyFee = totalArea * cfg.tariffPerSqm;
   const initials = owner.fullName.split(" ").filter(Boolean).slice(0, 2).map((part) => part[0]).join("").toUpperCase();
 
   return (
@@ -221,12 +201,8 @@ export default async function OwnerDetailsPage({
         <div className="space-y-4">
           {ownerUnits.map((unit) => {
             const area = Number(unit.area);
-            const monthlyFee = area * TARIFF;
-            const periods = buildAllPeriods();
-            const totalDebt = periods.reduce((s, { year, month }) => {
-              const paid = paymentsByUnit.get(unit.id)?.get(`${year}-${month}`) ?? 0;
-              return s + Math.max(0, monthlyFee - paid);
-            }, 0);
+            const monthlyFee = area * cfg.tariffPerSqm;
+            const totalDebt = unitDebt(monthlyFee, periods, (p) => getPaid(unit.id, p));
 
             const periodsByYear = new Map<number, { year: number; month: number }[]>();
             for (const p of periods) {
@@ -245,7 +221,7 @@ export default async function OwnerDetailsPage({
                         {t("blockFloor", {entrance: unit.entrance, floor: unit.floor})}, {area.toFixed(1)} м²
                       </p>
                       <p className="mt-1 text-xs text-muted-foreground">
-                        {t("feeFormula", {area: area.toFixed(1), tariff: TARIFF.toFixed(2), fee: monthlyFee.toFixed(2)})}
+                        {t("feeFormula", {area: area.toFixed(1), tariff: cfg.tariffPerSqm.toFixed(2), fee: monthlyFee.toFixed(2)})}
                       </p>
                     </div>
                     <div className="text-right">
@@ -278,7 +254,7 @@ export default async function OwnerDetailsPage({
                               entrance={unit.entrance}
                               floor={unit.floor}
                               monthlyFee={monthlyFee}
-                              tariff={TARIFF}
+                              tariff={cfg.tariffPerSqm}
                               year={year}
                               month={month}
                               isPaid={isPaid}
