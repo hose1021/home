@@ -1,5 +1,5 @@
 import type {Metadata} from "next";
-import {Inter} from "next/font/google";
+import {Inter, Archivo, IBM_Plex_Mono} from "next/font/google";
 import "./globals.css";
 import {TooltipProvider} from "@/components/ui/tooltip";
 import {Toaster} from "@/components/ui/sonner";
@@ -9,6 +9,18 @@ import {ThemeProvider} from "@/components/theme-provider";
 const inter = Inter({
   variable: "--font-sans",
   subsets: ["latin", "latin-ext"],
+});
+
+const archivo = Archivo({
+  variable: "--font-display",
+  subsets: ["latin", "latin-ext"],
+  weight: ["500", "600", "700"],
+});
+
+const plexMono = IBM_Plex_Mono({
+  variable: "--font-mono-brand",
+  subsets: ["latin"],
+  weight: ["500"],
 });
 
 export const metadata: Metadata = {
@@ -22,7 +34,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html className={`${inter.variable} h-full`} suppressHydrationWarning>
+    <html className={`${inter.variable} ${archivo.variable} ${plexMono.variable} h-full`} suppressHydrationWarning>
       <body className="flex min-h-full flex-col">
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
           <TooltipProvider>

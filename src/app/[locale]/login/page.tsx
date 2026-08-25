@@ -4,14 +4,11 @@ import {useEffect, useState} from "react";
 import {useRouter} from "@/i18n/navigation";
 import {PLATFORM_NAME} from "@/core/config";
 import {Button} from "@/components/ui/button";
-import {Card, CardContent} from "@/components/ui/card";
 import {Input} from "@/components/ui/input";
 import {Label} from "@/components/ui/label";
 import {useTranslations} from "next-intl";
 import {
     IconArrowRight,
-    IconBuildingCommunity,
-    IconBuildingSkyscraper,
     IconLoader2,
     IconLock,
 } from "@tabler/icons-react";
@@ -62,83 +59,87 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="flex min-h-svh flex-col items-center justify-center bg-muted/50 p-4 sm:p-6 md:p-10">
-      <div className="w-full max-w-sm md:max-w-4xl">
-        <Card className="overflow-hidden p-0 shadow-lg">
-          <CardContent className="grid p-0 md:grid-cols-2">
-            <form onSubmit={handleSubmit} className="flex flex-col justify-center p-6 md:p-10">
-              <div className="mb-8 flex items-center gap-3">
-                <span className="flex size-9 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-                  <IconBuildingCommunity className="size-5" />
-                </span>
-                <div>
-                  <p className="text-sm font-semibold">{PLATFORM_NAME}</p>
-                  <p className="text-xs text-muted-foreground">{tn("houseManagement")}</p>
-                </div>
+    <main className="grid min-h-svh bg-background lg:grid-cols-[5fr_6fr]">
+      {/* Facade panel: the entrance sign itself */}
+      <aside className="relative hidden flex-col justify-between overflow-hidden bg-(--primary) p-10 text-(--primary-foreground) lg:flex">
+        {/* floor-line motif */}
+        <div aria-hidden className="absolute inset-0 opacity-[0.07]" style={{
+          backgroundImage: "repeating-linear-gradient(to top, transparent 0 79px, currentColor 79px 80px)",
+        }} />
+        <div className="relative">
+          <p className="text-xs font-medium uppercase tracking-[0.3em] opacity-70">MMMC · Bakı</p>
+        </div>
+
+        <div className="relative max-w-md">
+          <div className="inline-flex items-center gap-2 rounded-sm border border-white/25 px-2.5 py-1 text-[11px] uppercase tracking-[0.18em]">
+            <span className="size-1.5 rounded-[1px] bg-brass" style={{background: "#C4A45C"}} />
+            {tn("houseManagement")}
+          </div>
+          <h1 className="mt-6 font-(family-name:--font-display) text-4xl font-semibold leading-[1.08] tracking-tight">
+            {t("heroTitle")}
+          </h1>
+          <p className="mt-4 max-w-sm text-sm leading-6 opacity-75">{t("heroSubtitle")}</p>
+        </div>
+
+        <p className="relative font-(family-name:--font-mono-brand) text-xs tracking-wide opacity-60">
+          {PLATFORM_NAME}
+        </p>
+      </aside>
+
+      {/* Form on plaster */}
+      <div className="flex items-center justify-center p-5 sm:p-8 md:p-12">
+        <div className="w-full max-w-sm">
+          <div className="mb-8 flex items-center gap-3 lg:hidden">
+            <span className="inline-flex items-center gap-2 rounded-sm bg-primary px-2.5 py-1.5 text-xs font-semibold text-primary-foreground">
+              {PLATFORM_NAME}
+            </span>
+            <span className="text-xs uppercase tracking-[0.22em] text-muted-foreground">Bakı</span>
+          </div>
+
+          <form onSubmit={handleSubmit} className="surface-panel p-6 sm:p-8">
+            <h2 className="page-heading">{t("welcomeBack")}</h2>
+            <p className="page-description">{t("loginInstructions")}</p>
+
+            <div className="mt-7 grid gap-5">
+              <div className="grid gap-2">
+                <Label htmlFor="username">{t("login")}</Label>
+                <Input
+                  id="username"
+                  name="username"
+                  className="h-10"
+                  placeholder={t("loginPlaceholder")}
+                  pattern="[\p{L}]+\.[\p{L}]+"
+                  autoComplete="username"
+                  required
+                />
               </div>
 
-              <div className="flex flex-col gap-6">
-                <div className="flex flex-col items-center gap-2 text-center">
-                  <h1 className="text-2xl font-bold">{t("welcomeBack")}</h1>
-                  <p className="text-balance text-sm text-muted-foreground">
-                    {t("loginInstructions")}
-                  </p>
+              <div className="grid gap-2">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="password">{t("password")}</Label>
+                  <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                    <IconLock className="size-3.5" /> {t("secureEntry")}
+                  </span>
                 </div>
-
-                <div className="grid gap-2">
-                  <Label htmlFor="username">{t("login")}</Label>
-                  <Input
-                    id="username"
-                    name="username"
-                    className="h-10"
-                    placeholder={t("loginPlaceholder")}
-                    pattern="[\p{L}]+\.[\p{L}]+"
-                    autoComplete="username"
-                    required
-                  />
-                </div>
-
-                <div className="grid gap-2">
-                  <div className="flex items-center justify-between">
-                    <Label htmlFor="password">{t("password")}</Label>
-                    <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                      <IconLock className="size-3.5" /> {t("secureEntry")}
-                    </span>
-                  </div>
-                  <Input id="password" name="password" type="password" className="h-10" autoComplete="current-password" required minLength={8} />
-                </div>
-
-                {error && (
-                  <div role="alert" aria-live="polite" className="rounded-lg border border-destructive/20 bg-destructive/5 px-3 py-2.5 text-sm text-destructive">
-                    {error}
-                  </div>
-                )}
-
-                <Button type="submit" disabled={pending} size="lg" className="w-full">
-                  {pending ? <><IconLoader2 className="animate-spin" /> {t("signingIn")}</> : <>{t("signIn")} <IconArrowRight /></>}
-                </Button>
+                <Input id="password" name="password" type="password" className="h-10" autoComplete="current-password" required minLength={8} />
               </div>
 
-              <p className="mt-8 text-center text-xs text-muted-foreground">
-                {t("recoveryNote")}
-              </p>
-            </form>
+              {error && (
+                <div role="alert" aria-live="polite" className="rounded-lg border border-destructive/20 bg-destructive/5 px-3 py-2.5 text-sm text-destructive">
+                  {error}
+                </div>
+              )}
 
-            <div className="relative hidden min-h-[610px] overflow-hidden bg-zinc-950 md:block">
-              <div className="absolute inset-0 bg-[radial-gradient(circle_at_25%_20%,rgba(255,255,255,0.16),transparent_28%),linear-gradient(145deg,#27272a_0%,#09090b_65%)]" />
-              <div className="absolute inset-x-10 top-10 flex items-center justify-between text-white/70">
-                <span className="text-xs font-medium uppercase tracking-[0.22em]">MMMC</span>
-                <span className="rounded-full border border-white/15 px-3 py-1 text-[10px]">Bakı</span>
-              </div>
-              <div className="absolute inset-x-10 bottom-10 text-white">
-                <IconBuildingSkyscraper className="mb-6 size-16 stroke-[1.25] text-white/80" />
-                <p className="max-w-xs text-3xl font-semibold leading-tight">{t("heroTitle")}</p>
-                <p className="mt-3 max-w-xs text-sm leading-6 text-white/55">{t("heroSubtitle")}</p>
-              </div>
-              <div className="absolute -right-16 top-28 h-72 w-52 rotate-12 rounded-[2.5rem] border border-white/10 bg-white/5 shadow-2xl backdrop-blur" />
+              <Button type="submit" disabled={pending} size="lg" className="w-full">
+                {pending ? <><IconLoader2 className="animate-spin" /> {t("signingIn")}</> : <>{t("signIn")} <IconArrowRight /></>}
+              </Button>
             </div>
-          </CardContent>
-        </Card>
+
+            <p className="mt-7 border-t border-border pt-4 text-xs text-muted-foreground">
+              {t("recoveryNote")}
+            </p>
+          </form>
+        </div>
       </div>
     </main>
   );
