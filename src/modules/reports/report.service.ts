@@ -1,58 +1,65 @@
-import {and, desc, eq, inArray} from "drizzle-orm";
+import {and, desc, eq, inArray, sql} from "drizzle-orm";
 import {db} from "@/core/db";
 import {charges} from "@/core/db/schema/charges";
 import {payments} from "@/core/db/schema/payments";
-import {owners} from "@/core/db/schema/owners";
+import {owners, ownerships} from "@/core/db/schema/owners";
 import {units} from "@/core/db/schema/units";
 import {funds} from "@/core/db/schema/funds";
 import {auditLogs} from "@/core/db/schema/audit-logs";
 import {users} from "@/core/db/schema/users";
 import {getBudget, getBudgetItems} from "@/modules/finance/services/budget.service";
+import {buildPeriods, getDebtConfig, unitDebt, type DebtConfig} from "@/modules/finance/services/debt.service";
+import {formatMoney, moneyToCents} from "@/modules/finance/services/money";
 import {isExpenseCode, isIncomeCode} from "@/modules/finance/constants";
 
 const DEBT_STATUSES = ["pending", "partially_paid", "overdue"] as const;
 
-function moneyToCents(value: string | number): number {
-  const cents = Math.round(Number(value) * 100);
-  return Number.isFinite(cents) ? cents : 0;
-}
+export type DebtByOwnerRow = {
+  ownerName: string;
+  units: string;
+  charged: string;
+  paid: string;
+  debt: string;
+};
 
-function formatMoney(cents: number): string {
-  return (cents / 100).toFixed(2);
-}
+type DebtUnitRow = {
+  ownerId: string;
+  ownerName: string;
+  unitId: string;
+  unitNumber: string | null;
+  area: string;
+};
 
-export async function getDebtByOwnerReport(tenantId: string) {
-  const rows = await db
-    .select({
-      ownerId: charges.ownerId,
-      ownerName: owners.fullName,
-      unitNumber: units.unitNumber,
-      amount: charges.amount,
-    })
-    .from(charges)
-    .innerJoin(owners, eq(owners.id, charges.ownerId))
-    .leftJoin(units, eq(units.id, charges.unitId))
-    .where(and(
-      eq(charges.tenantId, tenantId),
-      inArray(charges.status, DEBT_STATUSES),
-    ));
+/** Confirmed paid per unit per period (unitId → "YYYY-M" → manat float), same shape debt.service builds. */
+type PaidByUnitPeriod = ReadonlyMap<string, ReadonlyMap<string, number>>;
 
-  const confirmedPayments = await db
-    .select({ ownerId: payments.ownerId, amount: payments.amount })
-    .from(payments)
-    .where(and(eq(payments.tenantId, tenantId), eq(payments.status, "confirmed")));
+/**
+ * Pure per-owner debt aggregation over the canonical tariff × area accrual.
+ * Monetary accumulations stay in manat floats (matching unitDebt) and are converted to cents only for display.
+ */
+export function computeDebtByOwner(
+  unitRows: DebtUnitRow[],
+  paidByUnitPeriod: PaidByUnitPeriod,
+  confirmedPaidByOwner: ReadonlyMap<string, number>,
+  cfg: DebtConfig,
+  now: Date = new Date(),
+): DebtByOwnerRow[] {
+  const periods = buildPeriods(cfg.billingStart, now);
+  const byOwner = new Map<string, { ownerName: string; units: Set<string>; charged: number; paid: number; debt: number }>();
 
-  const paidByOwner = new Map<string, number>();
-  for (const payment of confirmedPayments) {
-    paidByOwner.set(payment.ownerId, (paidByOwner.get(payment.ownerId) ?? 0) + moneyToCents(payment.amount));
-  }
-
-  const byOwner = new Map<string, { ownerName: string; units: Set<string>; charged: number; paid: number }>();
-  for (const row of rows) {
-    const entry = byOwner.get(row.ownerId) ?? { ownerName: row.ownerName, units: new Set<string>(), charged: 0, paid: 0 };
+  for (const row of unitRows) {
+    const entry = byOwner.get(row.ownerId) ?? {
+      ownerName: row.ownerName,
+      units: new Set<string>(),
+      charged: 0,
+      paid: 0,
+      debt: 0,
+    };
     entry.units.add(row.unitNumber ?? "—");
-    entry.charged += moneyToCents(row.amount);
-    entry.paid = paidByOwner.get(row.ownerId) ?? 0;
+    const monthlyFee = Number(row.area) * cfg.tariffPerSqm;
+    entry.charged += monthlyFee * periods.length;
+    entry.debt += unitDebt(monthlyFee, periods, (p) => paidByUnitPeriod.get(row.unitId)?.get(`${p.year}-${p.month}`) ?? 0);
+    entry.paid = confirmedPaidByOwner.get(row.ownerId) ?? 0;
     byOwner.set(row.ownerId, entry);
   }
 
@@ -60,11 +67,74 @@ export async function getDebtByOwnerReport(tenantId: string) {
     .map((entry) => ({
       ownerName: entry.ownerName,
       units: [...entry.units].join(", "),
-      charged: formatMoney(entry.charged),
-      paid: formatMoney(entry.paid),
-      debt: formatMoney(Math.max(0, entry.charged - entry.paid)),
+      charged: formatMoney(moneyToCents(entry.charged)),
+      paid: formatMoney(moneyToCents(entry.paid)),
+      debt: formatMoney(moneyToCents(entry.debt)),
     }))
     .sort((a, b) => Number(b.debt) - Number(a.debt));
+}
+
+/** Per-owner debt on canonical semantics: Σ over billing periods of max(0, tariff × area − confirmed paid). */
+export async function getDebtByOwnerReport(tenantId: string): Promise<DebtByOwnerRow[]> {
+  const cfg = getDebtConfig();
+
+  const unitRows = await db
+    .select({
+      ownerId: ownerships.ownerId,
+      ownerName: owners.fullName,
+      unitId: units.id,
+      unitNumber: units.unitNumber,
+      area: units.area,
+    })
+    .from(ownerships)
+    .innerJoin(units, and(eq(units.id, ownerships.unitId), eq(units.tenantId, tenantId)))
+    .innerJoin(owners, and(eq(owners.id, ownerships.ownerId), eq(owners.tenantId, tenantId)))
+    .where(and(eq(ownerships.tenantId, tenantId), eq(units.status, "active")));
+
+  const [paidByUnitPeriod, confirmedPaidByOwner] = await Promise.all([
+    confirmedPaidByUnitPeriod(tenantId, unitRows.map((r) => r.unitId)),
+    confirmedPaymentsByOwner(tenantId),
+  ]);
+
+  return computeDebtByOwner(unitRows, paidByUnitPeriod, confirmedPaidByOwner, cfg);
+}
+
+async function confirmedPaidByUnitPeriod(tenantId: string, unitIds: string[]): Promise<PaidByUnitPeriod> {
+  const rows = unitIds.length === 0 ? [] : await db
+    .select({
+      unitId: payments.unitId,
+      periodYear: payments.periodYear,
+      periodMonth: payments.periodMonth,
+      paid: sql<string>`coalesce(sum(${payments.amount}::numeric), 0)`,
+    })
+    .from(payments)
+    .where(and(
+      eq(payments.tenantId, tenantId),
+      eq(payments.status, "confirmed"),
+      inArray(payments.unitId, unitIds),
+    ))
+    .groupBy(payments.unitId, payments.periodYear, payments.periodMonth);
+
+  const map = new Map<string, Map<string, number>>();
+  for (const r of rows) {
+    const inner = map.get(r.unitId) ?? new Map<string, number>();
+    inner.set(`${r.periodYear}-${r.periodMonth}`, Number(r.paid));
+    map.set(r.unitId, inner);
+  }
+  return map;
+}
+
+async function confirmedPaymentsByOwner(tenantId: string): Promise<Map<string, number>> {
+  const rows = await db
+    .select({ ownerId: payments.ownerId, amount: payments.amount })
+    .from(payments)
+    .where(and(eq(payments.tenantId, tenantId), eq(payments.status, "confirmed")));
+
+  const paid = new Map<string, number>();
+  for (const payment of rows) {
+    paid.set(payment.ownerId, (paid.get(payment.ownerId) ?? 0) + Number(payment.amount));
+  }
+  return paid;
 }
 
 export async function getIncomeExpenseReport(tenantId: string) {

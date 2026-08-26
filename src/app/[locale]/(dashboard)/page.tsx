@@ -1,15 +1,8 @@
-import {db} from "@/core/db";
-import {charges} from "@/core/db/schema/charges";
-import {owners, ownerships} from "@/core/db/schema/owners";
-import {payments} from "@/core/db/schema/payments";
-import {tickets} from "@/core/db/schema/tickets";
-import {units} from "@/core/db/schema/units";
-import {userRoles, users} from "@/core/db/schema/users";
 import {requireTenantContext} from "@/core/auth/session";
 import {getTenantById} from "@/modules/tenant/tenant.service";
 import {getDashboardAnnouncement} from "@/modules/announcements/announcement.service";
 import {getTenantDebtSummary} from "@/modules/finance/services/debt.service";
-import {and, desc, eq, inArray, sql} from "drizzle-orm";
+import {getDashboardData} from "@/modules/dashboard/dashboard.service";
 import {Badge} from "@/components/ui/badge";
 import {hasAnyPermission, hasStaffRole} from "@/core/auth/permissions";
 import {getActiveCommandant} from "@/modules/commandants/commandant.service";
@@ -36,92 +29,15 @@ export default async function DashboardPage() {
     const tenant = await getTenantById(tenantId);
     const dashboardAnnouncement = await getDashboardAnnouncement(tenantId);
 
-    const [unitCount] = await db
-        .select({count: sql<number>`count(*)`})
-        .from(units)
-        .where(eq(units.tenantId, tenantId));
-
-    const [ownerCount] = await db
-        .select({count: sql<number>`count(*)`})
-        .from(owners)
-        .where(eq(owners.tenantId, tenantId));
-
+    const {
+        unitCount,
+        ownerCount,
+        ticketCount,
+        recentPayments,
+        recentCharges,
+        boardMembers,
+    } = await getDashboardData(tenantId);
     const {totalDebt} = await getTenantDebtSummary(tenantId);
-    const [ticketCount] = await db
-        .select({count: sql<number>`count(*)`})
-        .from(tickets)
-        .where(and(eq(tickets.tenantId, tenantId), eq(tickets.status, "pending")));
-
-    const recentPayments = await db
-        .select({
-            id: payments.id,
-            amount: payments.amount,
-            paymentDate: payments.paymentDate,
-            status: payments.status,
-        })
-        .from(payments)
-        .where(eq(payments.tenantId, tenantId))
-        .orderBy(desc(payments.paymentDate))
-        .limit(5);
-
-    const recentCharges = await db
-        .select({
-            id: charges.id,
-            amount: charges.amount,
-            dueDate: charges.dueDate,
-            status: charges.status,
-        })
-        .from(charges)
-        .where(eq(charges.tenantId, tenantId))
-        .orderBy(desc(charges.createdAt))
-        .limit(5);
-
-    const boardRows = await db
-        .select({
-            userId: users.id,
-            ownerId: owners.id,
-            fullName: users.fullName,
-            role: userRoles.role,
-            entrances: sql<string>`coalesce(string_agg(distinct ${units.entrance}::text, ', '), '')`,
-        })
-        .from(users)
-        .innerJoin(
-            userRoles,
-            and(
-                eq(userRoles.userId, users.id),
-                eq(userRoles.scopeTenantId, tenantId),
-            ),
-        )
-        .leftJoin(
-            owners,
-            and(eq(owners.userId, users.id), eq(owners.tenantId, tenantId)),
-        )
-        .leftJoin(
-            ownerships,
-            and(eq(ownerships.ownerId, owners.id), eq(ownerships.tenantId, tenantId)),
-        )
-        .leftJoin(
-            units,
-            and(eq(units.id, ownerships.unitId), eq(units.tenantId, tenantId)),
-        )
-        .where(and(
-            eq(users.tenantId, tenantId),
-            eq(users.isActive, true),
-            inArray(userRoles.role, ["management_member", "commandant"]),
-        ))
-        .groupBy(users.id, owners.id, userRoles.role)
-        .orderBy(users.fullName);
-
-    const boardMap = new Map<string, typeof boardRows[0]>();
-    for (const row of boardRows) {
-        const existing = boardMap.get(row.userId);
-        if (!existing || row.role === "commandant") {
-            boardMap.set(row.userId, row);
-        }
-    }
-    const boardMembers = [...boardMap.values()].sort((a, b) =>
-        (b.role === "commandant" ? 1 : 0) - (a.role === "commandant" ? 1 : 0),
-    );
 
     // Комендант — отдельная сущность, не обязательно собственник
     const commandant = await getActiveCommandant(tenantId);
@@ -163,10 +79,10 @@ export default async function DashboardPage() {
             )}
 
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                <DashboardCard title={t("dashboard.units")} value={String(unitCount?.count ?? 0)} caption={t("dashboard.unitsCaption")} icon={IconHome} tone="indigo" />
-                <DashboardCard title={t("dashboard.owners")} value={String(ownerCount?.count ?? 0)} caption={t("dashboard.ownersCaption")} icon={IconUsersGroup} tone="cyan" />
+                <DashboardCard title={t("dashboard.units")} value={String(unitCount)} caption={t("dashboard.unitsCaption")} icon={IconHome} tone="indigo" />
+                <DashboardCard title={t("dashboard.owners")} value={String(ownerCount)} caption={t("dashboard.ownersCaption")} icon={IconUsersGroup} tone="cyan" />
                 <DashboardCard title={t("dashboard.debt")} value={`${totalDebt.toFixed(2)} ${t("common.currency")}`} caption={t("dashboard.debtCaption")} icon={IconCash} tone="amber" />
-                <DashboardCard title={t("dashboard.activeTickets")} value={String(ticketCount?.count ?? 0)} caption={t("dashboard.activeTicketsCaption")} icon={IconTicket} tone="violet" />
+                <DashboardCard title={t("dashboard.activeTickets")} value={String(ticketCount)} caption={t("dashboard.activeTicketsCaption")} icon={IconTicket} tone="violet" />
             </div>
 
             <div className="grid gap-5 xl:grid-cols-[1.2fr_0.8fr]">

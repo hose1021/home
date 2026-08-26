@@ -3,10 +3,12 @@ import {owners, ownerships} from "@/core/db/schema/owners";
 import {units} from "@/core/db/schema/units";
 import {buildings} from "@/core/db/schema/buildings";
 import {userRoles, users, sessions} from "@/core/db/schema/users";
-import {and, eq, notInArray} from "drizzle-orm";
+import {payments} from "@/core/db/schema/payments";
+import {and, eq, notInArray, sql} from "drizzle-orm";
 import {assertValidUsername, hashPassword, normalizeUsername} from "@/core/auth/auth";
 import type {Role} from "@/core/auth/permissions";
 import {writeAuditLog} from "@/core/audit/audit.service";
+import {DomainError} from "@/core/errors/app-error";
 
 export async function getOwnerById(tenantId: string, id: string) {
   const [o] = await db
@@ -15,6 +17,150 @@ export async function getOwnerById(tenantId: string, id: string) {
     .where(and(eq(owners.id, id), eq(owners.tenantId, tenantId)))
     .limit(1);
   return o ?? null;
+}
+
+export type PaidPeriodRow = {
+  unitId: string;
+  periodYear: number;
+  periodMonth: number;
+  paid: string;
+};
+
+/** Confirmed payments per unit per "YYYY-M" period — the key scheme the owner detail view groups by. Pure. */
+export function buildPaidByUnit(rows: PaidPeriodRow[]): Map<string, Map<string, number>> {
+  const map = new Map<string, Map<string, number>>();
+  for (const r of rows) {
+    const inner = map.get(r.unitId) ?? new Map<string, number>();
+    inner.set(`${r.periodYear}-${r.periodMonth}`, Number(r.paid));
+    map.set(r.unitId, inner);
+  }
+  return map;
+}
+
+export type OwnerDetail = {
+  owner: {
+    id: string;
+    userId: string;
+    fullName: string;
+    phone: string | null;
+    username: string;
+    status: string | null;
+  };
+  units: {
+    id: string;
+    unitNumber: string;
+    area: string;
+    entrance: number;
+    floor: number;
+    type: string;
+    buildingName: string;
+  }[];
+  paidByUnit: Map<string, Map<string, number>>;
+  payments: {
+    id: string;
+    amount: string;
+    tariffPerSqm: string;
+    periodYear: number;
+    periodMonth: number;
+    paymentMethod: string;
+    status: string;
+    referenceNo: string | null;
+    notes: string | null;
+    paymentDate: Date;
+    unitId: string;
+    unitNumber: string;
+    entrance: number;
+    floor: number;
+  }[];
+};
+
+/** The owner-detail read-model: owner, owned units, confirmed-paid map, full payment history. Null when the owner is not in the tenant. */
+export async function getOwnerDetail(tenantId: string, ownerId: string): Promise<OwnerDetail | null> {
+  const [owner] = await db
+    .select({
+      id: owners.id,
+      userId: owners.userId,
+      fullName: users.fullName,
+      phone: users.phone,
+      username: users.username,
+      status: owners.status,
+    })
+    .from(owners)
+    .innerJoin(users, eq(users.id, owners.userId))
+    .where(and(eq(owners.id, ownerId), eq(owners.tenantId, tenantId)))
+    .limit(1);
+  if (!owner) return null;
+
+  const ownerUnits = await db
+    .select({
+      id: units.id,
+      unitNumber: units.unitNumber,
+      area: units.area,
+      entrance: units.entrance,
+      floor: units.floor,
+      type: units.type,
+      buildingName: buildings.name,
+    })
+    .from(ownerships)
+    .innerJoin(units, eq(units.id, ownerships.unitId))
+    .innerJoin(buildings, eq(buildings.id, units.buildingId))
+    .where(and(
+      eq(ownerships.ownerId, owner.id),
+      eq(ownerships.tenantId, tenantId),
+    ))
+    .orderBy(units.entrance, units.floor, units.unitNumber);
+
+  const unitIds = ownerUnits.map((u) => u.id);
+
+  const [paidAgg, paymentList] = unitIds.length > 0
+    ? await Promise.all([
+        db
+          .select({
+            unitId: payments.unitId,
+            periodYear: payments.periodYear,
+            periodMonth: payments.periodMonth,
+            paid: sql<string>`coalesce(sum(${payments.amount}::numeric), 0)`,
+          })
+          .from(payments)
+          .where(and(
+            eq(payments.ownerId, owner.id),
+            eq(payments.tenantId, tenantId),
+            eq(payments.status, "confirmed"),
+          ))
+          .groupBy(payments.unitId, payments.periodYear, payments.periodMonth),
+        db
+          .select({
+            id: payments.id,
+            amount: payments.amount,
+            tariffPerSqm: payments.tariffPerSqm,
+            periodYear: payments.periodYear,
+            periodMonth: payments.periodMonth,
+            paymentMethod: payments.paymentMethod,
+            status: payments.status,
+            referenceNo: payments.referenceNo,
+            notes: payments.notes,
+            paymentDate: payments.paymentDate,
+            unitId: payments.unitId,
+            unitNumber: units.unitNumber,
+            entrance: units.entrance,
+            floor: units.floor,
+          })
+          .from(payments)
+          .innerJoin(units, eq(units.id, payments.unitId))
+          .where(and(
+            eq(payments.ownerId, owner.id),
+            eq(payments.tenantId, tenantId),
+          ))
+          .orderBy(sql`${payments.paymentDate} DESC`),
+      ])
+    : [[], []];
+
+  return {
+    owner,
+    units: ownerUnits,
+    paidByUnit: buildPaidByUnit(paidAgg),
+    payments: paymentList,
+  };
 }
 
 export async function createOwnerWithUnit(tenantId: string, input: {
@@ -33,7 +179,7 @@ export async function createOwnerWithUnit(tenantId: string, input: {
     .from(buildings)
     .where(eq(buildings.tenantId, tenantId))
     .limit(1);
-  if (!building) throw new Error("No building found");
+  if (!building) throw new DomainError("building_not_found", "No building found");
 
   const username = normalizeUsername(input.username);
   assertValidUsername(username);
@@ -94,6 +240,39 @@ export async function createOwnerWithUnit(tenantId: string, input: {
   return owner.owner;
 }
 
+export type ProfilePatch = { fullName?: string; phone?: string | null; username?: string };
+
+/** Mirror fullName/phone (and optionally username) from a user row to its owner row atomically. Shared by owner and settings mutations. */
+export async function syncUserOwnerProfile(
+  tx: Parameters<Parameters<typeof db.transaction>[0]>[0],
+  userId: string,
+  input: ProfilePatch,
+): Promise<void> {
+  const userUpdate: Record<string, unknown> = {};
+  if (input.fullName !== undefined) userUpdate.fullName = input.fullName;
+  if (input.phone !== undefined) userUpdate.phone = input.phone;
+  if (input.username !== undefined) {
+    const u = normalizeUsername(input.username);
+    assertValidUsername(u);
+    userUpdate.username = u;
+  }
+  if (Object.keys(userUpdate).length > 0) {
+    await tx.update(users).set(userUpdate).where(eq(users.id, userId));
+  }
+
+  const [owner] = await tx
+    .select({id: owners.id})
+    .from(owners)
+    .where(and(eq(owners.userId, userId), notInArray(owners.status, ["deleted"])))
+    .limit(1);
+  if (!owner) return;
+
+  const ownerUpdate: Record<string, unknown> = { updatedAt: new Date() };
+  if (input.fullName !== undefined) ownerUpdate.fullName = input.fullName;
+  if (input.phone !== undefined) ownerUpdate.phone = input.phone;
+  await tx.update(owners).set(ownerUpdate).where(eq(owners.id, owner.id));
+}
+
 export async function updateOwnerWithRoles(tenantId: string, id: string, input: {
   fullName?: string;
   phone?: string | null;
@@ -108,22 +287,7 @@ export async function updateOwnerWithRoles(tenantId: string, id: string, input: 
   if (!existingOwner || !existingOwner.userId) return null;
 
   await db.transaction(async (tx) => {
-    const userUpdate: Record<string, unknown> = {};
-    if (input.fullName !== undefined) userUpdate.fullName = input.fullName;
-    if (input.phone !== undefined) userUpdate.phone = input.phone;
-    if (input.username !== undefined) {
-      const u = normalizeUsername(input.username);
-      assertValidUsername(u);
-      userUpdate.username = u;
-    }
-    if (Object.keys(userUpdate).length > 0) {
-      await tx.update(users).set(userUpdate).where(eq(users.id, existingOwner.userId));
-    }
-
-    const ownerUpdate: Record<string, unknown> = { updatedAt: new Date() };
-    if (input.fullName !== undefined) ownerUpdate.fullName = input.fullName;
-    if (input.phone !== undefined) ownerUpdate.phone = input.phone;
-    await tx.update(owners).set(ownerUpdate).where(eq(owners.id, existingOwner.id));
+    await syncUserOwnerProfile(tx, existingOwner.userId, input);
 
     if (input.roles !== undefined) {
       await tx.delete(userRoles).where(eq(userRoles.userId, existingOwner.userId));
@@ -183,7 +347,7 @@ export async function assignUnitToOwner(
     .from(owners)
     .where(and(eq(owners.id, ownerId), eq(owners.tenantId, tenantId)))
     .limit(1);
-  if (!owner) throw new Error("Owner not found");
+  if (!owner) throw new DomainError("owner_not_found", "Owner not found");
 
   await db.transaction(async (tx) => {
     const [unit] = await tx
@@ -191,7 +355,7 @@ export async function assignUnitToOwner(
       .from(units)
       .where(and(eq(units.id, unitId), eq(units.tenantId, tenantId), eq(units.status, "active")))
       .limit(1);
-    if (!unit) throw new Error("Unit not found");
+    if (!unit) throw new DomainError("unit_not_found", "Unit not found");
 
     const [existing] = await tx
       .select({ id: ownerships.id })
@@ -202,14 +366,14 @@ export async function assignUnitToOwner(
         eq(ownerships.tenantId, tenantId),
       ))
       .limit(1);
-    if (existing) throw new Error("Квартира уже привязана к этому собственнику");
+    if (existing) throw new DomainError("unit_already_assigned", "Квартира уже привязана к этому собственнику");
 
     const [unitAssigned] = await tx
       .select({ id: ownerships.id })
       .from(ownerships)
       .where(and(eq(ownerships.unitId, unitId), eq(ownerships.tenantId, tenantId)))
       .limit(1);
-    if (unitAssigned) throw new Error("Квартира уже привязана к другому собственнику");
+    if (unitAssigned) throw new DomainError("unit_assigned_elsewhere", "Квартира уже привязана к другому собственнику");
 
     const [created] = await tx.insert(ownerships).values({
       tenantId,
@@ -251,14 +415,14 @@ export async function createAndAssignUnitToOwner(
     .from(owners)
     .where(and(eq(owners.id, ownerId), eq(owners.tenantId, tenantId)))
     .limit(1);
-  if (!owner) throw new Error("Owner not found");
+  if (!owner) throw new DomainError("owner_not_found", "Owner not found");
 
   const [building] = await db
     .select()
     .from(buildings)
     .where(eq(buildings.tenantId, tenantId))
     .limit(1);
-  if (!building) throw new Error("No building found");
+  if (!building) throw new DomainError("building_not_found", "No building found");
 
   const result = await db.transaction(async (tx) => {
     const [unit] = await tx.insert(units).values({
@@ -336,7 +500,7 @@ export async function removeUnitFromOwner(
       eq(ownerships.tenantId, tenantId),
     ))
     .limit(1);
-  if (!link) throw new Error("Связь не найдена");
+  if (!link) throw new DomainError("ownership_not_found", "Связь не найдена");
 
   await db
     .delete(ownerships)
@@ -364,9 +528,9 @@ export async function updateOwnerPassword(tenantId: string, id: string, newPassw
     .from(owners)
     .where(and(eq(owners.id, id), eq(owners.tenantId, tenantId)))
     .limit(1);
-  if (!owner || !owner.userId) throw new Error("Owner not found");
+  if (!owner || !owner.userId) throw new DomainError("owner_not_found", "Owner not found");
 
-  if (newPassword.length < 12) throw new Error("Password must be at least 12 characters");
+  if (newPassword.length < 12) throw new DomainError("weak_password", "Password must be at least 12 characters");
 
   const passwordHash = await hashPassword(newPassword);
 

@@ -4,6 +4,8 @@ import {units} from "@/core/db/schema/units";
 import {owners, ownerships} from "@/core/db/schema/owners";
 import {charges} from "@/core/db/schema/charges";
 import {and, desc, eq, inArray, sql} from "drizzle-orm";
+import {moneyToCents, sumMoneyCents} from "./money";
+
 import {writeAuditLog} from "@/core/audit/audit.service";
 import {AppError} from "@/core/errors/app-error";
 
@@ -29,22 +31,6 @@ type RegisterPaymentInput = {
 };
 
 type ChargeStatus = "pending" | "paid" | "partially_paid" | "overdue" | "cancelled";
-type MoneyRow = { amount: string };
-
-function moneyToCents(amount: string | number): number {
-  const cents = Math.round(Number(amount) * 100);
-  if (!Number.isFinite(cents)) throw new Error("Invalid monetary amount");
-  return cents;
-}
-
-function sumMoneyCents(rows: ReadonlyArray<MoneyRow>): number {
-  let total = 0;
-  for (const row of rows) {
-    total += moneyToCents(row.amount);
-  }
-  return total;
-}
-
 export function deriveChargeStatus(chargeAmount: string, confirmedPaymentTotalCents: number): ChargeStatus {
   if (confirmedPaymentTotalCents <= 0) return "pending";
   if (confirmedPaymentTotalCents >= moneyToCents(chargeAmount)) return "paid";

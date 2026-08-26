@@ -2,6 +2,7 @@ import {and, desc, eq, ne} from "drizzle-orm";
 import {db} from "@/core/db";
 import {commandants} from "@/core/db/schema/commandants";
 import {writeAuditLog} from "@/core/audit/audit.service";
+import {DomainError} from "@/core/errors/app-error";
 
 export type CommandantInput = {
   ownerId?: string | null;
@@ -90,7 +91,7 @@ export async function updateCommandant(
     .from(commandants)
     .where(and(eq(commandants.id, id), eq(commandants.tenantId, tenantId)))
     .limit(1);
-  if (!existing) throw new Error("Комендант не найден");
+  if (!existing) throw new DomainError("commandant_not_found", "Комендант не найден");
 
   const updated = await db.transaction(async (tx) => {
     if (input.isActive) {

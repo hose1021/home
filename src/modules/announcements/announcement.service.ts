@@ -2,6 +2,7 @@ import {db} from "@/core/db";
 import {announcements} from "@/core/db/schema/announcements";
 import {and, desc, eq, ne} from "drizzle-orm";
 import {writeAuditLog} from "@/core/audit/audit.service";
+import {DomainError} from "@/core/errors/app-error";
 
 type CreateInput = {
   title: string;
@@ -95,7 +96,7 @@ export async function updateAnnouncement(tenantId: string, id: string, userId: s
     .where(and(eq(announcements.id, id), eq(announcements.tenantId, tenantId)))
     .returning();
 
-  if (!a) throw new Error("Announcement not found");
+  if (!a) throw new DomainError("announcement_not_found", "Announcement not found");
 
   await writeAuditLog({
     tenantId, userId,
@@ -109,9 +110,9 @@ export async function updateAnnouncement(tenantId: string, id: string, userId: s
 }
 
 function validateAnnouncement(input: UpdateInput): void {
-  if (input.title !== undefined && !input.title.trim()) throw new Error("Title is required");
-  if (input.content !== undefined && !input.content.trim()) throw new Error("Content is required");
-  if (input.title !== undefined && input.title.length > 500) throw new Error("Title is too long");
+  if (input.title !== undefined && !input.title.trim()) throw new DomainError("title_required", "Title is required");
+  if (input.content !== undefined && !input.content.trim()) throw new DomainError("content_required", "Content is required");
+  if (input.title !== undefined && input.title.length > 500) throw new DomainError("title_too_long", "Title is too long");
 }
 
 export async function deleteAnnouncement(tenantId: string, id: string, userId: string) {

@@ -33,6 +33,17 @@ export class TenantMismatchError extends AppError {
   }
 }
 
+export class DomainError extends AppError {
+  constructor(
+    code: string,
+    message: string,
+    statusCode: number = 400,
+  ) {
+    super(message, statusCode, code);
+    this.name = "DomainError";
+  }
+}
+
 export class ValidationError extends AppError {
   constructor(errors: Record<string, string[]>) {
     super("Validation failed", 422, "VALIDATION_ERROR");

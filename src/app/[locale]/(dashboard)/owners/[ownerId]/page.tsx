@@ -1,12 +1,6 @@
 import {Link} from "@/i18n/navigation";
 import {notFound} from "next/navigation";
-import {and, eq, sql} from "drizzle-orm";
-import {db} from "@/core/db";
-import {buildings} from "@/core/db/schema/buildings";
-import {owners, ownerships} from "@/core/db/schema/owners";
-import {units} from "@/core/db/schema/units";
-import {payments} from "@/core/db/schema/payments";
-import {users} from "@/core/db/schema/users";
+import {getOwnerDetail} from "@/modules/owner/owner.service";
 import {requireTenantPermission} from "@/core/auth/session";
 import {getPermissionsForRoles, hasStaffRole, type Permission} from "@/core/auth/permissions";
 import {type MonthPayment, MonthRow} from "./month-row";
@@ -41,94 +35,15 @@ export default async function OwnerDetailsPage({
   const permissions: Permission[] = getPermissionsForRoles(session.user.roles);
   const canPay = permissions.includes("payment:write");
 
-  const [owner] = await db
-    .select({
-      id: owners.id,
-      userId: owners.userId,
-      fullName: users.fullName,
-      phone: users.phone,
-      username: users.username,
-      status: owners.status,
-    })
-    .from(owners)
-    .innerJoin(users, eq(users.id, owners.userId))
-    .where(and(eq(owners.id, ownerId), eq(owners.tenantId, tenantId)))
-    .limit(1);
-
-  if (!owner) notFound();
+  const detail = await getOwnerDetail(tenantId, ownerId);
+  if (!detail) notFound();
+  const {owner, ownerUnits, paymentList} = {
+    owner: detail.owner,
+    ownerUnits: detail.units,
+    paymentList: detail.payments,
+  };
   const restrictToCurrentOwner = !hasStaffRole(session.user.roles);
   if (restrictToCurrentOwner && owner.userId !== session.user.id) notFound();
-
-  const ownerUnits = await db
-    .select({
-      id: units.id,
-      unitNumber: units.unitNumber,
-      area: units.area,
-      entrance: units.entrance,
-      floor: units.floor,
-      type: units.type,
-      buildingName: buildings.name,
-    })
-    .from(ownerships)
-    .innerJoin(units, eq(units.id, ownerships.unitId))
-    .innerJoin(buildings, eq(buildings.id, units.buildingId))
-    .where(and(
-      eq(ownerships.ownerId, owner.id),
-      eq(ownerships.tenantId, tenantId),
-    ))
-    .orderBy(units.entrance, units.floor, units.unitNumber);
-
-  const unitIds = ownerUnits.map((u) => u.id);
-
-  const [paymentAgg, paymentList] = unitIds.length > 0
-    ? await Promise.all([
-        db
-          .select({
-            unitId: payments.unitId,
-            periodYear: payments.periodYear,
-            periodMonth: payments.periodMonth,
-            paid: sql<string>`coalesce(sum(${payments.amount}::numeric), 0)`,
-          })
-          .from(payments)
-          .where(and(
-            eq(payments.ownerId, owner.id),
-            eq(payments.tenantId, tenantId),
-            eq(payments.status, "confirmed"),
-          ))
-          .groupBy(payments.unitId, payments.periodYear, payments.periodMonth),
-        db
-          .select({
-            id: payments.id,
-            amount: payments.amount,
-            tariffPerSqm: payments.tariffPerSqm,
-            periodYear: payments.periodYear,
-            periodMonth: payments.periodMonth,
-            paymentMethod: payments.paymentMethod,
-            status: payments.status,
-            referenceNo: payments.referenceNo,
-            notes: payments.notes,
-            paymentDate: payments.paymentDate,
-            unitId: payments.unitId,
-            unitNumber: units.unitNumber,
-            entrance: units.entrance,
-            floor: units.floor,
-          })
-          .from(payments)
-          .innerJoin(units, eq(units.id, payments.unitId))
-          .where(and(
-            eq(payments.ownerId, owner.id),
-            eq(payments.tenantId, tenantId),
-          ))
-          .orderBy(sql`${payments.paymentDate} DESC`),
-      ])
-    : [[], []];
-
-  const paymentsByUnit = new Map<string, Map<string, number>>();
-  for (const p of paymentAgg) {
-    const inner = paymentsByUnit.get(p.unitId) ?? new Map<string, number>();
-    inner.set(`${p.periodYear}-${p.periodMonth}`, Number(p.paid));
-    paymentsByUnit.set(p.unitId, inner);
-  }
 
   const paymentByUnitPeriod = new Map<string, MonthPayment>();
   for (const p of paymentList) {
@@ -143,7 +58,7 @@ export default async function OwnerDetailsPage({
 
   const cfg = getDebtConfig();
   const periods = buildPeriods(cfg.billingStart);
-  const getPaid = (unitId: string, p: BillingPeriod) => paymentsByUnit.get(unitId)?.get(`${p.year}-${p.month}`) ?? 0;
+  const getPaid = (unitId: string, p: BillingPeriod) => detail.paidByUnit.get(unitId)?.get(`${p.year}-${p.month}`) ?? 0;
 
   const grandDebt = ownerUnits.reduce(
     (sum, unit) => sum + unitDebt(Number(unit.area) * cfg.tariffPerSqm, periods, (p) => getPaid(unit.id, p)),
@@ -242,7 +157,7 @@ export default async function OwnerDetailsPage({
                       </div>
                       <div className="divide-y divide-border/70">
                         {yearPeriods.map(({ year, month }) => {
-                          const paid = paymentsByUnit.get(unit.id)?.get(`${year}-${month}`) ?? 0;
+                          const paid = detail.paidByUnit.get(unit.id)?.get(`${year}-${month}`) ?? 0;
                           const isPaid = paid >= monthlyFee;
                           const payment = paymentByUnitPeriod.get(`${unit.id}-${year}-${month}`) ?? null;
                           return (
