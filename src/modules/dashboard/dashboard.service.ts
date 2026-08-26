@@ -1,4 +1,4 @@
-import {and, desc, eq, inArray, sql} from "drizzle-orm";
+import {and, desc, eq, sql} from "drizzle-orm";
 import {db} from "@/core/db";
 import {charges} from "@/core/db/schema/charges";
 import {owners, ownerships} from "@/core/db/schema/owners";
@@ -6,12 +6,13 @@ import {payments} from "@/core/db/schema/payments";
 import {tickets} from "@/core/db/schema/tickets";
 import {units} from "@/core/db/schema/units";
 import {userRoles, users} from "@/core/db/schema/users";
+import {getActiveCommandant} from "@/modules/commandants/commandant.service";
+import type {CommandantInfo} from "@/app/[locale]/(dashboard)/commandant-card";
 
 export type BoardMember = {
     userId: string;
     ownerId: string | null;
     fullName: string;
-    role: "management_member" | "commandant";
     entrances: string;
 };
 
@@ -36,20 +37,16 @@ export type DashboardData = {
     recentPayments: RecentPayment[];
     recentCharges: RecentCharge[];
     boardMembers: BoardMember[];
+    commandant: CommandantInfo | null;
 };
 
-/** Dedupe users (commandant-role row wins) and rank commandant first. Pure, no DB. */
+/** Dedupe board members — one row per user, first row wins. Pure, no DB. */
 export function rankBoardMembers(rows: BoardMember[]): BoardMember[] {
-    const boardMap = new Map<string, BoardMember>();
+    const seen = new Map<string, BoardMember>();
     for (const row of rows) {
-        const existing = boardMap.get(row.userId);
-        if (!existing || row.role === "commandant") {
-            boardMap.set(row.userId, row);
-        }
+        if (!seen.has(row.userId)) seen.set(row.userId, row);
     }
-    return [...boardMap.values()].sort((a, b) =>
-        (b.role === "commandant" ? 1 : 0) - (a.role === "commandant" ? 1 : 0),
-    );
+    return [...seen.values()];
 }
 
 export async function getDashboardData(tenantId: string): Promise<DashboardData> {
@@ -123,7 +120,7 @@ export async function getDashboardData(tenantId: string): Promise<DashboardData>
         .where(and(
             eq(users.tenantId, tenantId),
             eq(users.isActive, true),
-            inArray(userRoles.role, ["management_member", "commandant"]),
+            eq(userRoles.role, "management_member"),
         ))
         .groupBy(users.id, owners.id, userRoles.role)
         .orderBy(users.fullName)) as unknown as BoardMember[];
@@ -135,5 +132,6 @@ export async function getDashboardData(tenantId: string): Promise<DashboardData>
         recentPayments,
         recentCharges,
         boardMembers: rankBoardMembers(boardRows),
+        commandant: await getActiveCommandant(tenantId),
     };
 }

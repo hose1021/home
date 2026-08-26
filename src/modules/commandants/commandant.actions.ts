@@ -5,6 +5,8 @@ import {z} from "zod";
 import {requireTenantPermission} from "@/core/auth/session";
 import {uuidSchema} from "@/core/validation/action-schemas";
 import {createCommandant, updateCommandant} from "./commandant.service";
+import {translateDomainError} from "@/core/errors/app-error";
+import {getTranslations} from "next-intl/server";
 
 const dateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Invalid date");
 
@@ -20,19 +22,29 @@ const commandantSchema = z.object({
 });
 
 export async function createCommandantAction(input: z.infer<typeof commandantSchema>) {
+  const t = await getTranslations("commandants.errors");
   const validated = commandantSchema.parse(input);
   const { session, tenantId } = await requireTenantPermission("settings:write");
-  await createCommandant(tenantId, validated, session.user.id);
+  try {
+    await createCommandant(tenantId, validated, session.user.id);
+  } catch (err) {
+    translateDomainError(err, t);
+  }
   revalidatePath("/commandants");
   revalidatePath("/");
   return { success: true };
 }
 
 export async function updateCommandantAction(id: string, input: z.infer<typeof commandantSchema>) {
+  const t = await getTranslations("commandants.errors");
   id = uuidSchema.parse(id);
   const validated = commandantSchema.parse(input);
   const { session, tenantId } = await requireTenantPermission("settings:write");
-  await updateCommandant(tenantId, id, validated, session.user.id);
+  try {
+    await updateCommandant(tenantId, id, validated, session.user.id);
+  } catch (err) {
+    translateDomainError(err, t);
+  }
   revalidatePath("/commandants");
   revalidatePath("/");
   return { success: true };

@@ -5,7 +5,6 @@ import {getTenantDebtSummary} from "@/modules/finance/services/debt.service";
 import {getDashboardData} from "@/modules/dashboard/dashboard.service";
 import {Badge} from "@/components/ui/badge";
 import {hasAnyPermission, hasStaffRole} from "@/core/auth/permissions";
-import {getActiveCommandant} from "@/modules/commandants/commandant.service";
 import {CommandantCard} from "./commandant-card";
 import {getTranslations} from "next-intl/server";
 import {Link as IntlLink} from "@/i18n/navigation";
@@ -36,11 +35,9 @@ export default async function DashboardPage() {
         recentPayments,
         recentCharges,
         boardMembers,
+        commandant,
     } = await getDashboardData(tenantId);
     const {totalDebt} = await getTenantDebtSummary(tenantId);
-
-    // Комендант — отдельная сущность, не обязательно собственник
-    const commandant = await getActiveCommandant(tenantId);
 
     const now = new Date();
     const dateStr = now.toLocaleDateString("ru", {day: "numeric", month: "long", year: "numeric"});
@@ -93,11 +90,7 @@ export default async function DashboardPage() {
                             {boardMembers.map((member) => (
                                 <li
                                     key={member.userId}
-                                    className={
-                                        member.role === "commandant"
-                                            ? "my-2 flex items-center justify-between gap-4 rounded-lg bg-muted/70 px-3 py-3 text-sm"
-                                            : "flex items-center justify-between gap-4 px-3 py-3 text-sm"
-                                    }
+                                    className="flex items-center justify-between gap-4 px-3 py-3 text-sm"
                                 >
                                     <div className="flex min-w-0 items-center gap-3">
                                         <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-muted text-xs font-semibold text-foreground">{getInitials(member.fullName)}</span>
@@ -110,14 +103,8 @@ export default async function DashboardPage() {
                                             {member.entrances && <p className="mt-0.5 text-xs text-muted-foreground">{t("dashboard.block")} {member.entrances}</p>}
                                         </div>
                                     </div>
-                                    <Badge
-                                        className={
-                                            member.role === "commandant"
-                                                ? "border-0 bg-background text-foreground"
-                                                : "border-0 bg-muted text-muted-foreground"
-                                        }
-                                    >
-                                        {member.role === "commandant" ? t("dashboard.chairman") : t("dashboard.boardMember")}
+                                    <Badge className="border-0 bg-muted text-muted-foreground">
+                                        {t("dashboard.boardMember")}
                                     </Badge>
                                 </li>
                             ))}

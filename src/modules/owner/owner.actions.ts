@@ -5,6 +5,8 @@ import {requireTenantPermission} from "@/core/auth/session";
 import {assignUnitToOwner, createAndAssignUnitToOwner, createOwnerWithUnit, deleteOwner, getUnassignedUnits, removeUnitFromOwner, updateOwnerPassword, updateOwnerWithRoles} from "./owner.service";
 import type {Role} from "@/core/auth/permissions";
 import {ownerCreateSchema, ownerUpdateSchema, unitInputSchema, uuidSchema} from "@/core/validation/action-schemas";
+import {translateDomainError} from "@/core/errors/app-error";
+import {getTranslations} from "next-intl/server";
 import {z} from "zod";
 
 export async function createOwnerAction(input: {
@@ -18,9 +20,14 @@ export async function createOwnerAction(input: {
   type: "residential" | "commercial" | "parking" | "storage" | "other";
   area: string;
 }) {
+  const t = await getTranslations("owner.errors");
   const validated = ownerCreateSchema.parse(input);
   const { session, tenantId } = await requireTenantPermission("owner:write");
-  await createOwnerWithUnit(tenantId, validated, session.user.id);
+  try {
+    await createOwnerWithUnit(tenantId, validated, session.user.id);
+  } catch (err) {
+    translateDomainError(err, t);
+  }
   revalidatePath("/owners");
   return { success: true };
 }
@@ -31,35 +38,55 @@ export async function updateOwnerAction(id: string, input: {
   username?: string;
   roles?: Role[];
 }) {
+  const t = await getTranslations("owner.errors");
   id = uuidSchema.parse(id);
   input = ownerUpdateSchema.parse(input);
   const { session, tenantId } = await requireTenantPermission("owner:write");
-  await updateOwnerWithRoles(tenantId, id, input, session.user.id);
+  try {
+    await updateOwnerWithRoles(tenantId, id, input, session.user.id);
+  } catch (err) {
+    translateDomainError(err, t);
+  }
   revalidatePath("/owners");
   return { success: true };
 }
 
 export async function deleteOwnerAction(id: string) {
+  const t = await getTranslations("owner.errors");
   id = uuidSchema.parse(id);
   const { session, tenantId } = await requireTenantPermission("owner:write");
-  await deleteOwner(tenantId, id, session.user.id);
+  try {
+    await deleteOwner(tenantId, id, session.user.id);
+  } catch (err) {
+    translateDomainError(err, t);
+  }
   revalidatePath("/owners");
   return { success: true };
 }
 
 export async function updateOwnerPasswordAction(id: string, newPassword: string) {
+  const t = await getTranslations("owner.errors");
   id = uuidSchema.parse(id);
   newPassword = z.string().min(12).max(128).parse(newPassword);
   const { session, tenantId } = await requireTenantPermission("user:manage");
-  await updateOwnerPassword(tenantId, id, newPassword, session.user.id);
+  try {
+    await updateOwnerPassword(tenantId, id, newPassword, session.user.id);
+  } catch (err) {
+    translateDomainError(err, t);
+  }
   return { success: true };
 }
 
 export async function assignExistingUnitAction(ownerId: string, unitId: string) {
+  const t = await getTranslations("owner.errors");
   ownerId = uuidSchema.parse(ownerId);
   unitId = uuidSchema.parse(unitId);
   const { session, tenantId } = await requireTenantPermission("owner:write");
-  await assignUnitToOwner(tenantId, ownerId, unitId, session.user.id);
+  try {
+    await assignUnitToOwner(tenantId, ownerId, unitId, session.user.id);
+  } catch (err) {
+    translateDomainError(err, t);
+  }
   revalidatePath("/owners");
   return { success: true };
 }
@@ -71,10 +98,15 @@ export async function addNewUnitToOwnerAction(ownerId: string, input: {
   type: "residential" | "commercial" | "parking" | "storage" | "other";
   area: string;
 }) {
+  const t = await getTranslations("owner.errors");
   ownerId = uuidSchema.parse(ownerId);
   input = unitInputSchema.parse(input);
   const { session, tenantId } = await requireTenantPermission("owner:write");
-  await createAndAssignUnitToOwner(tenantId, ownerId, input, session.user.id);
+  try {
+    await createAndAssignUnitToOwner(tenantId, ownerId, input, session.user.id);
+  } catch (err) {
+    translateDomainError(err, t);
+  }
   revalidatePath("/owners");
   return { success: true };
 }
@@ -86,10 +118,15 @@ export async function listUnassignedUnitsAction(ownerId: string) {
 }
 
 export async function removeUnitFromOwnerAction(ownerId: string, unitId: string) {
+  const t = await getTranslations("owner.errors");
   ownerId = uuidSchema.parse(ownerId);
   unitId = uuidSchema.parse(unitId);
   const { session, tenantId } = await requireTenantPermission("owner:write");
-  await removeUnitFromOwner(tenantId, ownerId, unitId, session.user.id);
+  try {
+    await removeUnitFromOwner(tenantId, ownerId, unitId, session.user.id);
+  } catch (err) {
+    translateDomainError(err, t);
+  }
   revalidatePath("/owners");
   return { success: true };
 }

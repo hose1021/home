@@ -4,6 +4,8 @@ import {revalidatePath} from "next/cache";
 import {requireTenantPermission} from "@/core/auth/session";
 import {createAnnouncement, deleteAnnouncement, updateAnnouncement} from "./announcement.service";
 import {uuidSchema} from "@/core/validation/action-schemas";
+import {translateDomainError} from "@/core/errors/app-error";
+import {getTranslations} from "next-intl/server";
 import {z} from "zod";
 
 const announcementInputSchema = z.object({
@@ -21,9 +23,14 @@ export async function createAnnouncementAction(input: {
   isPinned?: boolean;
   isDashboard?: boolean;
 }) {
+  const t = await getTranslations("announcements.errors");
   input = announcementInputSchema.parse(input);
   const { session, tenantId } = await requireTenantPermission("announcement:write");
-  await createAnnouncement(tenantId, session.user.id, input);
+  try {
+    await createAnnouncement(tenantId, session.user.id, input);
+  } catch (err) {
+    translateDomainError(err, t);
+  }
   revalidatePath("/announcements");
   revalidatePath("/");
   return { success: true };
@@ -37,19 +44,29 @@ export async function updateAnnouncementAction(id: string, input: {
   isDashboard?: boolean;
   status?: "active" | "archived";
 }) {
+  const t = await getTranslations("announcements.errors");
   id = uuidSchema.parse(id);
   input = announcementInputSchema.partial().extend({ status: z.enum(["active", "archived"]).optional() }).parse(input);
   const { session, tenantId } = await requireTenantPermission("announcement:write");
-  await updateAnnouncement(tenantId, id, session.user.id, input);
+  try {
+    await updateAnnouncement(tenantId, id, session.user.id, input);
+  } catch (err) {
+    translateDomainError(err, t);
+  }
   revalidatePath("/announcements");
   revalidatePath("/");
   return { success: true };
 }
 
 export async function deleteAnnouncementAction(id: string) {
+  const t = await getTranslations("announcements.errors");
   id = uuidSchema.parse(id);
   const { session, tenantId } = await requireTenantPermission("announcement:write");
-  await deleteAnnouncement(tenantId, id, session.user.id);
+  try {
+    await deleteAnnouncement(tenantId, id, session.user.id);
+  } catch (err) {
+    translateDomainError(err, t);
+  }
   revalidatePath("/announcements");
   return { success: true };
 }

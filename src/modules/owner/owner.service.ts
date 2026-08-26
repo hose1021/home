@@ -9,6 +9,7 @@ import {assertValidUsername, hashPassword, normalizeUsername} from "@/core/auth/
 import type {Role} from "@/core/auth/permissions";
 import {writeAuditLog} from "@/core/audit/audit.service";
 import {DomainError} from "@/core/errors/app-error";
+import {buildPeriods, getDebtConfig, unitDebt, type BillingPeriod} from "@/modules/finance/services/debt.service";
 
 export async function getOwnerById(tenantId: string, id: string) {
   const [o] = await db
@@ -54,7 +55,14 @@ export type OwnerDetail = {
     floor: number;
     type: string;
     buildingName: string;
+    monthlyFee: number;
+    totalDebt: number;
   }[];
+  grandDebt: number;
+  totalArea: number;
+  totalMonthlyFee: number;
+  tariffPerSqm: number;
+  periods: BillingPeriod[];
   paidByUnit: Map<string, Map<string, number>>;
   payments: {
     id: string;
@@ -155,10 +163,34 @@ export async function getOwnerDetail(tenantId: string, ownerId: string): Promise
       ])
     : [[], []];
 
+  const cfg = getDebtConfig();
+  const periods = buildPeriods(cfg.billingStart);
+  const paidMap = buildPaidByUnit(paidAgg);
+  const paidFor = (unitId: string, p: BillingPeriod) =>
+    paidMap.get(unitId)?.get(`${p.year}-${p.month}`) ?? 0;
+
+  let grandDebt = 0;
+  let totalArea = 0;
+  for (const u of ownerUnits) {
+    const area = Number(u.area);
+    totalArea += area;
+    grandDebt += unitDebt(area * cfg.tariffPerSqm, periods, (p) => paidFor(u.id, p));
+  }
+  const unitsWithMoney = ownerUnits.map((u) => {
+    const area = Number(u.area);
+    const monthlyFee = area * cfg.tariffPerSqm;
+    return {...u, monthlyFee, totalDebt: unitDebt(monthlyFee, periods, (p) => paidFor(u.id, p))};
+  });
+
   return {
     owner,
-    units: ownerUnits,
-    paidByUnit: buildPaidByUnit(paidAgg),
+    units: unitsWithMoney,
+    grandDebt,
+    totalArea,
+    totalMonthlyFee: totalArea * cfg.tariffPerSqm,
+    tariffPerSqm: cfg.tariffPerSqm,
+    periods,
+    paidByUnit: paidMap,
     payments: paymentList,
   };
 }

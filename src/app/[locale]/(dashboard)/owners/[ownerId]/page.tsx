@@ -20,7 +20,6 @@ import {Badge} from "@/components/ui/badge";
 import {Card, CardContent} from "@/components/ui/card";
 import {IconBuilding, IconCash, IconHome, IconRulerMeasure} from "@tabler/icons-react";
 import {getTranslations} from "next-intl/server";
-import {buildPeriods, getDebtConfig, unitDebt, type BillingPeriod} from "@/modules/finance/services/debt.service";
 
 
 export default async function OwnerDetailsPage({
@@ -56,16 +55,6 @@ export default async function OwnerDetailsPage({
     });
   }
 
-  const cfg = getDebtConfig();
-  const periods = buildPeriods(cfg.billingStart);
-  const getPaid = (unitId: string, p: BillingPeriod) => detail.paidByUnit.get(unitId)?.get(`${p.year}-${p.month}`) ?? 0;
-
-  const grandDebt = ownerUnits.reduce(
-    (sum, unit) => sum + unitDebt(Number(unit.area) * cfg.tariffPerSqm, periods, (p) => getPaid(unit.id, p)),
-    0,
-  );
-  const totalArea = ownerUnits.reduce((sum, unit) => sum + Number(unit.area), 0);
-  const totalMonthlyFee = totalArea * cfg.tariffPerSqm;
   const initials = owner.fullName.split(" ").filter(Boolean).slice(0, 2).map((part) => part[0]).join("").toUpperCase();
 
   return (
@@ -98,18 +87,18 @@ export default async function OwnerDetailsPage({
           </div>
         </div>
         <div className="flex items-center gap-3 rounded-lg border bg-muted/30 px-4 py-3 sm:text-right">
-          <IconCash className={grandDebt > 0 ? "size-5 text-destructive" : "size-5 text-emerald-600"} />
+          <IconCash className={detail.grandDebt > 0 ? "size-5 text-destructive" : "size-5 text-emerald-600"} />
           <div>
             <p className="text-xs text-muted-foreground">{t("totalDebt")}</p>
-            <p className={`text-xl font-semibold tabular-nums ${grandDebt > 0 ? "text-destructive" : "text-emerald-600"}`}>{grandDebt.toFixed(2)} ₼</p>
+            <p className={`text-xl font-semibold tabular-nums ${detail.grandDebt > 0 ? "text-destructive" : "text-emerald-600"}`}>{detail.grandDebt.toFixed(2)} ₼</p>
           </div>
         </div>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-3">
-        <OwnerMetric icon={IconHome} label={t("units")} value={String(ownerUnits.length)} />
-        <OwnerMetric icon={IconRulerMeasure} label={t("totalArea")} value={`${totalArea.toFixed(1)} м²`} />
-        <OwnerMetric icon={IconBuilding} label={t("monthlyTariff")} value={`${totalMonthlyFee.toFixed(2)} ₼`} />
+        <OwnerMetric icon={IconHome} label={t("units")} value={String(detail.units.length)} />
+        <OwnerMetric icon={IconRulerMeasure} label={t("totalArea")} value={`${detail.totalArea.toFixed(1)} м²`} />
+        <OwnerMetric icon={IconBuilding} label={t("monthlyTariff")} value={`${detail.totalMonthlyFee.toFixed(2)} ₼`} />
       </div>
 
       <OwnerUnitsSection ownerId={ownerId} units={ownerUnits} canManage={canPay}>
@@ -117,11 +106,11 @@ export default async function OwnerDetailsPage({
         <div className="space-y-4">
           {ownerUnits.map((unit) => {
             const area = Number(unit.area);
-            const monthlyFee = area * cfg.tariffPerSqm;
-            const totalDebt = unitDebt(monthlyFee, periods, (p) => getPaid(unit.id, p));
+            const monthlyFee = unit.monthlyFee;
+            const totalDebt = unit.totalDebt;
 
             const periodsByYear = new Map<number, { year: number; month: number }[]>();
-            for (const p of periods) {
+            for (const p of detail.periods) {
               const arr = periodsByYear.get(p.year) ?? [];
               arr.push(p);
               periodsByYear.set(p.year, arr);
@@ -137,7 +126,7 @@ export default async function OwnerDetailsPage({
                         {t("blockFloor", {entrance: unit.entrance, floor: unit.floor})}, {area.toFixed(1)} м²
                       </p>
                       <p className="mt-1 text-xs text-muted-foreground">
-                        {t("feeFormula", {area: area.toFixed(1), tariff: cfg.tariffPerSqm.toFixed(2), fee: monthlyFee.toFixed(2)})}
+                        {t("feeFormula", {area: area.toFixed(1), tariff: detail.tariffPerSqm.toFixed(2), fee: monthlyFee.toFixed(2)})}
                       </p>
                     </div>
                     <div className="text-right">
@@ -170,7 +159,7 @@ export default async function OwnerDetailsPage({
                               entrance={unit.entrance}
                               floor={unit.floor}
                               monthlyFee={monthlyFee}
-                              tariff={cfg.tariffPerSqm}
+                              tariff={detail.tariffPerSqm}
                               year={year}
                               month={month}
                               isPaid={isPaid}

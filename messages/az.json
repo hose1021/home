@@ -396,6 +396,12 @@
       "medium": "Vacib",
       "high": "Təcili",
       "urgent": "Kritik"
+    },
+    "errors": {
+      "announcement_not_found": "Elan tapılmadı",
+      "title_required": "Başlıq tələb olunur",
+      "content_required": "Mətn tələb olunur",
+      "title_too_long": "Başlıq çox uzundur"
     }
   },
   "tenant": {
@@ -527,5 +533,27 @@
     "amountLabel": "Məbləğ (₼)",
     "referenceOptional": "Referens № (məcburi deyil)",
     "referencePlaceholder": "Çek / əməliyyat №"
+  },
+  "owner": {
+    "errors": {
+      "building_not_found": "Bina tapılmadı",
+      "owner_not_found": "Sahib tapılmadı",
+      "unit_not_found": "Mənzil tapılmadı",
+      "unit_already_assigned": "Mənzil artıq bu sahibə bağlanıb",
+      "unit_assigned_elsewhere": "Mənzil artıq başqa sahibə bağlanıb",
+      "ownership_not_found": "Əlaqə tapılmadı",
+      "weak_password": "Şifrə ən azı 12 simvol olmalıdır"
+    }
+  },
+  "commandants": {
+    "errors": {
+      "commandant_not_found": "Komendant tapılmadı"
+    }
+  },
+  "settings": {
+    "errors": {
+      "user_not_found": "İstifadəçi tapılmadı",
+      "wrong_current_password": "Cari şifrə səhvdir"
+    }
   }
 }

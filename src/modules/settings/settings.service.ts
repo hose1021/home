@@ -25,7 +25,7 @@ export async function updateProfile(userId: string, input: ProfilePatch) {
 /** Change own password: verify current, hash new, drop every other session. `keepToken` survives (the caller's session). */
 export async function changeOwnPassword(userId: string, currentPassword: string, newPassword: string, keepToken?: string) {
   const [user] = await db
-    .select({passwordHash: users.passwordHash})
+    .select({passwordHash: users.passwordHash, tenantId: users.tenantId})
     .from(users)
     .where(eq(users.id, userId))
     .limit(1);
@@ -40,6 +40,15 @@ export async function changeOwnPassword(userId: string, currentPassword: string,
     .where(eq(users.id, userId));
 
   await deleteOtherUserSessions(userId, keepToken);
+
+  await writeAuditLog({
+    tenantId: user.tenantId,
+    userId,
+    action: "update",
+    entityType: "user",
+    entityId: userId,
+    newValues: {passwordChanged: true},
+  });
   return { success: true };
 }
 

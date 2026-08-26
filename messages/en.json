@@ -396,6 +396,12 @@
       "medium": "Important",
       "high": "Urgent",
       "urgent": "Critical"
+    },
+    "errors": {
+      "announcement_not_found": "Announcement not found",
+      "title_required": "Title is required",
+      "content_required": "Content is required",
+      "title_too_long": "Title is too long"
     }
   },
   "tenant": {
@@ -527,5 +533,27 @@
     "amountLabel": "Amount (AZN)",
     "referenceOptional": "Reference no. (optional)",
     "referencePlaceholder": "Receipt / transaction no."
+  },
+  "owner": {
+    "errors": {
+      "building_not_found": "Building not found",
+      "owner_not_found": "Owner not found",
+      "unit_not_found": "Unit not found",
+      "unit_already_assigned": "Unit is already assigned to this owner",
+      "unit_assigned_elsewhere": "Unit is already assigned to another owner",
+      "ownership_not_found": "Ownership not found",
+      "weak_password": "Password must be at least 12 characters"
+    }
+  },
+  "commandants": {
+    "errors": {
+      "commandant_not_found": "Commandant not found"
+    }
+  },
+  "settings": {
+    "errors": {
+      "user_not_found": "User not found",
+      "wrong_current_password": "Current password is incorrect"
+    }
   }
 }

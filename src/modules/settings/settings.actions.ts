@@ -6,6 +6,8 @@ import {z} from "zod";
 import {requireAuth, requireTenantPermission, getSessionCookieName} from "@/core/auth/session";
 import {updateTenant} from "@/modules/tenant/tenant.service";
 import {changeOwnPassword, updateProfile} from "./settings.service";
+import {translateDomainError} from "@/core/errors/app-error";
+import {getTranslations} from "next-intl/server";
 
 const settingsSchema = z.object({
   name: z.string().trim().min(2).max(255),
@@ -36,20 +38,30 @@ export async function updateProfileAction(input: {
   fullName: string;
   phone?: string | null;
 }) {
+  const t = await getTranslations("settings.errors");
   const validated = profileSchema.parse(input);
   const session = await requireAuth();
-  await updateProfile(session.user.id, validated);
+  try {
+    await updateProfile(session.user.id, validated);
+  } catch (err) {
+    translateDomainError(err, t);
+  }
   revalidatePath("/", "layout");
   return { success: true };
 }
 
 export async function changeOwnPasswordAction(currentPassword: string, newPassword: string) {
+  const t = await getTranslations("settings.errors");
   newPassword = z.string().min(12).max(128).parse(newPassword);
   const session = await requireAuth();
 
   const cookieStore = await cookies();
   const currentToken = cookieStore.get(getSessionCookieName())?.value;
-  await changeOwnPassword(session.user.id, currentPassword, newPassword, currentToken);
+  try {
+    await changeOwnPassword(session.user.id, currentPassword, newPassword, currentToken);
+  } catch (err) {
+    translateDomainError(err, t);
+  }
 
   return { success: true };
 }

@@ -396,6 +396,12 @@
       "medium": "Важное",
       "high": "Срочное",
       "urgent": "Критическое"
+    },
+    "errors": {
+      "announcement_not_found": "Объявление не найдено",
+      "title_required": "Заголовок обязателен",
+      "content_required": "Текст обязателен",
+      "title_too_long": "Заголовок слишком длинный"
     }
   },
   "tenant": {
@@ -527,5 +533,27 @@
     "amountLabel": "Сумма (₼)",
     "referenceOptional": "Референс № (необязательно)",
     "referencePlaceholder": "Чек / транзакция №"
+  },
+  "owner": {
+    "errors": {
+      "building_not_found": "Здание не найдено",
+      "owner_not_found": "Собственник не найден",
+      "unit_not_found": "Квартира не найдена",
+      "unit_already_assigned": "Квартира уже привязана к этому собственнику",
+      "unit_assigned_elsewhere": "Квартира уже привязана к другому собственнику",
+      "ownership_not_found": "Связь не найдена",
+      "weak_password": "Пароль должен быть не короче 12 символов"
+    }
+  },
+  "commandants": {
+    "errors": {
+      "commandant_not_found": "Комендант не найден"
+    }
+  },
+  "settings": {
+    "errors": {
+      "user_not_found": "Пользователь не найден",
+      "wrong_current_password": "Текущий пароль неверный"
+    }
   }
 }

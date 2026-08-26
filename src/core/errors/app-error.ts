@@ -33,6 +33,12 @@ export class TenantMismatchError extends AppError {
   }
 }
 
+/** ADR-0001 boundary: map a DomainError code to a next-intl message at the action layer; rethrow everything else. */
+export function translateDomainError(err: unknown, t: (key: string) => string): never {
+  if (err instanceof DomainError) throw new Error(t(err.code));
+  throw err;
+}
+
 export class DomainError extends AppError {
   constructor(
     code: string,
