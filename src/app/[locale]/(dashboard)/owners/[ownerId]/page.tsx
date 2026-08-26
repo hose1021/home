@@ -104,6 +104,7 @@ export default async function OwnerDetailsPage({
             periodYear: payments.periodYear,
             periodMonth: payments.periodMonth,
             paymentMethod: payments.paymentMethod,
+            status: payments.status,
             referenceNo: payments.referenceNo,
             notes: payments.notes,
             paymentDate: payments.paymentDate,

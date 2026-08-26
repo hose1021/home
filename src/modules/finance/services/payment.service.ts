@@ -15,12 +15,6 @@ export class PaymentError extends AppError {
   }
 }
 
-const IMMUTABLE_PAYMENT_STATUSES: readonly string[] = ["confirmed", "rejected", "refunded"];
-
-/** Canonical mutability rule (CONTEXT.md): a payment outside the immutable set may be edited or deleted. Pure. */
-export function canMutatePayment(status: string): boolean {
-  return !IMMUTABLE_PAYMENT_STATUSES.includes(status);
-}
 type RegisterPaymentInput = {
   chargeId?: string;
   unitId: string;

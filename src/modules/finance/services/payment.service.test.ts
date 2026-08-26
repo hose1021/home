@@ -1,5 +1,5 @@
 import {describe, expect, it} from "vitest";
-import {canMutatePayment, deriveChargeStatus, PaymentError, validatePaymentValues} from "./payment.service";
+import {deriveChargeStatus, PaymentError, validatePaymentValues} from "./payment.service";
 
 const validPayment = {
   amount: "25.50",
@@ -43,18 +43,6 @@ describe("deriveChargeStatus", () => {
   it("marks fully settled charges as paid", () => {
     expect(deriveChargeStatus("100.00", 10000)).toBe("paid");
     expect(deriveChargeStatus("100.00", 12500)).toBe("paid");
-  });
-});
-
-describe("canMutatePayment", () => {
-  it("forbids every status the schema knows", () => {
-    for (const status of ["confirmed", "rejected", "refunded"]) {
-      expect(canMutatePayment(status)).toBe(false);
-    }
-  });
-
-  it("permits unknown future statuses so new states do not forget the rule", () => {
-    expect(canMutatePayment("draft")).toBe(true);
   });
 });
 
