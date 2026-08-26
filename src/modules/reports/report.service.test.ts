@@ -1,7 +1,7 @@
 import {describe, expect, it} from "vitest";
-import {computeDebtByOwner} from "./report.service";
 import {buildPeriods, unitDebt, type BillingPeriod, type DebtConfig} from "@/modules/finance/services/debt.service";
 import {formatMoney, moneyToCents} from "@/modules/finance/services/money";
+import {computeDebtByOwner} from "./report.service";
 
 const cfg: DebtConfig = {tariffPerSqm: 0.4, billingStart: "2025-01"};
 

@@ -1,14 +1,14 @@
 "use client";
 
-import {useState} from "react";
-import {Link} from "@/i18n/navigation";
-import {Dialog, DialogContent, DialogHeader, DialogTitle} from "@/components/ui/dialog";
-import {TicketCreateForm} from "./TicketCreateForm";
-import type {TicketCategory, TicketPriority, TicketStatus} from "../ticket.service";
-import {Button} from "@/components/ui/button";
-import {Badge} from "@/components/ui/badge";
 import {IconCalendar, IconChevronRight, IconMapPin, IconPlus, IconTicket} from "@tabler/icons-react";
 import {useTranslations} from "next-intl";
+import {useState} from "react";
+import {Badge} from "@/components/ui/badge";
+import {Button} from "@/components/ui/button";
+import {Dialog, DialogContent, DialogHeader, DialogTitle} from "@/components/ui/dialog";
+import {Link} from "@/i18n/navigation";
+import type {TicketCategory, TicketPriority, TicketStatus} from "../ticket.service";
+import {TicketCreateForm} from "./TicketCreateForm";
 
 export type TicketListItem = {
   id: string;

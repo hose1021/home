@@ -1,10 +1,15 @@
-import {requireTenantPermission} from "@/core/auth/session";
-import {IconTool} from "@tabler/icons-react";
 import {getTranslations} from "next-intl/server";
+import {getPermissionsForRoles, type Permission} from "@/core/auth/permissions";
+import {requireTenantPermission} from "@/core/auth/session";
+import {listContractors} from "@/modules/contractor/contractor.service";
+import {ContractorsBoard} from "./contractors-board";
 
 export default async function ContractorsPage() {
-  await requireTenantPermission("contractor:read");
+  const { session, tenantId } = await requireTenantPermission("contractor:read");
   const t = await getTranslations("contractors");
+  const permissions: Permission[] = getPermissionsForRoles(session.user.roles);
+  const canManage = permissions.includes("contractor:write");
+  const contractors = await listContractors(tenantId);
 
   return (
     <div className="page-shell">
@@ -15,11 +20,7 @@ export default async function ContractorsPage() {
           <p className="page-description">{t("description")}</p>
         </div>
       </div>
-      <div className="surface-panel flex flex-col items-center border-dashed px-6 py-16 text-center">
-        <span className="flex size-10 items-center justify-center rounded-lg bg-muted text-muted-foreground"><IconTool className="size-5" /></span>
-        <p className="mt-4 font-medium">{t("emptyTitle")}</p>
-        <p className="mt-1 text-sm text-muted-foreground">{t("emptyDescription")}</p>
-      </div>
+      <ContractorsBoard contractors={contractors} canManage={canManage} />
     </div>
   );
 }

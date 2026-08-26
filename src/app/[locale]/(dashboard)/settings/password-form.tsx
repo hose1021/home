@@ -2,8 +2,8 @@
 
 import {useState} from "react";
 import {toast} from "sonner";
-import {changeOwnPasswordAction} from "@/modules/settings/settings.actions";
 import {Button} from "@/components/ui/button";
+import {changeOwnPasswordAction} from "@/modules/settings/settings.actions";
 
 const inputClass =
   "mt-1 block w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900";

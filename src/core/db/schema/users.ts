@@ -1,7 +1,7 @@
 import {sql} from "drizzle-orm";
-import {boolean, check, pgTable, text, timestamp, uuid, varchar} from "drizzle-orm/pg-core";
-import {tenants} from "./tenants";
+import {boolean, check, pgTable, text, timestamp, unique, uuid, varchar} from "drizzle-orm/pg-core";
 import type {Role} from "@/core/auth/permissions";
+import {tenants} from "./tenants";
 
 export const users = pgTable("users", {
   id: uuid("id").defaultRandom().primaryKey(),
@@ -20,6 +20,7 @@ export const users = pgTable("users", {
     "chk_users_username_format",
     sql`${table.username} ~ '^[[:alpha:]]+\\.[[:alpha:]]+$'`,
   ),
+  tenantIdUnique: unique("uq_users_tenant_id").on(table.tenantId, table.id),
 }));
 
 export const sessions = pgTable("sessions", {
@@ -41,7 +42,7 @@ export const userRoles = pgTable("user_roles", {
   scopeTenantId: uuid("scope_tenant_id").references(() => tenants.id),
   scopeUnitId: uuid("scope_unit_id"),
 }, (table) => ({
-  userRoleUnique: { columns: [table.userId, table.role, table.scopeTenantId, table.scopeUnitId], name: "uq_user_roles" },
+  userRoleUnique: unique("uq_user_roles").on(table.userId, table.role, table.scopeTenantId, table.scopeUnitId),
   roleAllowed: check(
     "chk_user_roles_allowed",
     sql`${table.role} in ('admin', 'management_member', 'commandant', 'owner')`,

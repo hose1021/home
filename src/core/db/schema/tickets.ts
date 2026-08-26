@@ -1,4 +1,4 @@
-import {boolean, pgTable, text, timestamp, uuid, varchar} from "drizzle-orm/pg-core";
+import {boolean, pgTable, text, timestamp, unique, uuid, varchar} from "drizzle-orm/pg-core";
 import {tenants} from "./tenants";
 import {units} from "./units";
 import {users} from "./users";
@@ -17,7 +17,9 @@ export const tickets = pgTable("tickets", {
   rejectionReason: text("rejection_reason"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
-});
+}, (table) => ({
+  tenantIdUnique: unique("uq_tickets_tenant_id").on(table.tenantId, table.id),
+}));
 
 export const ticketComments = pgTable("ticket_comments", {
   id: uuid("id").defaultRandom().primaryKey(),

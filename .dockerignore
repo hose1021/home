@@ -1,0 +1,15 @@
+node_modules
+.next
+.git
+.gitignore
+.env
+.env.*
+!.env.example
+test-results
+playwright-report
+e2e
+*.log
+backups
+docker-compose.prod.yml
+Dockerfile
+.dockerignore

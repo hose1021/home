@@ -1,6 +1,6 @@
-import {boolean, integer, pgTable, timestamp, uuid, varchar} from "drizzle-orm/pg-core";
-import {tenants} from "./tenants";
+import {boolean, foreignKey, integer, pgTable, timestamp, uuid, varchar} from "drizzle-orm/pg-core";
 import {owners} from "./owners";
+import {tenants} from "./tenants";
 
 export const managementMembers = pgTable("management_members", {
   id: uuid("id").defaultRandom().primaryKey(),
@@ -13,4 +13,10 @@ export const managementMembers = pgTable("management_members", {
   isActive: boolean("is_active").notNull().default(true),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
-});
+}, (table) => ({
+  tenantOwnerForeignKey: foreignKey({
+    columns: [table.tenantId, table.ownerId],
+    foreignColumns: [owners.tenantId, owners.id],
+    name: "fk_management_members_tenant_owner",
+  }),
+}));

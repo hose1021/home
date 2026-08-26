@@ -1,10 +1,10 @@
 import {eq} from "drizzle-orm";
+import {writeAuditLog} from "@/core/audit/audit.service";
+import {deleteOtherUserSessions, hashPassword, verifyPassword} from "@/core/auth/auth";
 import {db} from "@/core/db";
 import {users} from "@/core/db/schema/users";
-import {deleteOtherUserSessions, hashPassword, verifyPassword} from "@/core/auth/auth";
-import {syncUserOwnerProfile, type ProfilePatch} from "@/modules/owner/owner.service";
-import {writeAuditLog} from "@/core/audit/audit.service";
 import {DomainError} from "@/core/errors/app-error";
+import {syncUserOwnerProfile, type ProfilePatch} from "@/modules/owner/owner.service";
 
 /** Update the caller's own profile: user row + owner mirror atomically, audited. */
 export async function updateProfile(userId: string, input: ProfilePatch) {

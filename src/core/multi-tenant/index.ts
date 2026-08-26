@@ -1,6 +1,6 @@
+import {eq} from "drizzle-orm";
 import {db} from "@/core/db";
 import {tenants} from "@/core/db/schema/tenants";
-import {eq} from "drizzle-orm";
 
 type CacheEntry = { id: string; expiresAt: number };
 

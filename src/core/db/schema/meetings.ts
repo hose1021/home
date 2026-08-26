@@ -1,7 +1,7 @@
-import {boolean, integer, pgTable, text, timestamp, uuid, varchar} from "drizzle-orm/pg-core";
+import {boolean, integer, pgTable, text, timestamp, unique, uuid, varchar} from "drizzle-orm/pg-core";
+import {owners} from "./owners";
 import {tenants} from "./tenants";
 import {users} from "./users";
-import {owners} from "./owners";
 
 export const meetings = pgTable("meetings", {
   id: uuid("id").defaultRandom().primaryKey(),
@@ -19,7 +19,9 @@ export const meetings = pgTable("meetings", {
   createdBy: uuid("created_by").notNull().references(() => users.id),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
-});
+}, (table) => ({
+  tenantIdUnique: unique("uq_meetings_tenant_id").on(table.tenantId, table.id),
+}));
 
 export const meetingAgendas = pgTable("meeting_agendas", {
   id: uuid("id").defaultRandom().primaryKey(),

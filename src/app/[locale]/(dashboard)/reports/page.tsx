@@ -1,3 +1,4 @@
+import {getTranslations} from "next-intl/server";
 import {requireTenantPermission} from "@/core/auth/session";
 import {
   getAuditReport,
@@ -8,7 +9,6 @@ import {
   getIncomeExpenseReport,
 } from "@/modules/reports/report.service";
 import {ReportsView} from "./reports-view";
-import {getTranslations} from "next-intl/server";
 
 export default async function ReportsPage() {
   const t = await getTranslations("reports");

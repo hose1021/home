@@ -1,8 +1,8 @@
+import {eq} from "drizzle-orm";
+import {getTranslations} from "next-intl/server";
 import {requireTenantPermission} from "@/core/auth/session";
 import {db} from "@/core/db";
 import {auditLogs} from "@/core/db/schema/audit-logs";
-import {eq} from "drizzle-orm";
-import {getTranslations} from "next-intl/server";
 
 export default async function AuditPage({
   params,

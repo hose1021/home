@@ -1,4 +1,4 @@
-import {boolean, jsonb, pgTable, text, timestamp, uuid, varchar} from "drizzle-orm/pg-core";
+import {boolean, foreignKey, jsonb, pgTable, text, timestamp, uuid, varchar} from "drizzle-orm/pg-core";
 import {tenants} from "./tenants";
 import {users} from "./users";
 
@@ -14,4 +14,10 @@ export const notifications = pgTable("notifications", {
   metadata: jsonb("metadata").default({}),
   sentAt: timestamp("sent_at", { withTimezone: true }).notNull().defaultNow(),
   readAt: timestamp("read_at", { withTimezone: true }),
-});
+}, (table) => ({
+  tenantUserForeignKey: foreignKey({
+    columns: [table.tenantId, table.userId],
+    foreignColumns: [users.tenantId, users.id],
+    name: "fk_notifications_tenant_user",
+  }),
+}));

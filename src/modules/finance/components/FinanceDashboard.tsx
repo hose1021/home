@@ -1,16 +1,17 @@
 "use client";
 
-import {useState} from "react";
-import {Tabs, TabsContent, TabsList, TabsTrigger} from "@/components/ui/tabs";
-import {Card, CardContent, CardHeader, CardTitle} from "@/components/ui/card";
-import {Badge} from "@/components/ui/badge";
-import {Button} from "@/components/ui/button";
-import {Table, TableBody, TableCell, TableHead, TableHeader, TableRow} from "@/components/ui/table";
-import {ChargeGenerateDialog} from "./ChargeGenerateForm";
-import {PaymentDialog} from "./PaymentForm";
-import {FundCreateDialog} from "./FundCreateForm";
 import {type Icon, IconCash, IconCoin, IconPigMoney, IconReceipt} from "@tabler/icons-react";
 import {useTranslations} from "next-intl";
+import {useState} from "react";
+import {Badge} from "@/components/ui/badge";
+import {Button} from "@/components/ui/button";
+import {Card, CardContent, CardHeader, CardTitle} from "@/components/ui/card";
+import {Table, TableBody, TableCell, TableHead, TableHeader, TableRow} from "@/components/ui/table";
+import {Tabs, TabsContent, TabsList, TabsTrigger} from "@/components/ui/tabs";
+import {ChargeGenerateDialog} from "./ChargeGenerateForm";
+import {FundCreateDialog} from "./FundCreateForm";
+import {FundTopUpDialog} from "./FundTopUpForm";
+import {PaymentDialog} from "./PaymentForm";
 
 type ChargeRow = {
   id: string;
@@ -93,6 +94,7 @@ export function FinanceDashboard({
   const [chargeOpen, setChargeOpen] = useState(false);
   const [paymentOpen, setPaymentOpen] = useState(false);
   const [fundOpen, setFundOpen] = useState(false);
+  const [topUpFund, setTopUpFund] = useState<Fund | null>(null);
 
   const monthNames: Record<number, string> = {
     1: tc("months.1"), 2: tc("months.2"), 3: tc("months.3"), 4: tc("months.4"),
@@ -260,6 +262,11 @@ export function FinanceDashboard({
                       </div>
                     </div>
                   )}
+                  {canManageFunds && (
+                    <Button variant="outline" size="sm" className="mt-2" onClick={() => setTopUpFund(f)}>
+                      + {t("funds.topUp")}
+                    </Button>
+                  )}
                 </CardContent>
               </Card>
             ))}
@@ -273,6 +280,7 @@ export function FinanceDashboard({
       <ChargeGenerateDialog templates={templates} open={chargeOpen} onOpenChange={setChargeOpen} />
       <PaymentDialog units={units} open={paymentOpen} onOpenChange={setPaymentOpen} />
       <FundCreateDialog open={fundOpen} onOpenChange={setFundOpen} />
+      <FundTopUpDialog fundId={topUpFund?.id ?? null} open={!!topUpFund} onOpenChange={(o) => { if (!o) setTopUpFund(null); }} />
     </div>
   );
 }

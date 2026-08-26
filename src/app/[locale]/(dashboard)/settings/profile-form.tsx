@@ -2,8 +2,8 @@
 
 import {useState} from "react";
 import {toast} from "sonner";
-import {updateProfileAction} from "@/modules/settings/settings.actions";
 import {Button} from "@/components/ui/button";
+import {updateProfileAction} from "@/modules/settings/settings.actions";
 
 type ProfileData = {
   fullName: string;

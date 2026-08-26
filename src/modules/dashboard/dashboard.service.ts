@@ -1,4 +1,5 @@
 import {and, desc, eq, sql} from "drizzle-orm";
+import type {CommandantInfo} from "@/app/[locale]/(dashboard)/commandant-card";
 import {db} from "@/core/db";
 import {charges} from "@/core/db/schema/charges";
 import {owners, ownerships} from "@/core/db/schema/owners";
@@ -7,7 +8,6 @@ import {tickets} from "@/core/db/schema/tickets";
 import {units} from "@/core/db/schema/units";
 import {userRoles, users} from "@/core/db/schema/users";
 import {getActiveCommandant} from "@/modules/commandants/commandant.service";
-import type {CommandantInfo} from "@/app/[locale]/(dashboard)/commandant-card";
 
 export type BoardMember = {
     userId: string;

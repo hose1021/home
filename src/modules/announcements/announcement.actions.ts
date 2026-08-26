@@ -1,12 +1,12 @@
 "use server";
 
 import {revalidatePath} from "next/cache";
-import {requireTenantPermission} from "@/core/auth/session";
-import {createAnnouncement, deleteAnnouncement, updateAnnouncement} from "./announcement.service";
-import {uuidSchema} from "@/core/validation/action-schemas";
-import {translateDomainError} from "@/core/errors/app-error";
 import {getTranslations} from "next-intl/server";
 import {z} from "zod";
+import {requireTenantPermission} from "@/core/auth/session";
+import {translateDomainError} from "@/core/errors/app-error";
+import {uuidSchema} from "@/core/validation/action-schemas";
+import {createAnnouncement, deleteAnnouncement, updateAnnouncement} from "./announcement.service";
 
 const announcementInputSchema = z.object({
   title: z.string().trim().min(1).max(255),

@@ -1,7 +1,7 @@
-import {decimal, integer, pgTable, text, timestamp, uuid, varchar} from "drizzle-orm/pg-core";
+import {decimal, integer, pgTable, text, timestamp, unique, uuid, varchar} from "drizzle-orm/pg-core";
+import {funds} from "./funds";
 import {tenants} from "./tenants";
 import {users} from "./users";
-import {funds} from "./funds";
 
 export const transactions = pgTable("transactions", {
   id: uuid("id").defaultRandom().primaryKey(),
@@ -15,7 +15,7 @@ export const transactions = pgTable("transactions", {
   createdBy: uuid("created_by").notNull().references(() => users.id),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 }, (table) => ({
-  transactionNoUnique: { columns: [table.tenantId, table.transactionNo], name: "uq_transactions_tenant_no" },
+  transactionNoUnique: unique("uq_transactions_tenant_no").on(table.tenantId, table.transactionNo),
 }));
 
 export const journalEntries = pgTable("journal_entries", {

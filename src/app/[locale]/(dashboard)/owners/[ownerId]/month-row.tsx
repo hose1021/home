@@ -1,13 +1,13 @@
 "use client";
 
-import {useState} from "react";
-import {useTranslations} from "next-intl";
-import {Dialog, DialogContent, DialogHeader, DialogTitle} from "@/components/ui/dialog";
-import {toast} from "sonner";
-import {registerPaymentAction} from "@/modules/finance/finance.actions";
-import {Button} from "@/components/ui/button";
-import {Input} from "@/components/ui/input";
 import {IconAlertCircle, IconCheck} from "@tabler/icons-react";
+import {useTranslations} from "next-intl";
+import {useState} from "react";
+import {toast} from "sonner";
+import {Button} from "@/components/ui/button";
+import {Dialog, DialogContent, DialogHeader, DialogTitle} from "@/components/ui/dialog";
+import {Input} from "@/components/ui/input";
+import {registerPaymentAction} from "@/modules/finance/finance.actions";
 
 const METHODS = ["cash", "bank_transfer", "card", "e_manat", "pos_terminal"] as const;
 

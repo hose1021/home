@@ -1,6 +1,7 @@
 "use client";
 
-import {Link} from "@/i18n/navigation";
+import {IconCoin, IconReport} from "@tabler/icons-react";
+import {useTranslations} from "next-intl";
 import {
     SidebarGroup,
     SidebarGroupLabel,
@@ -8,10 +9,9 @@ import {
     SidebarMenuButton,
     SidebarMenuItem,
 } from "@/components/ui/sidebar";
-import {IconCoin, IconReport} from "@tabler/icons-react";
 import type {Permission} from "@/core/auth/permissions";
+import {Link} from "@/i18n/navigation";
 import {usePathname} from "@/i18n/navigation";
-import {useTranslations} from "next-intl";
 
 export function NavDocuments({ permissions }: { permissions?: Permission[] }) {
   const t = useTranslations("nav");

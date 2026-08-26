@@ -1,10 +1,10 @@
 "use client";
 
 import {useState} from "react";
-import {updateOwnerAction, updateOwnerPasswordAction} from "../owner.actions";
-import {type Role, ROLE_LABELS, ROLE_ORDER} from "@/core/auth/permissions";
 import {toast} from "sonner";
 import {Button} from "@/components/ui/button";
+import {type Role, ROLE_LABELS, ROLE_ORDER} from "@/core/auth/permissions";
+import {updateOwnerAction, updateOwnerPasswordAction} from "../owner.actions";
 
 type OwnerData = {
   id: string;

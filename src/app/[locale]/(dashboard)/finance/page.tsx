@@ -1,5 +1,5 @@
-import {requireTenantPermission} from "@/core/auth/session";
 import {getPermissionsForRoles, type Permission} from "@/core/auth/permissions";
+import {requireTenantPermission} from "@/core/auth/session";
 import {FinanceDashboard} from "@/modules/finance/components/FinanceDashboard";
 import {getFinanceDashboard} from "@/modules/finance/services/finance-dashboard.service";
 

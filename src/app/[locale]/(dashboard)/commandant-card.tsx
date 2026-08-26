@@ -1,8 +1,8 @@
 "use client";
 
-import {useState} from "react";
-import Link from "next/link";
 import {IconBuilding} from "@tabler/icons-react";
+import Link from "next/link";
+import {useState} from "react";
 import {Badge} from "@/components/ui/badge";
 import {Dialog, DialogContent, DialogHeader, DialogTitle} from "@/components/ui/dialog";
 

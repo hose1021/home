@@ -1,9 +1,9 @@
-import {db} from "@/core/db";
-import {charges, chargeTemplates} from "@/core/db/schema/charges";
-import {units} from "@/core/db/schema/units";
-import {owners, ownerships} from "@/core/db/schema/owners";
 import {and, eq, inArray} from "drizzle-orm";
 import {writeAuditLog} from "@/core/audit/audit.service";
+import {db} from "@/core/db";
+import {charges, chargeTemplates} from "@/core/db/schema/charges";
+import {owners, ownerships} from "@/core/db/schema/owners";
+import {units} from "@/core/db/schema/units";
 
 type GenerateChargesInput = {
   templateId: string;
@@ -97,7 +97,7 @@ export async function generateMonthlyCharges(tenantId: string, input: GenerateCh
     userId,
     action: "create",
     entityType: "charge",
-    entityId: created[0].id,
+    entityId: created[0]!.id,
     newValues: { count: created.length, period: `${input.periodYear}-${input.periodMonth}` },
   });
 

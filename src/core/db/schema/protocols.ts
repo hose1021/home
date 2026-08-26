@@ -1,6 +1,6 @@
-import {pgTable, text, timestamp, uuid, varchar} from "drizzle-orm/pg-core";
-import {tenants} from "./tenants";
+import {foreignKey, pgTable, text, timestamp, unique, uuid, varchar} from "drizzle-orm/pg-core";
 import {meetings} from "./meetings";
+import {tenants} from "./tenants";
 import {users} from "./users";
 
 export const protocols = pgTable("protocols", {
@@ -17,7 +17,12 @@ export const protocols = pgTable("protocols", {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 }, (table) => ({
-  protocolNumberUnique: { columns: [table.tenantId, table.protocolNumber], name: "uq_protocols_tenant_number" },
+  protocolNumberUnique: unique("uq_protocols_tenant_number").on(table.tenantId, table.protocolNumber),
+  tenantMeetingForeignKey: foreignKey({
+    columns: [table.tenantId, table.meetingId],
+    foreignColumns: [meetings.tenantId, meetings.id],
+    name: "fk_protocols_tenant_meeting",
+  }),
 }));
 
 export const protocolSignatures = pgTable("protocol_signatures", {
@@ -27,5 +32,5 @@ export const protocolSignatures = pgTable("protocol_signatures", {
   signature: text("signature").notNull(),
   signedAt: timestamp("signed_at", { withTimezone: true }).notNull().defaultNow(),
 }, (table) => ({
-  protocolUserUnique: { columns: [table.protocolId, table.userId], name: "uq_protocol_signatures" },
+  protocolUserUnique: unique("uq_protocol_signatures").on(table.protocolId, table.userId),
 }));

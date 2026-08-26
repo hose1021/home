@@ -1,17 +1,17 @@
 "use client";
 
-import {useEffect, useState} from "react";
-import {useRouter} from "@/i18n/navigation";
-import {PLATFORM_NAME} from "@/core/config";
-import {Button} from "@/components/ui/button";
-import {Input} from "@/components/ui/input";
-import {Label} from "@/components/ui/label";
-import {useTranslations} from "next-intl";
 import {
     IconArrowRight,
     IconLoader2,
     IconLock,
 } from "@tabler/icons-react";
+import {useTranslations} from "next-intl";
+import {useEffect, useState} from "react";
+import {Button} from "@/components/ui/button";
+import {Input} from "@/components/ui/input";
+import {Label} from "@/components/ui/label";
+import {PLATFORM_NAME} from "@/core/config";
+import {useRouter} from "@/i18n/navigation";
 
 export default function LoginPage() {
   const t = useTranslations("auth");

@@ -1,12 +1,8 @@
-import {Link} from "@/i18n/navigation";
+import {IconBuilding, IconCash, IconHome, IconRulerMeasure} from "@tabler/icons-react";
 import {notFound} from "next/navigation";
-import {getOwnerDetail} from "@/modules/owner/owner.service";
-import {requireTenantPermission} from "@/core/auth/session";
-import {getPermissionsForRoles, hasStaffRole, type Permission} from "@/core/auth/permissions";
-import {type MonthPayment, MonthRow} from "./month-row";
-import {PaymentHistory} from "./payment-history";
-import {OwnerUnitsSection} from "./owner-units-section";
-import {OwnerUnitCard} from "./OwnerUnitCard";
+import {getTranslations} from "next-intl/server";
+import {Avatar, AvatarFallback} from "@/components/ui/avatar";
+import {Badge} from "@/components/ui/badge";
 import {
     Breadcrumb,
     BreadcrumbItem,
@@ -15,11 +11,15 @@ import {
     BreadcrumbPage,
     BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
-import {Avatar, AvatarFallback} from "@/components/ui/avatar";
-import {Badge} from "@/components/ui/badge";
 import {Card, CardContent} from "@/components/ui/card";
-import {IconBuilding, IconCash, IconHome, IconRulerMeasure} from "@tabler/icons-react";
-import {getTranslations} from "next-intl/server";
+import {getPermissionsForRoles, hasStaffRole, type Permission} from "@/core/auth/permissions";
+import {requireTenantPermission} from "@/core/auth/session";
+import {Link} from "@/i18n/navigation";
+import {getOwnerDetail} from "@/modules/owner/owner.service";
+import {type MonthPayment, MonthRow} from "./month-row";
+import {OwnerUnitsSection} from "./owner-units-section";
+import {OwnerUnitCard} from "./OwnerUnitCard";
+import {PaymentHistory} from "./payment-history";
 
 
 export default async function OwnerDetailsPage({

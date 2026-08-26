@@ -1,11 +1,11 @@
 "use client";
 
-import {Link} from "@/i18n/navigation";
-import {SidebarGroup, SidebarMenu, SidebarMenuButton, SidebarMenuItem,} from "@/components/ui/sidebar";
 import {IconHelp, IconSettings} from "@tabler/icons-react";
-import type {Permission} from "@/core/auth/permissions";
-import {usePathname} from "@/i18n/navigation";
 import {useTranslations} from "next-intl";
+import {SidebarGroup, SidebarMenu, SidebarMenuButton, SidebarMenuItem,} from "@/components/ui/sidebar";
+import type {Permission} from "@/core/auth/permissions";
+import {Link} from "@/i18n/navigation";
+import {usePathname} from "@/i18n/navigation";
 
 export function NavSecondary({ permissions, className }: { permissions?: Permission[]; className?: string }) {
   const t = useTranslations("nav");

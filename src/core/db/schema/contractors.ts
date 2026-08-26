@@ -1,4 +1,4 @@
-import {date, decimal, pgTable, text, timestamp, uuid, varchar} from "drizzle-orm/pg-core";
+import {date, decimal, pgTable, text, timestamp, unique, uuid, varchar} from "drizzle-orm/pg-core";
 import {tenants} from "./tenants";
 import {users} from "./users";
 
@@ -13,7 +13,9 @@ export const contractors = pgTable("contractors", {
   rating: decimal("rating", { precision: 2, scale: 1 }).default("0"),
   status: varchar("status", { length: 20 }).notNull().default("active").$type<"invited" | "active" | "suspended" | "terminated">(),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-});
+}, (table) => ({
+  tenantIdUnique: unique("uq_contractors_tenant_id").on(table.tenantId, table.id),
+}));
 
 export const contracts = pgTable("contracts", {
   id: uuid("id").defaultRandom().primaryKey(),

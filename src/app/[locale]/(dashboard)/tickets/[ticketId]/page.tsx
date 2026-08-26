@@ -1,15 +1,15 @@
+import {and, eq, inArray} from "drizzle-orm";
+import {notFound} from "next/navigation";
+import {getTranslations} from "next-intl/server";
+import {getPermissionsForRoles, hasStaffRole, type Permission} from "@/core/auth/permissions";
+import {requireTenantPermission} from "@/core/auth/session";
 import {db} from "@/core/db";
+import {owners, ownerships} from "@/core/db/schema/owners";
 import {tickets} from "@/core/db/schema/tickets";
 import {units} from "@/core/db/schema/units";
-import {owners, ownerships} from "@/core/db/schema/owners";
 import {users} from "@/core/db/schema/users";
-import {and, eq, inArray} from "drizzle-orm";
-import {getTranslations} from "next-intl/server";
-import {requireTenantPermission} from "@/core/auth/session";
-import {getPermissionsForRoles, hasStaffRole, type Permission} from "@/core/auth/permissions";
 import {TicketDetail} from "@/modules/tickets/components/TicketDetail";
 import {listComments} from "@/modules/tickets/ticket.service";
-import {notFound} from "next/navigation";
 
 export default async function TicketDetailPage({
   params,

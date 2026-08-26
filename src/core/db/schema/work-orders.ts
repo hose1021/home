@@ -1,7 +1,7 @@
-import {decimal, pgTable, text, timestamp, uuid, varchar} from "drizzle-orm/pg-core";
+import {decimal, foreignKey, pgTable, text, timestamp, uuid, varchar} from "drizzle-orm/pg-core";
+import {contractors} from "./contractors";
 import {tenants} from "./tenants";
 import {tickets} from "./tickets";
-import {contractors} from "./contractors";
 import {users} from "./users";
 
 export const workOrders = pgTable("work_orders", {
@@ -21,4 +21,15 @@ export const workOrders = pgTable("work_orders", {
   approvedBy: uuid("approved_by").references(() => users.id),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
-});
+}, (table) => ({
+  tenantTicketForeignKey: foreignKey({
+    columns: [table.tenantId, table.ticketId],
+    foreignColumns: [tickets.tenantId, tickets.id],
+    name: "fk_work_orders_tenant_ticket",
+  }),
+  tenantContractorForeignKey: foreignKey({
+    columns: [table.tenantId, table.contractorId],
+    foreignColumns: [contractors.tenantId, contractors.id],
+    name: "fk_work_orders_tenant_contractor",
+  }),
+}));

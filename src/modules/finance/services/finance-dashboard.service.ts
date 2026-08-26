@@ -1,13 +1,13 @@
 import {and, eq, sql} from "drizzle-orm";
 import {db} from "@/core/db";
 import {charges} from "@/core/db/schema/charges";
-import {payments} from "@/core/db/schema/payments";
 import {funds} from "@/core/db/schema/funds";
-import {units} from "@/core/db/schema/units";
 import {owners, ownerships} from "@/core/db/schema/owners";
+import {payments} from "@/core/db/schema/payments";
+import {units} from "@/core/db/schema/units";
 import {listChargesWithDetails, listChargeTemplates} from "./charge.service";
-import {listPaymentsWithDetails} from "./payment.service";
 import {getTenantDebtSummary} from "./debt.service";
+import {listPaymentsWithDetails} from "./payment.service";
 
 export type DashboardChargeRow = {
   id: string;
@@ -106,7 +106,7 @@ export async function getFinanceDashboard(tenantId: string): Promise<FinanceDash
       .from(payments)
       .where(and(eq(payments.tenantId, tenantId), eq(payments.status, "confirmed"))),
     getTenantDebtSummary(tenantId),
-    db.select().from(funds).where(eq(funds.tenantId, tenantId)),
+    db.select().from(funds).where(eq(funds.tenantId, tenantId)).orderBy(funds.name),
     listChargesWithDetails(tenantId),
     listPaymentsWithDetails(tenantId, 50),
     listChargeTemplates(tenantId),

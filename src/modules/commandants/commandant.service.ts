@@ -1,7 +1,7 @@
 import {and, desc, eq, ne} from "drizzle-orm";
+import {writeAuditLog} from "@/core/audit/audit.service";
 import {db} from "@/core/db";
 import {commandants} from "@/core/db/schema/commandants";
-import {writeAuditLog} from "@/core/audit/audit.service";
 import {DomainError} from "@/core/errors/app-error";
 
 export type CommandantInput = {
@@ -67,6 +67,7 @@ export async function createCommandant(tenantId: string, input: CommandantInput,
       .returning();
     return row;
   });
+  if (!created) throw new Error("Failed to create commandant");
 
   await writeAuditLog({
     tenantId,

@@ -1,10 +1,10 @@
+import {IconChecklist} from "@tabler/icons-react";
+import {eq, sql} from "drizzle-orm";
+import {getTranslations} from "next-intl/server";
+import {Badge} from "@/components/ui/badge";
+import {requireTenantPermission} from "@/core/auth/session";
 import {db} from "@/core/db";
 import {votes, votingOptions, votings} from "@/core/db/schema/votings";
-import {eq, sql} from "drizzle-orm";
-import {requireTenantPermission} from "@/core/auth/session";
-import {Badge} from "@/components/ui/badge";
-import {IconChecklist} from "@tabler/icons-react";
-import {getTranslations} from "next-intl/server";
 
 export default async function VotingPage() {
   const t = await getTranslations();

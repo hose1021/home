@@ -1,10 +1,10 @@
 import {and, eq, ne} from "drizzle-orm";
+import {requireTenantPermission} from "@/core/auth/session";
 import {db} from "@/core/db";
 import {owners} from "@/core/db/schema/owners";
-import {requireTenantPermission} from "@/core/auth/session";
 import {listCommandants} from "@/modules/commandants/commandant.service";
-import {CommandantsBoard} from "./commandants-board";
 import {CommandantAddButton} from "./commandant-add-button";
+import {CommandantsBoard} from "./commandants-board";
 
 export default async function CommandantsPage() {
   const {tenantId} = await requireTenantPermission("settings:read");

@@ -1,7 +1,7 @@
 "use client";
 
-import {useRouter} from "@/i18n/navigation";
 import {IconBell, IconLogout, IconSelector, IconSettings, IconUser,} from "@tabler/icons-react";
+import {useTranslations} from "next-intl";
 import {Avatar, AvatarFallback} from "@/components/ui/avatar";
 import {
     DropdownMenu,
@@ -13,7 +13,7 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {SidebarMenu, SidebarMenuButton, SidebarMenuItem, useSidebar} from "@/components/ui/sidebar";
-import {useTranslations} from "next-intl";
+import {useRouter} from "@/i18n/navigation";
 
 export function NavUser({userName, userEmail}: {userName: string; userEmail?: string}) {
   const t = useTranslations("auth");

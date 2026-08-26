@@ -1,9 +1,9 @@
-import {redirect} from "next/navigation";
 import {cookies} from "next/headers";
+import {redirect} from "next/navigation";
+import {ForbiddenError, TenantMismatchError} from "@/core/errors/app-error";
 import {getSessionFromToken} from "./auth";
 import type {Permission, Role} from "./permissions";
 import {hasPermission} from "./permissions";
-import {ForbiddenError, TenantMismatchError} from "@/core/errors/app-error";
 
 const SESSION_COOKIE = "session_token";
 

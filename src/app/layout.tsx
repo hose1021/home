@@ -1,10 +1,10 @@
 import type {Metadata} from "next";
 import {Inter, Archivo, IBM_Plex_Mono} from "next/font/google";
 import "./globals.css";
-import {TooltipProvider} from "@/components/ui/tooltip";
-import {Toaster} from "@/components/ui/sonner";
-import {PLATFORM_NAME} from "@/core/config";
 import {ThemeProvider} from "@/components/theme-provider";
+import {Toaster} from "@/components/ui/sonner";
+import {TooltipProvider} from "@/components/ui/tooltip";
+import {PLATFORM_NAME} from "@/core/config";
 
 const inter = Inter({
   variable: "--font-sans",

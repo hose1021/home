@@ -1,11 +1,11 @@
 import {eq} from "drizzle-orm";
+import {getPermissionsForRoles} from "@/core/auth/permissions";
+import {requireAuth} from "@/core/auth/session";
 import {db} from "@/core/db";
 import {users} from "@/core/db/schema/users";
-import {requireAuth} from "@/core/auth/session";
-import {getPermissionsForRoles} from "@/core/auth/permissions";
 import {getTenantById} from "@/modules/tenant/tenant.service";
-import {ProfileForm} from "./profile-form";
 import {PasswordForm} from "./password-form";
+import {ProfileForm} from "./profile-form";
 import {SettingsForm} from "./settings-form";
 
 export default async function SettingsPage() {

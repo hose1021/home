@@ -1,6 +1,6 @@
 import {NextResponse} from "next/server";
-import {getSession} from "@/core/auth/session";
 import {getPermissionsForRoles} from "@/core/auth/permissions";
+import {getSession} from "@/core/auth/session";
 
 export async function GET() {
   const session = await getSession();

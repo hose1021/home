@@ -1,10 +1,10 @@
-import {db} from "@/core/db";
-import {ticketComments, tickets} from "@/core/db/schema/tickets";
-import {units} from "@/core/db/schema/units";
-import {owners, ownerships} from "@/core/db/schema/owners";
-import {users} from "@/core/db/schema/users";
 import {and, desc, eq} from "drizzle-orm";
 import {writeAuditLog} from "@/core/audit/audit.service";
+import {db} from "@/core/db";
+import {owners, ownerships} from "@/core/db/schema/owners";
+import {ticketComments, tickets} from "@/core/db/schema/tickets";
+import {units} from "@/core/db/schema/units";
+import {users} from "@/core/db/schema/users";
 
 export type TicketCategory = "plumbing" | "electrical" | "cleaning" | "structural" | "elevator" | "pest_control" | "yard" | "security" | "other";
 export type TicketPriority = "low" | "medium" | "high" | "urgent";
@@ -51,6 +51,7 @@ export async function createTicket(tenantId: string, userId: string, input: Crea
     title: input.title,
     description: input.description,
   }).returning();
+  if (!ticket) throw new Error("Failed to create ticket");
 
   await writeAuditLog({
     tenantId,
@@ -278,6 +279,7 @@ export async function addComment(
     content,
     isInternal,
   }).returning();
+  if (!comment) throw new Error("Failed to create comment");
 
   await db
     .update(tickets)

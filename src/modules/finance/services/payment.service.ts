@@ -1,13 +1,15 @@
-import {db} from "@/core/db";
-import {payments} from "@/core/db/schema/payments";
-import {units} from "@/core/db/schema/units";
-import {owners, ownerships} from "@/core/db/schema/owners";
-import {charges} from "@/core/db/schema/charges";
 import {and, desc, eq, inArray, sql} from "drizzle-orm";
+import {writeAuditLog} from "@/core/audit/audit.service";
+import {hasStaffRole} from "@/core/auth/permissions";
+import {db} from "@/core/db";
+import {charges} from "@/core/db/schema/charges";
+import {owners, ownerships} from "@/core/db/schema/owners";
+import {payments} from "@/core/db/schema/payments";
+import {tenants} from "@/core/db/schema/tenants";
+import {units} from "@/core/db/schema/units";
+import {AppError, ForbiddenError} from "@/core/errors/app-error";
 import {moneyToCents, sumMoneyCents} from "./money";
 
-import {writeAuditLog} from "@/core/audit/audit.service";
-import {AppError} from "@/core/errors/app-error";
 
 /** Domain error with a machine code; server actions translate codes via next-intl (ADR 0001). */
 export class PaymentError extends AppError {
@@ -164,6 +166,7 @@ export async function registerPayment(tenantId: string, input: RegisterPaymentIn
       confirmedBy: userId,
       })
       .returning();
+    if (!created) throw new Error("Failed to register payment");
 
     await writeAuditLog({
       tenantId,
@@ -388,4 +391,73 @@ export async function listPaymentsWithDetails(tenantId: string, limit?: number) 
     .orderBy(desc(payments.paymentDate));
 
   return await query.limit(Math.min(limit ?? 500, 500));
+}
+
+export type PaymentReceipt = {
+  id: string;
+  amount: string;
+  tariffPerSqm: string;
+  periodYear: number;
+  periodMonth: number;
+  paymentDate: Date;
+  paymentMethod: string;
+  referenceNo: string | null;
+  status: string;
+  notes: string | null;
+  ownerId: string;
+  ownerFullName: string;
+  unitNumber: string;
+  entrance: number;
+  floor: number;
+  area: string;
+  tenantName: string;
+  tenantAddress: string | null;
+  tenantPhone: string | null;
+};
+
+/** Single source of truth for the printable payment receipt: payment + unit + owner + tenant in one query. */
+export async function getPaymentReceipt(tenantId: string, paymentId: string): Promise<PaymentReceipt | null> {
+  const [row] = await db
+    .select({
+      id: payments.id,
+      amount: payments.amount,
+      tariffPerSqm: payments.tariffPerSqm,
+      periodYear: payments.periodYear,
+      periodMonth: payments.periodMonth,
+      paymentDate: payments.paymentDate,
+      paymentMethod: payments.paymentMethod,
+      referenceNo: payments.referenceNo,
+      status: payments.status,
+      notes: payments.notes,
+      ownerId: owners.id,
+      ownerFullName: owners.fullName,
+      unitNumber: units.unitNumber,
+      entrance: units.entrance,
+      floor: units.floor,
+      area: units.area,
+      tenantName: tenants.name,
+      tenantAddress: tenants.address,
+      tenantPhone: tenants.phone,
+    })
+    .from(payments)
+    .innerJoin(units, and(eq(units.id, payments.unitId), eq(units.tenantId, tenantId)))
+    .innerJoin(owners, and(eq(owners.id, payments.ownerId), eq(owners.tenantId, tenantId)))
+    .innerJoin(tenants, eq(tenants.id, tenantId))
+    .where(and(eq(payments.id, paymentId), eq(payments.tenantId, tenantId)))
+    .limit(1);
+
+  return row ?? null;
+}
+
+/** Staff may touch any payment; owners only their own. Shared by actions and the receipt page. */
+export async function requireOwnerPaymentAccess(
+  tenantId: string,
+  ownerId: string,
+  userId: string,
+  roles: Parameters<typeof hasStaffRole>[0],
+): Promise<void> {
+  if (hasStaffRole(roles)) return;
+  if (!await ownerBelongsToUser(tenantId, ownerId, userId)) {
+    throw new ForbiddenError("You can only manage your own payments");
+  }
 }

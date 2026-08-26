@@ -1,11 +1,11 @@
-import {requireTenantPermission} from "@/core/auth/session";
-import {getPermissionsForRoles, type Permission} from "@/core/auth/permissions";
-import {getBudget, getBudgetHistory, getBudgetItems, getMonthlyFeeIncome} from "@/modules/finance/services/budget.service";
-import {BudgetTable} from "./budget-table";
-import {BudgetCreateForm} from "./budget-create-form";
 import {Badge} from "@/components/ui/badge";
+import {getPermissionsForRoles, type Permission} from "@/core/auth/permissions";
+import {requireTenantPermission} from "@/core/auth/session";
+import {getBudget, getBudgetHistory, getBudgetItems, getMonthlyFeeIncome} from "@/modules/finance/services/budget.service";
 import {BudgetActions} from "./budget-actions";
+import {BudgetCreateForm} from "./budget-create-form";
 import {BudgetHistory} from "./budget-history";
+import {BudgetTable} from "./budget-table";
 
 const STATUS_LABELS: Record<string, string> = {
   draft: "Черновик",
@@ -87,7 +87,7 @@ export default async function BudgetPage() {
           </p>
         </div>
         <div className="surface-panel p-4">
-          <p className="text-xs text-muted-foreground">Баланс</p>
+          <p className="text-xs text-muted-foreground">Плановый баланс</p>
           <p className={`mt-1 text-xl font-semibold tabular-nums ${balance >= 0 ? "text-emerald-600" : "text-red-600"}`}>
             {balance >= 0 ? "+" : ""}{balance.toFixed(2)} ₼
           </p>

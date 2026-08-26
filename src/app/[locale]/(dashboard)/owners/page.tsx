@@ -1,13 +1,13 @@
+import {and, eq, ne, sql} from "drizzle-orm";
+import {getTranslations} from "next-intl/server";
+import {getPermissionsForRoles, hasStaffRole, type Permission} from "@/core/auth/permissions";
+import {requireTenantPermission} from "@/core/auth/session";
 import {db} from "@/core/db";
 import {owners, ownerships} from "@/core/db/schema/owners";
 import {units} from "@/core/db/schema/units";
 import {userRoles, users} from "@/core/db/schema/users";
-import {and, eq, ne, sql} from "drizzle-orm";
-import {OwnerTable} from "./owner-table";
-import {requireTenantPermission} from "@/core/auth/session";
-import {getPermissionsForRoles, hasStaffRole, type Permission} from "@/core/auth/permissions";
-import {getTranslations} from "next-intl/server";
 import {getOwnersDebtStatus} from "@/modules/finance/services/debt.service";
+import {OwnerTable} from "./owner-table";
 
 export default async function OwnersPage({
   searchParams,
@@ -73,7 +73,7 @@ export default async function OwnersPage({
         hasPaid: status?.hasPaidThisPeriod ?? false,
       };
     }
-    if (row.role) acc[row.id].roles.push(row.role);
+    if (row.role) acc[row.id]?.roles.push(row.role);
     return acc;
   }, {});
 

@@ -1,13 +1,13 @@
-import {db} from "@/core/db";
 import {and, desc, eq} from "drizzle-orm";
+import {getTranslations} from "next-intl/server";
+import {can} from "@/core/auth/can";
+import {getPermissionsForRoles, type Permission} from "@/core/auth/permissions";
+import {requireTenantPermission} from "@/core/auth/session";
+import {db} from "@/core/db";
 import {announcements} from "@/core/db/schema/announcements";
 import {users} from "@/core/db/schema/users";
-import {requireTenantPermission} from "@/core/auth/session";
-import {getPermissionsForRoles, type Permission} from "@/core/auth/permissions";
-import {can} from "@/core/auth/can";
-import {AnnouncementBoard} from "./announcement-board";
 import {AnnouncementCreateButton} from "@/modules/announcements/components/AnnouncementCreateButton";
-import {getTranslations} from "next-intl/server";
+import {AnnouncementBoard} from "./announcement-board";
 
 export default async function AnnouncementsPage() {
   const { session, tenantId } = await requireTenantPermission("announcement:read");

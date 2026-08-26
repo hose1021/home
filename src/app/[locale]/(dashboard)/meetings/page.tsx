@@ -1,11 +1,11 @@
+import {eq, inArray} from "drizzle-orm";
+import {getTranslations} from "next-intl/server";
+import {getPermissionsForRoles, type Permission} from "@/core/auth/permissions";
+import {requireTenantPermission} from "@/core/auth/session";
 import {db} from "@/core/db";
 import {meetingAgendas, meetings} from "@/core/db/schema/meetings";
-import {eq, inArray} from "drizzle-orm";
-import {MeetingTable} from "./meeting-table";
 import {MeetingAddButton} from "./meeting-add-button";
-import {requireTenantPermission} from "@/core/auth/session";
-import {getPermissionsForRoles, type Permission} from "@/core/auth/permissions";
-import {getTranslations} from "next-intl/server";
+import {MeetingTable} from "./meeting-table";
 
 export default async function MeetingsPage() {
   const { session, tenantId } = await requireTenantPermission("meeting:read");

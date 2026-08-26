@@ -1,9 +1,9 @@
 "use client";
 
-import {useState} from "react";
-import {createMeetingAction, updateMeetingAction} from "../meeting.actions";
-import {Button} from "@/components/ui/button";
 import {useTranslations} from "next-intl";
+import {useState} from "react";
+import {Button} from "@/components/ui/button";
+import {createMeetingAction, updateMeetingAction} from "../meeting.actions";
 
 type MeetingData = {
   id: string;

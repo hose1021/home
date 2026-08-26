@@ -1,8 +1,8 @@
 import {type NextRequest, NextResponse} from "next/server";
-import {authenticateUser, createSession} from "@/core/auth/auth";
-import {getSessionCookieName} from "@/core/auth/session";
 import {z} from "zod";
+import {authenticateUser, createSession} from "@/core/auth/auth";
 import {clearLoginFailures, isLoginRateLimited, recordLoginFailure} from "@/core/auth/login-rate-limit";
+import {getSessionCookieName} from "@/core/auth/session";
 
 const loginSchema = z.object({
   username: z.string().trim().min(1).max(100),

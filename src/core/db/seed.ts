@@ -1,6 +1,5 @@
 import "dotenv/config";
-import {db} from "./index";
-import {tenants} from "./schema/tenants";
+import {and, eq} from "drizzle-orm";
 import {
     buildings,
     managementMembers,
@@ -10,16 +9,17 @@ import {
     protocols,
     protocolSignatures
 } from "@/core/db/schema";
-import {units} from "./schema/units";
-import {owners, ownerships} from "./schema/owners";
-import {userRoles, users} from "./schema/users";
-import {funds} from "./schema/funds";
-import {charges, chargeTemplates} from "./schema/charges";
-import {votes, votingOptions, votings} from "./schema/votings";
-import {budgetItems, budgets} from "./schema/budgets";
-import {and, eq} from "drizzle-orm";
 import {createUser, hashPassword} from "../auth/auth";
 import type {Role} from "../auth/permissions";
+import {budgetItems, budgets} from "./schema/budgets";
+import {charges, chargeTemplates} from "./schema/charges";
+import {funds} from "./schema/funds";
+import {owners, ownerships} from "./schema/owners";
+import {tenants} from "./schema/tenants";
+import {units} from "./schema/units";
+import {userRoles, users} from "./schema/users";
+import {votes, votingOptions, votings} from "./schema/votings";
+import {db} from "./index";
 
 const SEED_TENANT_SLUG = process.env.SEED_TENANT_SLUG ?? "demo";
 const SEED_TENANT_NAME = process.env.SEED_TENANT_NAME ?? "Demo Residence";
@@ -56,10 +56,12 @@ async function seed() {
             name: SEED_TENANT_NAME,
             address: SEED_TENANT_ADDRESS
         }).returning();
+        if (!tenant) throw new Error("Tenant seed failed");
         console.log(`Tenant created: ${tenant.name}`);
     } else {
         console.log(`Tenant: ${tenant.name} — exists`);
     }
+    if (!tenant) throw new Error("Tenant seed failed");
 
     // ─── ADMIN USER ────────────────────────────────────────────
     let admin = (await db.select().from(users).where(eq(users.username, adminUsername)).limit(1))[0];
@@ -82,6 +84,7 @@ async function seed() {
             .where(eq(users.id, admin.id));
     }
     console.log(`Admin: ${adminUsername} / ${SEED_ADMIN_PASSWORD}`);
+    if (!admin) throw new Error("Admin seed failed");
 
     const [adminOwner] = await db
         .select()
@@ -113,6 +116,7 @@ async function seed() {
         }).returning();
         console.log("Building created");
     }
+    if (!building) throw new Error("Building seed failed");
 
     let allUnits = await db.select().from(units).where(eq(units.buildingId, building.id));
     if (allUnits.length === 0) {
@@ -143,6 +147,7 @@ async function seed() {
             username: `owner.${numberWord(index + 1)}`,
             passwordHash: demoPasswordHash,
         }).returning();
+        if (!user) throw new Error("User seed failed");
         await db
             .update(owners)
             .set({userId: user.id})
@@ -160,6 +165,7 @@ async function seed() {
                 password: SEED_OWNER_PASSWORD,
             });
             const [owner] = await db.select().from(owners).where(eq(owners.userId, user.id)).limit(1);
+            if (!owner) throw new Error("Owner seed failed");
             createdOwners.push(owner);
         }
     }
@@ -189,7 +195,7 @@ async function seed() {
         const propertyOwners = createdOwners.filter((owner) => ownerNames.includes(owner.fullName));
         createdOwnerships = await db.insert(ownerships).values(
             allUnits.map((u, i) => ({
-                tenantId: tenant.id, ownerId: propertyOwners[i % propertyOwners.length].id, unitId: u.id,
+                tenantId: tenant.id, ownerId: propertyOwners[i % propertyOwners.length]!.id, unitId: u.id,
                 registeredDate: "2024-01-15", isPrimary: true,
             })),
         ).returning();
@@ -210,10 +216,11 @@ async function seed() {
             const user = await createUser({
                 tenantId: tenant.id,
                 fullName: member.fullName,
-                username: managementUsernames[index],
+                username: managementUsernames[index]!,
                 password: SEED_OWNER_PASSWORD,
             });
             [owner] = await db.select().from(owners).where(eq(owners.userId, user.id)).limit(1);
+            if (!owner) throw new Error("Owner seed failed");
             createdOwners.push(owner);
         }
 
@@ -230,6 +237,7 @@ async function seed() {
                     registeredDate: "2024-01-15",
                     isPrimary: false,
                 }).returning();
+                if (!ownership) throw new Error("Ownership seed failed");
                 createdOwnerships.push(ownership);
             }
         }
@@ -333,7 +341,7 @@ async function seed() {
                 type: "monthly",
                 amount: "40.00",
                 calculation: "fixed_per_unit",
-                fundId: createdFunds[0].id
+                fundId: createdFunds[0]!.id
             },
             {
                 tenantId: tenant.id,
@@ -341,7 +349,7 @@ async function seed() {
                 type: "monthly",
                 amount: "100.00",
                 calculation: "fixed_per_unit",
-                fundId: createdFunds[0].id
+                fundId: createdFunds[0]!.id
             },
             {
                 tenantId: tenant.id,
@@ -349,7 +357,7 @@ async function seed() {
                 type: "monthly",
                 amount: "30.00",
                 calculation: "fixed_per_unit",
-                fundId: createdFunds[2].id
+                fundId: createdFunds[2]!.id
             },
             {
                 tenantId: tenant.id,
@@ -357,7 +365,7 @@ async function seed() {
                 type: "monthly",
                 amount: "120.00",
                 calculation: "fixed_per_unit",
-                fundId: createdFunds[0].id
+                fundId: createdFunds[0]!.id
             },
         ]).returning();
         console.log(`Created ${templates.length} charge templates`);
@@ -399,7 +407,7 @@ async function seed() {
                         amount: tpl.amount, periodYear: period.year, periodMonth: period.month,
                         dueDate: period.due, status: period.month < 7 ? "paid" : "pending", createdBy: admin.id,
                     }).returning();
-                    rows.push(created[0]);
+                    rows.push(created[0]!);
                 }
             }
         }
@@ -419,7 +427,7 @@ async function seed() {
                 paymentDate: new Date(c.dueDate),
                 paymentMethod: "bank_transfer", status: "confirmed", confirmedBy: admin.id,
             }).returning();
-            rows.push(created[0]);
+            rows.push(created[0]!);
         }
         createdPayments = rows;
         console.log(`Created ${createdPayments.length} payments`);
@@ -434,6 +442,7 @@ async function seed() {
             proposedDate: new Date("2026-03-15"), actualDate: new Date("2026-03-20"),
             location: building.address, chairmanId: admin.id, secretaryId: admin.id, createdBy: admin.id,
         }).returning();
+        if (!meeting) throw new Error("Meeting seed failed");
         console.log("Meeting: İllik ümumi yığıncaq — 2026");
 
         await db.insert(meetingAgendas).values([
@@ -455,6 +464,8 @@ async function seed() {
             quorumRequired: "50.00", quorumAchieved: "85.00",
             supermajority: false, maxVotesPerOwner: 1, createdBy: admin.id,
         }).returning();
+        if (!voting) throw new Error("Voting seed failed");
+        const seededVoting = voting;
         console.log("Voting: 2026 büdcə səsverməsi");
 
         const opts = await db.insert(votingOptions).values([
@@ -469,8 +480,8 @@ async function seed() {
 
         await db.insert(votes).values(
             ownerVotes.map((ownership, i) => ({
-                votingId: voting.id,
-                optionId: i < 8 ? opts[0].id : i < 9 ? opts[1].id : opts[2].id,
+                votingId: seededVoting.id,
+                optionId: i < 8 ? opts[0]!.id : i < 9 ? opts[1]!.id : opts[2]!.id,
                 ownerId: ownership.ownerId, unitId: ownership.unitId, voteWeight: "1.00",
                 votedBy: admin.id,
             })),
@@ -490,6 +501,7 @@ async function seed() {
             }),
             createdBy: admin.id, signedAt: new Date("2026-03-20"),
         }).returning();
+        if (!protocol) throw new Error("Protocol seed failed");
         console.log("Protocol created");
 
         await db.insert(protocolSignatures).values({
@@ -508,6 +520,7 @@ async function seed() {
             totalIncome: "10000.00", totalExpense: "10000.00",
             approvedBy: admin.id, approvedAt: new Date("2026-03-20"),
         }).returning();
+        if (!budget) throw new Error("Budget seed failed");
         console.log("Budget 2026 created");
 
         await db.insert(budgetItems).values([

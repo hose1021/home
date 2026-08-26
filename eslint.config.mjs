@@ -1,6 +1,7 @@
 import {defineConfig, globalIgnores} from "eslint/config";
 import nextVitals from "eslint-config-next/core-web-vitals";
 import nextTs from "eslint-config-next/typescript";
+import importPlugin from "eslint-plugin-import";
 
 const eslintConfig = defineConfig([
   ...nextVitals,
@@ -11,6 +12,18 @@ const eslintConfig = defineConfig([
       "@typescript-eslint/consistent-type-imports": [
         "warn",
         { prefer: "type-imports", fixStyle: "inline-type-imports" },
+      ],
+    },
+  },
+  {
+    plugins: { import: importPlugin },
+    rules: {
+      "import/order": [
+        "warn",
+        {
+          groups: ["builtin", "external", "internal", "parent", "sibling", "index"],
+          alphabetize: { order: "asc", caseInsensitive: true },
+        },
       ],
     },
   },

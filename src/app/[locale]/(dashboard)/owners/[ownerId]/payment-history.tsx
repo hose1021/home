@@ -1,11 +1,9 @@
 "use client";
 
-import {useState} from "react";
+import {IconCheck, IconCash, IconPrinter} from "@tabler/icons-react";
 import {useLocale, useTranslations} from "next-intl";
+import {useState} from "react";
 import {toast} from "sonner";
-import {refundPaymentAction} from "./pay-action";
-import {Button} from "@/components/ui/button";
-import {IconCheck, IconCash} from "@tabler/icons-react";
 import {
     AlertDialog,
     AlertDialogAction,
@@ -17,7 +15,10 @@ import {
     AlertDialogTitle,
     AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import {Button} from "@/components/ui/button";
+import {Link} from "@/i18n/navigation";
 import {monthName} from "./month-row";
+import {refundPaymentAction} from "./pay-action";
 
 export type PaymentRecord = {
   id: string;
@@ -83,6 +84,16 @@ export function PaymentHistory({
               {p.status === "refunded" && (<><span className="mx-1">·</span>{tp("refundedStatus")}</>)}
             </div>
           </div>
+          {p.status === "confirmed" && (
+            <Link
+              href={`/receipt/${p.id}`}
+              className="inline-flex size-8 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted/25 hover:text-foreground"
+              aria-label={tp("receiptAria")}
+              title={tp("receiptAria")}
+            >
+              <IconPrinter className="size-4" />
+            </Link>
+          )}
           {canEdit && p.status === "confirmed" && (
             <AlertDialog>
               <AlertDialogTrigger render={

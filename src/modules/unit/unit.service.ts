@@ -1,8 +1,8 @@
-import {db} from "@/core/db";
-import {units} from "@/core/db/schema/units";
-import {owners, ownerships} from "@/core/db/schema/owners";
 import {and, eq, ne, sql} from "drizzle-orm";
 import {writeAuditLog} from "@/core/audit/audit.service";
+import {db} from "@/core/db";
+import {owners, ownerships} from "@/core/db/schema/owners";
+import {units} from "@/core/db/schema/units";
 
 export async function getUnitById(tenantId: string, id: string) {
   const [u] = await db
@@ -32,6 +32,7 @@ export async function createUnit(tenantId: string, buildingId: string, input: {
   const [u] = await db.insert(units).values({
     tenantId, buildingId, ...input,
   }).returning();
+  if (!u) throw new Error("Failed to create unit");
 
   await writeAuditLog({
     tenantId,

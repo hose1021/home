@@ -1,10 +1,10 @@
 import {decimal, integer, pgTable, text, timestamp, uuid, varchar} from "drizzle-orm/pg-core";
-import {tenants} from "./tenants";
 import {charges} from "./charges";
-import {units} from "./units";
 import {owners} from "./owners";
-import {users} from "./users";
+import {tenants} from "./tenants";
 import {transactions} from "./transactions";
+import {units} from "./units";
+import {users} from "./users";
 
 export const payments = pgTable("payments", {
   id: uuid("id").defaultRandom().primaryKey(),

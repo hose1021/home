@@ -1,7 +1,7 @@
 "use client";
 
 import {useState} from "react";
-import {Dialog, DialogContent, DialogHeader, DialogTitle} from "@/components/ui/dialog";
+import {toast} from "sonner";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -12,8 +12,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import {toast} from "sonner";
 import {Button} from "@/components/ui/button";
+import {Dialog, DialogContent, DialogHeader, DialogTitle} from "@/components/ui/dialog";
 import {
   Table,
   TableBody,
@@ -125,6 +125,7 @@ export function BudgetTable({
       await updateBudgetItemAction(budgetId, editItem.id, {
         plannedAmount: fd.get("plannedAmount") as string,
         notes: (fd.get("notes") as string) || undefined,
+        actualAmount: editItem.accountCode === "4010" ? undefined : ((fd.get("actualAmount") as string) || undefined),
       });
       setEditItem(null);
       toast.success("Статья обновлена");
@@ -268,6 +269,12 @@ export function BudgetTable({
                 <label className="block text-sm font-medium">Плановая сумма (₼)</label>
                 <input name="plannedAmount" type="number" step="0.01" min="0" defaultValue={editItem.plannedAmount} required className="mt-1 block w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900" />
               </div>
+              {editItem.accountCode !== "4010" && (
+                <div>
+                  <label className="block text-sm font-medium">Факт (₼)</label>
+                  <input name="actualAmount" type="number" step="0.01" min="0" defaultValue={editItem.actualAmount} className="mt-1 block w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900" />
+                </div>
+              )}
               <div>
                 <label className="block text-sm font-medium">Примечание</label>
                 <input name="notes" defaultValue={editItem.notes ?? ""} className="mt-1 block w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900" />

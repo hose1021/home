@@ -1,10 +1,10 @@
 "use client";
 
+import {IconCalculator} from "@tabler/icons-react";
 import {useState} from "react";
-import {createBudgetAction} from "@/modules/finance/budget.actions";
 import {Button} from "@/components/ui/button";
 import {Card, CardContent} from "@/components/ui/card";
-import {IconCalculator} from "@tabler/icons-react";
+import {createBudgetAction} from "@/modules/finance/budget.actions";
 
 export function BudgetCreateForm() {
   const [pending, setPending] = useState(false);

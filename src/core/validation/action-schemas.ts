@@ -47,4 +47,6 @@ export const budgetItemSchema = z.object({
   plannedAmount: moneySchema,
   notes: z.string().trim().max(2000).optional(),
 });
-export const budgetItemUpdateSchema = budgetItemSchema.partial();
+export const budgetItemUpdateSchema = budgetItemSchema.partial().extend({
+  actualAmount: moneySchema.optional(),
+});

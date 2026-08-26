@@ -2,9 +2,9 @@
 
 import {revalidatePath} from "next/cache";
 import {requirePlatformPermission, requireTenantMutation} from "@/core/auth/session";
+import {uuidSchema} from "@/core/validation/action-schemas";
 import {createTenant, deactivateTenant, updateTenant} from "./tenant.service";
 import {createTenantSchema, updateTenantSchema} from "./tenant.validators";
-import {uuidSchema} from "@/core/validation/action-schemas";
 
 export async function createTenantAction(input: {
   slug: string;

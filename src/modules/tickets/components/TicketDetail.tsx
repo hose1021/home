@@ -1,14 +1,14 @@
 "use client";
 
+import {useTranslations} from "next-intl";
 import {useState} from "react";
 import {toast} from "sonner";
+import {Badge} from "@/components/ui/badge";
+import {Button} from "@/components/ui/button";
+import {Textarea} from "@/components/ui/textarea";
+import {Link} from "@/i18n/navigation";
 import {addCommentAction, changeTicketStatusAction, deleteTicketAction, rejectTicketAction,} from "../ticket.actions";
 import type {TicketStatus} from "../ticket.service";
-import {Button} from "@/components/ui/button";
-import {Badge} from "@/components/ui/badge";
-import {Textarea} from "@/components/ui/textarea";
-import {useTranslations} from "next-intl";
-import {Link} from "@/i18n/navigation";
 
 type Comment = {
   id: string;

@@ -1,7 +1,7 @@
-import {db} from "@/core/db";
-import {tenants} from "@/core/db/schema/tenants";
 import {eq} from "drizzle-orm";
 import {writeAuditLog} from "@/core/audit/audit.service";
+import {db} from "@/core/db";
+import {tenants} from "@/core/db/schema/tenants";
 import {invalidateTenantCache} from "@/core/multi-tenant";
 
 type CreateTenantInput = {
@@ -27,6 +27,7 @@ export async function createTenant(input: CreateTenantInput, userId: string) {
       phone: input.phone ?? null,
     })
     .returning();
+  if (!tenant) throw new Error("Failed to create tenant");
 
   await writeAuditLog({
     tenantId: tenant.id,

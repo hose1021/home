@@ -1,5 +1,7 @@
 "use client";
 
+import {IconBuildingCommunity} from "@tabler/icons-react";
+import Image from "next/image";
 import Link from "next/link";
 import {
     Sidebar,
@@ -10,13 +12,11 @@ import {
     SidebarMenuButton,
     SidebarMenuItem,
 } from "@/components/ui/sidebar";
-import {NavMain} from "./nav-main";
+import type {Permission} from "@/core/auth/permissions";
 import {NavDocuments} from "./nav-documents";
+import {NavMain} from "./nav-main";
 import {NavSecondary} from "./nav-secondary";
 import {NavUser} from "./nav-user";
-import {IconBuildingCommunity} from "@tabler/icons-react";
-import Image from "next/image";
-import type {Permission} from "@/core/auth/permissions";
 
 export function AppSidebar({
   tenantName,

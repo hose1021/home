@@ -1,7 +1,8 @@
 "use client";
 
+import {IconSearch, IconX} from "@tabler/icons-react";
 import {useMemo, useState} from "react";
-import {Dialog, DialogContent, DialogHeader, DialogTitle,} from "@/components/ui/dialog";
+import {toast} from "sonner";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -12,14 +13,13 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import {toast} from "sonner";
+import {Badge} from "@/components/ui/badge";
 import {Button} from "@/components/ui/button";
+import {Dialog, DialogContent, DialogHeader, DialogTitle,} from "@/components/ui/dialog";
 import {Input} from "@/components/ui/input";
 import {Label} from "@/components/ui/label";
-import {Badge} from "@/components/ui/badge";
-import {IconSearch, IconX} from "@tabler/icons-react";
-import {createUnitAction, updateUnitAction, deleteUnitAction, listOwnersAction} from "@/modules/unit/unit.actions";
 import {assignExistingUnitAction, removeUnitFromOwnerAction} from "@/modules/owner/owner.actions";
+import {createUnitAction, updateUnitAction, deleteUnitAction, listOwnersAction} from "@/modules/unit/unit.actions";
 
 const TYPE_LABELS: Record<string, string> = {
   residential: "Жилая",

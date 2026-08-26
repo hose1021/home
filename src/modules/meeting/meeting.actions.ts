@@ -1,13 +1,13 @@
 "use server";
 
+import {eq} from "drizzle-orm";
 import {revalidatePath} from "next/cache";
+import {z} from "zod";
 import {requireTenantPermission} from "@/core/auth/session";
-import {createMeeting, deleteMeeting, updateMeeting} from "./meeting.service";
 import {db} from "@/core/db";
 import {meetingAgendas} from "@/core/db/schema/meetings";
-import {eq} from "drizzle-orm";
 import {uuidSchema} from "@/core/validation/action-schemas";
-import {z} from "zod";
+import {createMeeting, deleteMeeting, updateMeeting} from "./meeting.service";
 
 const meetingInputSchema = z.object({
   title: z.string().trim().min(1).max(255),

@@ -1,4 +1,4 @@
-import {date, pgTable, timestamp, uuid, varchar} from "drizzle-orm/pg-core";
+import {date, foreignKey, pgTable, timestamp, uuid, varchar} from "drizzle-orm/pg-core";
 import {tenants} from "./tenants";
 import {units} from "./units";
 
@@ -14,4 +14,10 @@ export const residents = pgTable("residents", {
   movedInAt: date("moved_in_at").notNull(),
   movedOutAt: date("moved_out_at"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-});
+}, (table) => ({
+  tenantUnitForeignKey: foreignKey({
+    columns: [table.tenantId, table.unitId],
+    foreignColumns: [units.tenantId, units.id],
+    name: "fk_residents_tenant_unit",
+  }),
+}));

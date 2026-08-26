@@ -1,11 +1,11 @@
 "use client";
 
-import {useState} from "react";
 import {useLocale, useTranslations} from "next-intl";
-import {Dialog, DialogContent, DialogHeader, DialogTitle} from "@/components/ui/dialog";
+import {useState} from "react";
 import {toast} from "sonner";
-import {registerPaymentAction} from "@/modules/finance/finance.actions";
 import {Button} from "@/components/ui/button";
+import {Dialog, DialogContent, DialogHeader, DialogTitle} from "@/components/ui/dialog";
+import {registerPaymentAction} from "@/modules/finance/finance.actions";
 import {monthName} from "./month-row";
 
 const METHODS = ["cash", "bank_transfer", "card", "e_manat", "pos_terminal"] as const;

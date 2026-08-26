@@ -1,7 +1,7 @@
 "use client";
 
 import {useState} from "react";
-import {Dialog, DialogContent, DialogHeader, DialogTitle} from "@/components/ui/dialog";
+import {toast} from "sonner";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -12,10 +12,10 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import {toast} from "sonner";
 import {Button} from "@/components/ui/button";
-import {updateUnitAction} from "@/modules/unit/unit.actions";
+import {Dialog, DialogContent, DialogHeader, DialogTitle} from "@/components/ui/dialog";
 import {removeUnitFromOwnerAction} from "@/modules/owner/owner.actions";
+import {updateUnitAction} from "@/modules/unit/unit.actions";
 
 type UnitData = {
   id: string;

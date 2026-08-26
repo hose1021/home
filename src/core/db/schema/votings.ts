@@ -11,9 +11,9 @@ import {
     uuid,
     varchar
 } from "drizzle-orm/pg-core";
-import {tenants} from "./tenants";
 import {meetings} from "./meetings";
 import {owners} from "./owners";
+import {tenants} from "./tenants";
 import {units} from "./units";
 import {users} from "./users";
 

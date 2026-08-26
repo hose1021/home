@@ -2,8 +2,8 @@
 
 import {useState} from "react";
 import {toast} from "sonner";
-import {updateSettingsAction} from "@/modules/settings/settings.actions";
 import {Button} from "@/components/ui/button";
+import {updateSettingsAction} from "@/modules/settings/settings.actions";
 
 type TenantData = {
   name: string;

@@ -1,7 +1,7 @@
-import {db} from "@/core/db";
-import {announcements} from "@/core/db/schema/announcements";
 import {and, desc, eq, ne} from "drizzle-orm";
 import {writeAuditLog} from "@/core/audit/audit.service";
+import {db} from "@/core/db";
+import {announcements} from "@/core/db/schema/announcements";
 import {DomainError} from "@/core/errors/app-error";
 
 type CreateInput = {
@@ -72,6 +72,7 @@ export async function createAnnouncement(tenantId: string, userId: string, input
     isPinned: input.isPinned ?? false,
     isDashboard: input.isDashboard ?? false,
   }).returning();
+  if (!a) throw new Error("Failed to create announcement");
 
   await writeAuditLog({
     tenantId, userId,

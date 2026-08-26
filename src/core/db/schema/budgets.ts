@@ -1,4 +1,4 @@
-import {decimal, integer, pgTable, text, timestamp, uuid, varchar} from "drizzle-orm/pg-core";
+import {decimal, integer, pgTable, text, timestamp, unique, uuid, varchar} from "drizzle-orm/pg-core";
 import {tenants} from "./tenants";
 import {users} from "./users";
 
@@ -13,7 +13,7 @@ export const budgets = pgTable("budgets", {
   approvedAt: timestamp("approved_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 }, (table) => ({
-  tenantYearUnique: { columns: [table.tenantId, table.year], name: "uq_budgets_tenant_year" },
+  tenantYearUnique: unique("uq_budgets_tenant_year").on(table.tenantId, table.year),
 }));
 
 export const budgetItems = pgTable("budget_items", {

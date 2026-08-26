@@ -2,6 +2,7 @@
 
 import {revalidatePath} from "next/cache";
 import {requireTenantPermission} from "@/core/auth/session";
+import {budgetItemSchema, budgetItemUpdateSchema, budgetYearSchema, uuidSchema} from "@/core/validation/action-schemas";
 import {
   createBudget,
   addBudgetItem,
@@ -9,7 +10,6 @@ import {
   deleteBudgetItem,
   updateBudgetStatus,
 } from "./services/budget.service";
-import {budgetItemSchema, budgetItemUpdateSchema, budgetYearSchema, uuidSchema} from "@/core/validation/action-schemas";
 
 export async function createBudgetAction(year: number) {
   year = budgetYearSchema.parse(year);
@@ -51,6 +51,7 @@ export async function addBudgetItemAction(budgetId: string, input: {
 export async function updateBudgetItemAction(budgetId: string, itemId: string, input: {
   plannedAmount?: string;
   notes?: string;
+  actualAmount?: string;
 }) {
   budgetId = uuidSchema.parse(budgetId);
   itemId = uuidSchema.parse(itemId);

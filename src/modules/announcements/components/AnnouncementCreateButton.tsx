@@ -1,11 +1,11 @@
 "use client";
 
+import {IconBellPlus} from "@tabler/icons-react";
+import {useTranslations} from "next-intl";
 import {useState} from "react";
+import {Button} from "@/components/ui/button";
 import {Dialog, DialogContent, DialogHeader, DialogTitle} from "@/components/ui/dialog";
 import {AnnouncementForm} from "@/modules/announcements/components/AnnouncementForm";
-import {IconBellPlus} from "@tabler/icons-react";
-import {Button} from "@/components/ui/button";
-import {useTranslations} from "next-intl";
 
 export function AnnouncementCreateButton() {
   const t = useTranslations("announcements");

@@ -1,7 +1,8 @@
 "use client";
 
+import {IconBell, IconEdit, IconPin, IconTrash} from "@tabler/icons-react";
+import {useTranslations} from "next-intl";
 import {useState} from "react";
-import {Dialog, DialogContent, DialogHeader, DialogTitle,} from "@/components/ui/dialog";
 import {
     AlertDialog,
     AlertDialogAction,
@@ -12,12 +13,11 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import {AnnouncementForm} from "@/modules/announcements/components/AnnouncementForm";
-import {deleteAnnouncementAction} from "@/modules/announcements/announcement.actions";
-import {IconBell, IconEdit, IconPin, IconTrash} from "@tabler/icons-react";
 import {Badge} from "@/components/ui/badge";
 import {Button} from "@/components/ui/button";
-import {useTranslations} from "next-intl";
+import {Dialog, DialogContent, DialogHeader, DialogTitle,} from "@/components/ui/dialog";
+import {deleteAnnouncementAction} from "@/modules/announcements/announcement.actions";
+import {AnnouncementForm} from "@/modules/announcements/components/AnnouncementForm";
 
 type Announcement = {
   id: string;

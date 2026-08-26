@@ -1,9 +1,9 @@
 import {and, eq, inArray, sql} from "drizzle-orm";
+import {getBillingStartDate, getTariffPerSqm} from "@/core/config";
 import {db} from "@/core/db";
 import {ownerships} from "@/core/db/schema/owners";
-import {units} from "@/core/db/schema/units";
 import {payments} from "@/core/db/schema/payments";
-import {getBillingStartDate, getTariffPerSqm} from "@/core/config";
+import {units} from "@/core/db/schema/units";
 
 export type BillingPeriod = {year: number; month: number};
 
@@ -24,8 +24,8 @@ export function getDebtConfig(): DebtConfig {
 /** Enumerate billing periods from billing start through `now`'s month. Pure. */
 export function buildPeriods(billingStart: string, now: Date = new Date()): BillingPeriod[] {
   const [startYearRaw, startMonthRaw] = billingStart.split("-").map(Number);
-  const startYear = Number.isFinite(startYearRaw) ? startYearRaw : now.getFullYear();
-  const startMonth = Number.isFinite(startMonthRaw) ? Math.min(Math.max(startMonthRaw, 1), 12) : 1;
+  const startYear = startYearRaw !== undefined && Number.isFinite(startYearRaw) ? startYearRaw : now.getFullYear();
+  const startMonth = startMonthRaw !== undefined && Number.isFinite(startMonthRaw) ? Math.min(Math.max(startMonthRaw, 1), 12) : 1;
   const periods: BillingPeriod[] = [];
   for (let y = startYear; y <= now.getFullYear(); y++) {
     const mFrom = y === startYear ? startMonth : 1;

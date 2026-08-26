@@ -1,8 +1,8 @@
 import {boolean, date, decimal, integer, pgTable, timestamp, unique, uuid, varchar} from "drizzle-orm/pg-core";
+import {funds} from "./funds";
+import {owners} from "./owners";
 import {tenants} from "./tenants";
 import {units} from "./units";
-import {owners} from "./owners";
-import {funds} from "./funds";
 import {users} from "./users";
 
 export const chargeTemplates = pgTable("charge_templates", {

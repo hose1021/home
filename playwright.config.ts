@@ -12,8 +12,9 @@ export default defineConfig({
   },
   projects: [{name: "chromium", use: {...devices["Desktop Chrome"]}}],
   webServer: process.env.PLAYWRIGHT_BASE_URL ? undefined : {
-    command: "bun run dev",
+    command: "npm run dev",
     url: "http://127.0.0.1:3000",
+    timeout: 120_000,
     reuseExistingServer: !process.env.CI,
   },
 });

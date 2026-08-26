@@ -155,6 +155,20 @@
       "when": 1785060100000,
       "tag": "0021_drop_debts",
       "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1787745510920,
+      "tag": "0022_woozy_sharon_carter",
+      "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1787745644791,
+      "tag": "0023_lethal_iron_monger",
+      "breakpoints": true
     }
   ]
 }

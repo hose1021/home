@@ -1,16 +1,16 @@
 import {and, desc, eq, inArray, sql} from "drizzle-orm";
 import {db} from "@/core/db";
-import {charges} from "@/core/db/schema/charges";
-import {payments} from "@/core/db/schema/payments";
-import {owners, ownerships} from "@/core/db/schema/owners";
-import {units} from "@/core/db/schema/units";
-import {funds} from "@/core/db/schema/funds";
 import {auditLogs} from "@/core/db/schema/audit-logs";
+import {charges} from "@/core/db/schema/charges";
+import {funds} from "@/core/db/schema/funds";
+import {owners, ownerships} from "@/core/db/schema/owners";
+import {payments} from "@/core/db/schema/payments";
+import {units} from "@/core/db/schema/units";
 import {users} from "@/core/db/schema/users";
+import {isExpenseCode, isIncomeCode} from "@/modules/finance/constants";
 import {getBudget, getBudgetItems} from "@/modules/finance/services/budget.service";
 import {buildPeriods, getDebtConfig, unitDebt, type DebtConfig} from "@/modules/finance/services/debt.service";
 import {formatMoney, moneyToCents} from "@/modules/finance/services/money";
-import {isExpenseCode, isIncomeCode} from "@/modules/finance/constants";
 
 const DEBT_STATUSES = ["pending", "partially_paid", "overdue"] as const;
 
@@ -245,7 +245,7 @@ export async function getDebtAgingReport(tenantId: string) {
     const due = new Date(`${row.dueDate}T00:00:00`).getTime();
     const days = Math.floor((now - due) / dayMs);
     const cents = moneyToCents(row.amount);
-    const bucket = days <= 0 ? buckets[0] : days <= 30 ? buckets[1] : days <= 90 ? buckets[2] : buckets[3];
+    const bucket = days <= 0 ? buckets[0]! : days <= 30 ? buckets[1]! : days <= 90 ? buckets[2]! : buckets[3]!;
     bucket.total += cents;
     bucket.count += 1;
   }

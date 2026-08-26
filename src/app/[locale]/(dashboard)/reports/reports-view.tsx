@@ -1,7 +1,7 @@
 "use client";
 
-import {Tabs, TabsContent, TabsList, TabsTrigger} from "@/components/ui/tabs";
 import {Badge} from "@/components/ui/badge";
+import {Tabs, TabsContent, TabsList, TabsTrigger} from "@/components/ui/tabs";
 
 const MONTHS = ["", "Янв", "Фев", "Мар", "Апр", "Май", "Июн", "Июл", "Авг", "Сен", "Окт", "Ноя", "Дек"];
 
@@ -102,7 +102,7 @@ export function ReportsView({
             <p className="mt-1 text-xl font-semibold tabular-nums text-red-600">{incomeExpense.totalExpense} ₼</p>
           </div>
           <div className="surface-panel p-4">
-            <p className="text-xs text-muted-foreground">Баланс</p>
+            <p className="text-xs text-muted-foreground">Фактический баланс</p>
             <p className={`mt-1 text-xl font-semibold tabular-nums ${Number(incomeExpense.balance) >= 0 ? "text-emerald-600" : "text-red-600"}`}>{incomeExpense.balance} ₼</p>
           </div>
         </div>
@@ -170,7 +170,7 @@ export function ReportsView({
                   <Badge variant="secondary">{FUND_TYPE_LABELS[fund.type] ?? fund.type}</Badge>
                 </div>
                 <div className="mt-3 flex items-end justify-between text-sm">
-                  <span className="text-muted-foreground">Баланс</span>
+                  <span className="text-muted-foreground">Баланс фонда</span>
                   <span className="text-lg font-bold tabular-nums">{fund.current} ₼</span>
                 </div>
                 {fund.target && fund.filledPercent !== null && (

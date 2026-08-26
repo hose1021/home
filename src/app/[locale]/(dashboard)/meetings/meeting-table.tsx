@@ -1,7 +1,9 @@
 "use client";
 
+import {IconCalendarEvent} from "@tabler/icons-react";
+import {useTranslations} from "next-intl";
 import {useState} from "react";
-import {Dialog, DialogContent, DialogHeader, DialogTitle,} from "@/components/ui/dialog";
+import {toast} from "sonner";
 import {
     AlertDialog,
     AlertDialogAction,
@@ -12,13 +14,11 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import {toast} from "sonner";
+import {Badge} from "@/components/ui/badge";
+import {Button} from "@/components/ui/button";
+import {Dialog, DialogContent, DialogHeader, DialogTitle,} from "@/components/ui/dialog";
 import {MeetingForm} from "@/modules/meeting/components/MeetingForm";
 import {deleteMeetingAction} from "@/modules/meeting/meeting.actions";
-import {Button} from "@/components/ui/button";
-import {Badge} from "@/components/ui/badge";
-import {IconCalendarEvent} from "@tabler/icons-react";
-import {useTranslations} from "next-intl";
 
 type Agenda = { id: string; title: string; description: string | null; sortOrder: number };
 type Meeting = {

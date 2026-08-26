@@ -1,8 +1,8 @@
-import {requireTenantPermission} from "@/core/auth/session";
+import {getTranslations} from "next-intl/server";
 import {getPermissionsForRoles, type Permission} from "@/core/auth/permissions";
+import {requireTenantPermission} from "@/core/auth/session";
 import {listUnitsWithOwners} from "@/modules/unit/unit.service";
 import {UnitsTable} from "./units-table";
-import {getTranslations} from "next-intl/server";
 
 export default async function UnitsPage() {
   const t = await getTranslations("units");

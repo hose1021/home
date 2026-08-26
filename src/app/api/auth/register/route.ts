@@ -1,11 +1,11 @@
+import {and, eq} from "drizzle-orm";
 import {type NextRequest, NextResponse} from "next/server";
+import {z} from "zod";
 import {createSession, createUser} from "@/core/auth/auth";
 import {getSessionCookieName} from "@/core/auth/session";
 import {getTenantSlug} from "@/core/config";
 import {db} from "@/core/db";
 import {tenants} from "@/core/db/schema/tenants";
-import {and, eq} from "drizzle-orm";
-import {z} from "zod";
 
 const registrationSchema = z.object({
   username: z.string().trim().min(3).max(100).regex(/^\p{L}+\.\p{L}+$/u),

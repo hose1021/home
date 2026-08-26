@@ -1,16 +1,14 @@
 "use server";
 
 import {revalidatePath} from "next/cache";
-import {requireTenantPermission} from "@/core/auth/session";
-import {generateMonthlyCharges} from "./services/charge.service";
-import {markChargePaidIfSettled, ownerBelongsToUser, registerPayment} from "./services/payment.service";
-import {db} from "@/core/db";
-import {funds} from "@/core/db/schema/funds";
-import {writeAuditLog} from "@/core/audit/audit.service";
+import {z} from "zod";
 import {hasStaffRole} from "@/core/auth/permissions";
+import {requireTenantPermission} from "@/core/auth/session";
 import {ForbiddenError} from "@/core/errors/app-error";
 import {moneySchema, paymentInputSchema, uuidSchema} from "@/core/validation/action-schemas";
-import {z} from "zod";
+import {generateMonthlyCharges} from "./services/charge.service";
+import {createFund, topUpFund} from "./services/fund.service";
+import {markChargePaidIfSettled, ownerBelongsToUser, registerPayment} from "./services/payment.service";
 
 const chargeInputSchema = z.object({
   templateId: uuidSchema,
@@ -71,6 +69,8 @@ export async function markChargePaidAction(chargeId: string) {
   return { success: true };
 }
 
+const fundTopUpSchema = z.object({ fundId: uuidSchema, amount: moneySchema });
+
 export async function createFundAction(input: {
   name: string;
   type: "reserve" | "repair" | "improvement" | "emergency" | "other";
@@ -79,29 +79,15 @@ export async function createFundAction(input: {
 }) {
   input = fundInputSchema.parse(input);
   const { session, tenantId } = await requireTenantPermission("fund:write");
-  const name = input.name.trim();
-  if (!name) throw new Error("Fund name is required");
-  if (input.targetAmount !== undefined) {
-    const targetAmount = Number(input.targetAmount);
-    if (!Number.isFinite(targetAmount) || targetAmount < 0) throw new Error("Invalid target amount");
-  }
-  const [fund] = await db.insert(funds).values({
-    tenantId,
-    name,
-    type: input.type,
-    description: input.description ?? null,
-    targetAmount: input.targetAmount ?? null,
-  }).returning();
+  await createFund(tenantId, input, session.user.id);
+  revalidatePath("/finance");
+  return { success: true };
+}
 
-  await writeAuditLog({
-    tenantId,
-    userId: session.user.id,
-    action: "create",
-    entityType: "fund",
-    entityId: fund.id,
-    newValues: input as unknown as Record<string, unknown>,
-  });
-
+export async function topUpFundAction(input: { fundId: string; amount: string }) {
+  input = fundTopUpSchema.parse(input);
+  const { session, tenantId } = await requireTenantPermission("fund:write");
+  await topUpFund(tenantId, input.fundId, input.amount, session.user.id);
   revalidatePath("/finance");
   return { success: true };
 }

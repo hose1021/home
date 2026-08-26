@@ -2,9 +2,9 @@
 
 import {useState} from "react";
 import {toast} from "sonner";
-import {createCommandantAction, updateCommandantAction} from "@/modules/commandants/commandant.actions";
 import {Button} from "@/components/ui/button";
 import {Dialog, DialogContent, DialogHeader, DialogTitle} from "@/components/ui/dialog";
+import {createCommandantAction, updateCommandantAction} from "@/modules/commandants/commandant.actions";
 
 export type CommandantRow = {
   id: string;

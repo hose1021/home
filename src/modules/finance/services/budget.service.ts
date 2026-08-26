@@ -1,11 +1,12 @@
-import {db} from "@/core/db";
-import {budgetItems, budgets} from "@/core/db/schema/budgets";
-import {payments} from "@/core/db/schema/payments";
-import {auditLogs} from "@/core/db/schema/audit-logs";
-import {users} from "@/core/db/schema/users";
 import {and, eq, desc, inArray, sum} from "drizzle-orm";
 import {writeAuditLog} from "@/core/audit/audit.service";
+import {db} from "@/core/db";
+import {auditLogs} from "@/core/db/schema/audit-logs";
+import {budgetItems, budgets} from "@/core/db/schema/budgets";
+import {payments} from "@/core/db/schema/payments";
+import {users} from "@/core/db/schema/users";
 import {isExpenseCode, isIncomeCode} from "@/modules/finance/constants";
+import {moneyToCents} from "./money";
 
 export type BudgetStatus = "draft" | "pending_approval" | "approved" | "rejected";
 
@@ -43,6 +44,7 @@ export async function createBudget(
     totalIncome: "0",
     totalExpense: "0",
   }).returning();
+  if (!b) throw new Error("Failed to create budget");
 
   await writeAuditLog({
     tenantId,
@@ -141,6 +143,7 @@ export async function addBudgetItem(
     plannedAmount: input.plannedAmount,
     notes: input.notes ?? null,
   }).returning();
+  if (!item) throw new Error("Failed to create budget item");
 
   await recalcBudgetTotals(budgetId);
   await writeAuditLog({
@@ -162,6 +165,7 @@ export async function updateBudgetItem(
   input: {
     plannedAmount?: string;
     notes?: string;
+    actualAmount?: string;
   },
   userId: string,
 ) {
@@ -171,7 +175,6 @@ export async function updateBudgetItem(
     .where(and(eq(budgets.id, budgetId), eq(budgets.tenantId, tenantId)))
     .limit(1);
   if (!budget) throw new Error("Бюджет не найден");
-  assertBudgetEditable(budget.status);
 
   const [item] = await db
     .select()
@@ -183,6 +186,9 @@ export async function updateBudgetItem(
     .limit(1);
   if (!item) throw new Error("Статья не найдена");
 
+  // Facts (actualAmount) may be recorded after approval; the plan itself stays frozen.
+  if (planFieldsChanged(input, item)) assertBudgetEditable(budget.status);
+
   await db.update(budgetItems).set(input).where(and(eq(budgetItems.id, itemId), eq(budgetItems.budgetId, budgetId)));
   await recalcBudgetTotals(budgetId);
 
@@ -192,7 +198,7 @@ export async function updateBudgetItem(
     action: "update",
     entityType: "budget_item",
     entityId: itemId,
-    oldValues: { plannedAmount: item.plannedAmount, notes: item.notes },
+    oldValues: { plannedAmount: item.plannedAmount, notes: item.notes, actualAmount: item.actualAmount },
     newValues: input as unknown as Record<string, unknown>,
   });
 }
@@ -232,6 +238,15 @@ export async function deleteBudgetItem(
     entityId: itemId,
     oldValues: { accountCode: item.accountCode, plannedAmount: item.plannedAmount },
   });
+}
+
+/** True when a submitted update actually alters the plan (amount or note), amounts compared numerically. Pure. */
+export function planFieldsChanged(
+  input: { plannedAmount?: string; notes?: string },
+  persisted: { plannedAmount: string; notes: string | null },
+): boolean {
+  return (input.plannedAmount !== undefined && moneyToCents(input.plannedAmount) !== moneyToCents(persisted.plannedAmount))
+    || (input.notes !== undefined && input.notes !== persisted.notes);
 }
 
 async function recalcBudgetTotals(budgetId: string) {

@@ -2,12 +2,12 @@
 
 import {revalidatePath} from "next/cache";
 import {cookies} from "next/headers";
+import {getTranslations} from "next-intl/server";
 import {z} from "zod";
 import {requireAuth, requireTenantPermission, getSessionCookieName} from "@/core/auth/session";
+import {translateDomainError} from "@/core/errors/app-error";
 import {updateTenant} from "@/modules/tenant/tenant.service";
 import {changeOwnPassword, updateProfile} from "./settings.service";
-import {translateDomainError} from "@/core/errors/app-error";
-import {getTranslations} from "next-intl/server";
 
 const settingsSchema = z.object({
   name: z.string().trim().min(2).max(255),

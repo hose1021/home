@@ -1,7 +1,7 @@
-import {NextResponse} from "next/server";
 import {cookies} from "next/headers";
-import {getSessionCookieName} from "@/core/auth/session";
+import {NextResponse} from "next/server";
 import {deleteSession} from "@/core/auth/auth";
+import {getSessionCookieName} from "@/core/auth/session";
 
 export async function POST() {
   const cookieStore = await cookies();

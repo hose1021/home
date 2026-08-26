@@ -1,8 +1,8 @@
 "use client";
 
+import {useTranslations} from "next-intl";
 import {useActionState} from "react";
 import {createTenantAction} from "../tenant.actions";
-import {useTranslations} from "next-intl";
 
 const initialState = { success: false, error: null as string | null };
 

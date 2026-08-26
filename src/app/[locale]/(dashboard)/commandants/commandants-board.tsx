@@ -2,9 +2,9 @@
 
 import {useState} from "react";
 import {toast} from "sonner";
-import {updateCommandantAction} from "@/modules/commandants/commandant.actions";
 import {Badge} from "@/components/ui/badge";
 import {Button} from "@/components/ui/button";
+import {updateCommandantAction} from "@/modules/commandants/commandant.actions";
 import {CommandantDialog, type CommandantRow, type OwnerOption} from "./commandant-dialog";
 
 function today(): string {

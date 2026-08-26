@@ -1,12 +1,12 @@
-import {redirect} from "@/i18n/navigation";
-import {SidebarInset, SidebarProvider, SidebarTrigger} from "@/components/ui/sidebar";
-import {Separator} from "@/components/ui/separator";
-import {AppSidebar} from "@/components/app-sidebar";
-import {getSession} from "@/core/auth/session";
-import {getTenantById} from "@/modules/tenant/tenant.service";
-import {getPermissionsForRoles} from "@/core/auth/permissions";
-import {ThemeToggle} from "@/components/theme-toggle";
 import {getTranslations} from "next-intl/server";
+import {AppSidebar} from "@/components/app-sidebar";
+import {ThemeToggle} from "@/components/theme-toggle";
+import {Separator} from "@/components/ui/separator";
+import {SidebarInset, SidebarProvider, SidebarTrigger} from "@/components/ui/sidebar";
+import {getPermissionsForRoles} from "@/core/auth/permissions";
+import {getSession} from "@/core/auth/session";
+import {redirect} from "@/i18n/navigation";
+import {getTenantById} from "@/modules/tenant/tenant.service";
 
 export default async function DashboardLayout({
   children,

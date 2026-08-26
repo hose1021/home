@@ -1,11 +1,11 @@
+import {and, eq, inArray} from "drizzle-orm";
+import {getPermissionsForRoles, hasStaffRole, type Permission} from "@/core/auth/permissions";
+import {requireTenantPermission} from "@/core/auth/session";
 import {db} from "@/core/db";
+import {owners, ownerships} from "@/core/db/schema/owners";
 import {tickets} from "@/core/db/schema/tickets";
 import {units} from "@/core/db/schema/units";
-import {owners, ownerships} from "@/core/db/schema/owners";
 import {users} from "@/core/db/schema/users";
-import {and, eq, inArray} from "drizzle-orm";
-import {requireTenantPermission} from "@/core/auth/session";
-import {getPermissionsForRoles, hasStaffRole, type Permission} from "@/core/auth/permissions";
 import {TicketList, type TicketListItem} from "@/modules/tickets/components/TicketList";
 import {getAllUnits, getUnitsForUser} from "@/modules/tickets/ticket.service";
 
@@ -94,7 +94,7 @@ export default async function TicketsPage() {
         .where(eq(owners.userId, session.user.id))
         .limit(1);
       if (ownerRow.length > 0) {
-        const myUnits = await getUnitsForUser(tenantId, ownerRow[0].id);
+        const myUnits = await getUnitsForUser(tenantId, ownerRow[0]!.id);
         unitList = myUnits.map((u) => ({ ...u, ownerName: null }));
       }
     }

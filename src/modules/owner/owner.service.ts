@@ -1,13 +1,13 @@
-import {db} from "@/core/db";
-import {owners, ownerships} from "@/core/db/schema/owners";
-import {units} from "@/core/db/schema/units";
-import {buildings} from "@/core/db/schema/buildings";
-import {userRoles, users, sessions} from "@/core/db/schema/users";
-import {payments} from "@/core/db/schema/payments";
 import {and, eq, notInArray, sql} from "drizzle-orm";
+import {writeAuditLog} from "@/core/audit/audit.service";
 import {assertValidUsername, hashPassword, normalizeUsername} from "@/core/auth/auth";
 import type {Role} from "@/core/auth/permissions";
-import {writeAuditLog} from "@/core/audit/audit.service";
+import {db} from "@/core/db";
+import {buildings} from "@/core/db/schema/buildings";
+import {owners, ownerships} from "@/core/db/schema/owners";
+import {payments} from "@/core/db/schema/payments";
+import {units} from "@/core/db/schema/units";
+import {userRoles, users, sessions} from "@/core/db/schema/users";
 import {DomainError} from "@/core/errors/app-error";
 import {buildPeriods, getDebtConfig, unitDebt, type BillingPeriod} from "@/modules/finance/services/debt.service";
 
@@ -225,6 +225,7 @@ export async function createOwnerWithUnit(tenantId: string, input: {
       phone: input.phone ?? null,
       passwordHash,
     }).returning();
+    if (!user) throw new Error("Failed to create user");
 
     const [unit] = await tx.insert(units).values({
       tenantId,
@@ -235,6 +236,7 @@ export async function createOwnerWithUnit(tenantId: string, input: {
       type: input.type,
       area: input.area,
     }).returning();
+    if (!unit) throw new Error("Failed to create unit");
 
     const [createdOwner] = await tx.insert(owners).values({
       tenantId,
@@ -242,6 +244,7 @@ export async function createOwnerWithUnit(tenantId: string, input: {
       fullName: user.fullName,
       phone: user.phone,
     }).returning();
+    if (!createdOwner) throw new Error("Failed to create owner");
 
     await tx.insert(userRoles).values({
       userId: user.id,
@@ -414,6 +417,7 @@ export async function assignUnitToOwner(
       registeredDate: new Date().toISOString().slice(0, 10),
       isPrimary: false,
     }).returning();
+    if (!created) throw new Error("Failed to assign unit");
 
     await writeAuditLog({
       tenantId,
@@ -466,6 +470,7 @@ export async function createAndAssignUnitToOwner(
       type: input.type,
       area: input.area,
     }).returning();
+    if (!unit) throw new Error("Failed to create unit");
 
     await tx.insert(ownerships).values({
       tenantId,
@@ -477,6 +482,7 @@ export async function createAndAssignUnitToOwner(
 
     return unit;
   });
+  if (!result) throw new Error("Failed to create unit");
 
   await writeAuditLog({
     tenantId,

@@ -1,13 +1,3 @@
-import {requireTenantContext} from "@/core/auth/session";
-import {getTenantById} from "@/modules/tenant/tenant.service";
-import {getDashboardAnnouncement} from "@/modules/announcements/announcement.service";
-import {getTenantDebtSummary} from "@/modules/finance/services/debt.service";
-import {getDashboardData} from "@/modules/dashboard/dashboard.service";
-import {Badge} from "@/components/ui/badge";
-import {hasAnyPermission, hasStaffRole} from "@/core/auth/permissions";
-import {CommandantCard} from "./commandant-card";
-import {getTranslations} from "next-intl/server";
-import {Link as IntlLink} from "@/i18n/navigation";
 import {
     type Icon,
     IconBell,
@@ -19,6 +9,16 @@ import {
     IconTicket,
     IconUsersGroup,
 } from "@tabler/icons-react";
+import {getTranslations} from "next-intl/server";
+import {Badge} from "@/components/ui/badge";
+import {hasAnyPermission, hasStaffRole} from "@/core/auth/permissions";
+import {requireTenantContext} from "@/core/auth/session";
+import {Link as IntlLink} from "@/i18n/navigation";
+import {getDashboardAnnouncement} from "@/modules/announcements/announcement.service";
+import {getDashboardData} from "@/modules/dashboard/dashboard.service";
+import {getTenantDebtSummary} from "@/modules/finance/services/debt.service";
+import {getTenantById} from "@/modules/tenant/tenant.service";
+import {CommandantCard} from "./commandant-card";
 
 export default async function DashboardPage() {
     const t = await getTranslations();

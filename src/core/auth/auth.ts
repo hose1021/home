@@ -1,10 +1,10 @@
+import crypto from "node:crypto";
+import bcrypt from "bcryptjs";
+import {and, eq, gt, isNull, ne, or} from "drizzle-orm";
 import {db} from "@/core/db";
-import {sessions, userRoles, users} from "@/core/db/schema/users";
 import {owners} from "@/core/db/schema/owners";
 import {tenants} from "@/core/db/schema/tenants";
-import {and, eq, gt, isNull, ne, or} from "drizzle-orm";
-import bcrypt from "bcryptjs";
-import crypto from "node:crypto";
+import {sessions, userRoles, users} from "@/core/db/schema/users";
 import type {Role} from "./permissions";
 
 const SALT_ROUNDS = 12;
@@ -61,6 +61,7 @@ export async function createUser(input: {
         phone: input.phone ?? null,
       })
       .returning();
+    if (!createdUser) throw new Error("Failed to create user");
 
     await tx.insert(owners).values({
       tenantId: input.tenantId,

@@ -1,7 +1,7 @@
-import {db} from "@/core/db";
-import {meetingAgendas, meetings} from "@/core/db/schema/meetings";
 import {and, eq} from "drizzle-orm";
 import {writeAuditLog} from "@/core/audit/audit.service";
+import {db} from "@/core/db";
+import {meetingAgendas, meetings} from "@/core/db/schema/meetings";
 
 export async function getMeetingById(tenantId: string, id: string) {
   const [m] = await db
@@ -41,6 +41,7 @@ export async function createMeeting(tenantId: string, userId: string, input: {
     onlineLink: input.onlineLink ?? null,
     createdBy: userId,
   }).returning();
+  if (!meeting) throw new Error("Failed to create meeting");
 
   if (input.agendas.length > 0) {
     await db.insert(meetingAgendas).values(
