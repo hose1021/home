@@ -97,7 +97,7 @@ export default function LoginPage() {
           </div>
 
           <form onSubmit={handleSubmit} className="surface-panel p-6 sm:p-8">
-            <h2 className="page-heading">{t("welcomeBack")}</h2>
+            <h2 className="text-xl font-semibold tracking-tight">{t("welcomeBack")}</h2>
             <p className="page-description">{t("loginInstructions")}</p>
 
             <div className="mt-7 grid gap-5">
