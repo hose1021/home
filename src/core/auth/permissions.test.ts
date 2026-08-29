@@ -46,6 +46,15 @@ describe("hasPermission", () => {
     expect(hasPermission("management_member", "announcement:read")).toBe(true);
   });
 
+  it("management_member can upload documents", () => {
+    expect(hasPermission("management_member", "document:write")).toBe(true);
+  });
+
+  it("commandant can read but not upload documents", () => {
+    expect(hasPermission("commandant", "document:read")).toBe(true);
+    expect(hasPermission("commandant", "document:write")).toBe(false);
+  });
+
   it("commandant cannot manage finances", () => {
     expect(hasPermission("commandant", "finance:write")).toBe(false);
     expect(hasPermission("commandant", "charge:write")).toBe(false);

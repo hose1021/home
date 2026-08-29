@@ -44,6 +44,7 @@ export function NavMain({ permissions }: { permissions?: Permission[] }) {
     { title: t("voting"), url: "/voting", icon: IconChecklist, perm: "voting:read" },
     { title: t("meetings"), url: "/meetings", icon: IconCalendarEvent, perm: "meeting:read" },
     { title: t("protocols"), url: "/protocols", icon: IconFileText, perm: "protocol:read" },
+    { title: t("documents"), url: "/documents", icon: IconClipboardList, perm: "document:read" },
     { title: t("tickets"), url: "/tickets", icon: IconTicket, perm: "ticket:read" },
     { title: t("workOrders"), url: "/work-orders", icon: IconClipboardList, perm: "work_order:read" },
     { title: t("contractors"), url: "/contractors", icon: IconTool, perm: "contractor:read" },

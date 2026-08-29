@@ -716,5 +716,38 @@
       "user_not_found": "İstifadəçi tapılmadı",
       "wrong_current_password": "Cari şifrə səhvdir"
     }
+  },
+  "documents": {
+    "eyebrow": "CBS arxivi",
+    "title": "Sənədlər",
+    "description": "Müqavilələr, qaydalar, aktlar və digər sənədlər",
+    "count": "sənəd",
+    "create": "Sənəd",
+    "createTitle": "Sənəd yüklə",
+    "titleLabel": "Ad",
+    "categoryLabel": "Kateqoriya",
+    "fileLabel": "Fayl",
+    "descriptionLabel": "Təsvir",
+    "categories": {
+      "contract": "Müqavilə",
+      "regulation": "Qayda",
+      "protocol": "Protokol",
+      "act": "Akt",
+      "invoice": "Hesab-faktura",
+      "other": "Digər"
+    },
+    "statuses": {
+      "archived": "Arxiv"
+    },
+    "required": "Adı, kateqoriyanı və faylı doldurun",
+    "created": "Sənəd yükləndi",
+    "saving": "Yüklənir...",
+    "emptyDescription": "Hələ sənəd yoxdur.",
+    "errors": {
+      "not_found": "Sənəd tapılmadı",
+      "empty_file": "Fayl boşdur",
+      "too_large": "Fayl 25 MB-dan böyükdür",
+      "forbidden_mime": "Fayl növü dəstəklənmir"
+    }
   }
 }

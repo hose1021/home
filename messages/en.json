@@ -716,5 +716,38 @@
       "user_not_found": "User not found",
       "wrong_current_password": "Current password is incorrect"
     }
+  },
+  "documents": {
+    "eyebrow": "HOA archive",
+    "title": "Documents",
+    "description": "Contracts, regulations, acts and other documents",
+    "count": "documents",
+    "create": "Document",
+    "createTitle": "Upload document",
+    "titleLabel": "Title",
+    "categoryLabel": "Category",
+    "fileLabel": "File",
+    "descriptionLabel": "Description",
+    "categories": {
+      "contract": "Contract",
+      "regulation": "Regulation",
+      "protocol": "Protocol",
+      "act": "Act",
+      "invoice": "Invoice",
+      "other": "Other"
+    },
+    "statuses": {
+      "archived": "Archived"
+    },
+    "required": "Fill in title, category and file",
+    "created": "Document uploaded",
+    "saving": "Uploading...",
+    "emptyDescription": "No documents yet.",
+    "errors": {
+      "not_found": "Document not found",
+      "empty_file": "File is empty",
+      "too_large": "File exceeds 25 MB",
+      "forbidden_mime": "File type is not supported"
+    }
   }
 }

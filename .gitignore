@@ -43,3 +43,6 @@ next-env.d.ts
 .idea
 .idea/
 .codegraph/
+
+# local document storage (dev fallback)
+data/

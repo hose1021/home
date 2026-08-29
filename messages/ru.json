@@ -614,6 +614,39 @@
     "saving": "Сохранение...",
     "emptyDescription": "Список пуст. Добавьте первого жителя."
   },
+  "documents": {
+    "eyebrow": "Архив ТСЖ",
+    "title": "Документы",
+    "description": "Договоры, регламенты, акты и другие документы",
+    "count": "документов",
+    "create": "Документ",
+    "createTitle": "Загрузить документ",
+    "titleLabel": "Название",
+    "categoryLabel": "Категория",
+    "fileLabel": "Файл",
+    "descriptionLabel": "Описание",
+    "categories": {
+      "contract": "Договор",
+      "regulation": "Регламент",
+      "protocol": "Протокол",
+      "act": "Акт",
+      "invoice": "Счёт",
+      "other": "Другое"
+    },
+    "statuses": {
+      "archived": "Архив"
+    },
+    "required": "Заполните название, категорию и файл",
+    "created": "Документ загружен",
+    "saving": "Загрузка...",
+    "emptyDescription": "Документов пока нет.",
+    "errors": {
+      "not_found": "Документ не найден",
+      "empty_file": "Файл пустой",
+      "too_large": "Файл больше 25 МБ",
+      "forbidden_mime": "Тип файла не поддерживается"
+    }
+  },
   "protocols": {
     "eyebrow": "Документы собраний",
     "title": "Протоколы",

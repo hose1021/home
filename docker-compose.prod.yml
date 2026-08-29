@@ -39,9 +39,13 @@ services:
       BILLING_START_DATE: ${BILLING_START_DATE:-2025-01}
       ALLOW_PUBLIC_REGISTRATION: ${ALLOW_PUBLIC_REGISTRATION:-false}
       PLATFORM_NAME: ${PLATFORM_NAME:-MMMC Platform}
+      DOCUMENTS_DIR: /app/data/documents
+    volumes:
+      - documents:/app/data/documents
     depends_on:
       db:
         condition: service_healthy
 
 volumes:
   pgdata:
+  documents:
