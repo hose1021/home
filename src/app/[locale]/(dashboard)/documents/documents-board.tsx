@@ -3,13 +3,12 @@
 import {useTranslations} from "next-intl";
 import {useState} from "react";
 import {toast} from "sonner";
-import {Badge} from "@/components/ui/badge";
 import {Button} from "@/components/ui/button";
 import {Dialog, DialogContent, DialogHeader, DialogTitle} from "@/components/ui/dialog";
 import {Input} from "@/components/ui/input";
 import {Label} from "@/components/ui/label";
 import {Textarea} from "@/components/ui/textarea";
-import {uploadDocumentAction} from "@/modules/document/document.actions";
+import {archiveDocumentAction, deleteDocumentAction, uploadDocumentAction} from "@/modules/document/document.actions";
 import {DOCUMENT_CATEGORIES, MAX_DOCUMENT_BYTES} from "@/modules/document/document.constants";
 
 type DocumentItem = {
@@ -37,21 +36,41 @@ export function DocumentsBoard({documents, canManage}: {
 }) {
   const t = useTranslations("documents");
   const [open, setOpen] = useState(false);
+  const active = documents.filter((d) => d.status !== "archived");
+
+  async function archive(id: string) {
+    try {
+      await archiveDocumentAction(id);
+      toast.success(t("archived"));
+    } catch (err) {
+      toast.error((err as Error).message);
+    }
+  }
+
+  async function remove(id: string) {
+    if (!window.confirm(t("deleteConfirm"))) return;
+    try {
+      await deleteDocumentAction(id);
+      toast.success(t("deleted"));
+    } catch (err) {
+      toast.error((err as Error).message);
+    }
+  }
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <p className="text-sm text-muted-foreground">{documents.length} {t("count")}</p>
+        <p className="text-sm text-muted-foreground">{active.length} {t("count")}</p>
         {canManage && <Button size="sm" onClick={() => setOpen(true)}>+ {t("create")}</Button>}
       </div>
 
       <div className="space-y-3">
-        {documents.length === 0 && (
+        {active.length === 0 && (
           <div className="surface-panel flex flex-col items-center border-dashed px-6 py-16 text-center">
             <p className="text-sm text-muted-foreground">{t("emptyDescription")}</p>
           </div>
         )}
-        {documents.map((d) => (
+        {active.map((d) => (
           <div key={d.id} className="surface-panel p-4">
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
@@ -62,15 +81,15 @@ export function DocumentsBoard({documents, canManage}: {
                 {d.description && (
                   <p className="mt-1 line-clamp-2 whitespace-pre-wrap text-sm text-muted-foreground">{d.description}</p>
                 )}
-                <p className="mt-2 text-xs text-muted-foreground">
-                  {d.uploadedByName}
-                  {d.uploadedByName && " · "}
-                  {new Date(d.createdAt).toLocaleDateString()}
-                </p>
-              </div>
-              <div className="flex shrink-0 items-center gap-2">
-                <Badge variant="outline">{t(`categories.${d.category}`)}</Badge>
-                {d.status === "archived" && <Badge variant="secondary">{t("statuses.archived")}</Badge>}
+                <a href={`/api/documents/${d.id}/download`} className="text-sm text-muted-foreground underline-offset-2 hover:underline">
+                  {t("download")}
+                </a>
+                {canManage && (
+                  <>
+                    <Button size="sm" variant="outline" onClick={() => archive(d.id)}>{t("archive")}</Button>
+                    <Button size="sm" variant="outline" onClick={() => remove(d.id)}>{t("delete")}</Button>
+                  </>
+                )}
               </div>
             </div>
           </div>

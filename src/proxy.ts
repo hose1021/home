@@ -4,7 +4,9 @@ import {routing} from "./i18n/routing";
 
 const intlMiddleware = createMiddleware(routing);
 
-const publicPaths = ["/api/auth", "/_next", "/favicon.ico"];
+// Every /api route bypasses intl routing and must authenticate itself
+// (getSession + permission check in the route handler, as /api/auth does).
+const publicPaths = ["/api", "/_next", "/favicon.ico"];
 
 export function proxy(request: NextRequest) {
   const {pathname} = request.nextUrl;

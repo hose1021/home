@@ -736,9 +736,6 @@
       "invoice": "Hesab-faktura",
       "other": "Digər"
     },
-    "statuses": {
-      "archived": "Arxiv"
-    },
     "required": "Adı, kateqoriyanı və faylı doldurun",
     "created": "Sənəd yükləndi",
     "saving": "Yüklənir...",
@@ -748,6 +745,12 @@
       "empty_file": "Fayl boşdur",
       "too_large": "Fayl 25 MB-dan böyükdür",
       "forbidden_mime": "Fayl növü dəstəklənmir"
-    }
+    },
+    "download": "Yüklə",
+    "archive": "Arxivlə",
+    "delete": "Sil",
+    "archived": "Sənəd arxivləndi",
+    "deleted": "Sənəd silindi",
+    "deleteConfirm": "Sənədi faylı ilə birlikdə silinsin?"
   }
 }

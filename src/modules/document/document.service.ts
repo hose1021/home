@@ -95,3 +95,61 @@ export async function listDocuments(tenantId: string) {
     .where(eq(documents.tenantId, tenantId))
     .orderBy(desc(documents.createdAt));
 }
+
+export async function getDocumentObject(tenantId: string, id: string, storage?: Storage) {
+  const [existing] = await db.select().from(documents).where(eq(documents.id, id)).limit(1);
+  if (!existing || existing.tenantId !== tenantId) throw new DocumentError("not_found");
+  const store = storage ?? await createDefaultStorage();
+  return {document: existing, bytes: await store.get(existing.objectKey)};
+}
+
+export async function archiveDocument(tenantId: string, id: string, userId: string) {
+  const [existing] = await db
+    .select({id: documents.id, tenantId: documents.tenantId, status: documents.status})
+    .from(documents)
+    .where(eq(documents.id, id))
+    .limit(1);
+  if (!existing || existing.tenantId !== tenantId) throw new DocumentError("not_found");
+  if (existing.status === "archived") return {id: existing.id, status: "archived" as const};
+
+  const [updated] = await db.update(documents)
+    .set({status: "archived", updatedAt: new Date()})
+    .where(and(eq(documents.id, id), eq(documents.tenantId, tenantId)))
+    .returning();
+  if (!updated) throw new DocumentError("not_found");
+
+  await writeAuditLog({
+    tenantId, userId,
+    action: "update",
+    entityType: "document",
+    entityId: id,
+    oldValues: {status: existing.status} as Record<string, unknown>,
+    newValues: {status: "archived"} as Record<string, unknown>,
+  });
+  return updated;
+}
+
+export async function deleteDocument(tenantId: string, id: string, userId: string, storage?: Storage) {
+  const [existing] = await db
+    .select({id: documents.id, tenantId: documents.tenantId, title: documents.title, status: documents.status, objectKey: documents.objectKey})
+    .from(documents)
+    .where(eq(documents.id, id))
+    .limit(1);
+  if (!existing || existing.tenantId !== tenantId) throw new DocumentError("not_found");
+
+  await db.delete(documents).where(and(eq(documents.id, id), eq(documents.tenantId, tenantId)));
+
+  const store = storage ?? await createDefaultStorage();
+  await store.delete(existing.objectKey).catch((err: unknown) => {
+    // ponytail: orphaned bytes possible on storage failure; a cleanup sweep can come with the backup ticket
+    console.error(`[documents] failed to delete stored object ${existing.objectKey}:`, err);
+  });
+
+  await writeAuditLog({
+    tenantId, userId,
+    action: "delete",
+    entityType: "document",
+    entityId: id,
+    oldValues: {title: existing.title, status: existing.status, objectKey: existing.objectKey} as Record<string, unknown>,
+  });
+}
