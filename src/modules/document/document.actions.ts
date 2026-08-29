@@ -5,8 +5,9 @@ import {getTranslations} from "next-intl/server";
 import {z} from "zod";
 import {requireTenantPermission} from "@/core/auth/session";
 import {translateDomainError} from "@/core/errors/app-error";
+import {uuidSchema} from "@/core/validation/action-schemas";
 import {DOCUMENT_CATEGORIES, type DocumentCategory} from "./document.constants";
-import {uploadDocument} from "./document.service";
+import {archiveDocument, deleteDocument, uploadDocument} from "./document.service";
 
 const documentInputSchema = z.object({
   title: z.string().trim().min(1).max(255),
@@ -30,6 +31,32 @@ export async function uploadDocumentAction(input: {
   const {session, tenantId} = await requireTenantPermission("document:write");
   try {
     await uploadDocument(tenantId, session.user.id, input);
+  } catch (err) {
+    translateDomainError(err, t);
+  }
+  revalidatePath("/documents");
+  return {success: true};
+}
+
+export async function archiveDocumentAction(id: string) {
+  const t = await getTranslations("documents.errors");
+  id = uuidSchema.parse(id);
+  const {session, tenantId} = await requireTenantPermission("document:write");
+  try {
+    await archiveDocument(tenantId, id, session.user.id);
+  } catch (err) {
+    translateDomainError(err, t);
+  }
+  revalidatePath("/documents");
+  return {success: true};
+}
+
+export async function deleteDocumentAction(id: string) {
+  const t = await getTranslations("documents.errors");
+  id = uuidSchema.parse(id);
+  const {session, tenantId} = await requireTenantPermission("document:write");
+  try {
+    await deleteDocument(tenantId, id, session.user.id);
   } catch (err) {
     translateDomainError(err, t);
   }

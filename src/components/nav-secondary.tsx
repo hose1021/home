@@ -27,7 +27,7 @@ export function NavSecondary({ permissions, className }: { permissions?: Permiss
               className="h-9 rounded-lg px-3 text-sidebar-foreground/65"
               render={<Link href={item.url} />}
             >
-              <item.icon className="size-[18px]" />
+              <item.icon className="size-4.5" />
               <span>{item.title}</span>
             </SidebarMenuButton>
           </SidebarMenuItem>

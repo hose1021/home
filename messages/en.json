@@ -736,9 +736,6 @@
       "invoice": "Invoice",
       "other": "Other"
     },
-    "statuses": {
-      "archived": "Archived"
-    },
     "required": "Fill in title, category and file",
     "created": "Document uploaded",
     "saving": "Uploading...",
@@ -748,6 +745,12 @@
       "empty_file": "File is empty",
       "too_large": "File exceeds 25 MB",
       "forbidden_mime": "File type is not supported"
-    }
+    },
+    "download": "Download",
+    "archive": "Archive",
+    "delete": "Delete",
+    "archived": "Document archived",
+    "deleted": "Document deleted",
+    "deleteConfirm": "Delete the document together with its file?"
   }
 }
