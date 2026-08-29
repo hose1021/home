@@ -1,3 +1,8 @@
+-- Remove the abandoned scaffold tables (created in migration 0000, never
+-- dropped, no matching TS schema). The documents module reuses the name.
+DROP TABLE IF EXISTS "documents";
+DROP TABLE IF EXISTS "document_folders";
+--> statement-breakpoint
 CREATE TABLE "documents" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"tenant_id" uuid NOT NULL,
