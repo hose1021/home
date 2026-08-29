@@ -7,6 +7,7 @@ export { users, sessions, userRoles } from "./users";
 export { votings, votingOptions, votes, proxies } from "./votings";
 export { meetings, meetingAgendas, meetingAttendees } from "./meetings";
 export { protocols, protocolSignatures } from "./protocols";
+export { documents } from "./documents";
 export { funds } from "./funds";
 export { transactions, journalEntries } from "./transactions";
 export { chargeTemplates, charges } from "./charges";

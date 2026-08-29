@@ -169,6 +169,13 @@
       "when": 1787745644791,
       "tag": "0023_lethal_iron_monger",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1788013848472,
+      "tag": "0024_stiff_stark_industries",
+      "breakpoints": true
     }
   ]
 }
