@@ -87,10 +87,10 @@ export function MonthRow({
   return (
     <>
       <div className="flex items-center px-5 py-3 transition-colors hover:bg-muted/25 sm:px-6">
-        <span className={`mr-3 flex size-7 shrink-0 items-center justify-center rounded-lg ${
+        <span className={`mr-3 flex size-7 shrink-0 items-center justify-center rounded-[4px] ${
           isPaid
-            ? "bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400"
-            : "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400"
+            ? "bg-success/12 border-success/35 text-success"
+            : "bg-danger/12 border-danger/35 text-danger"
         }`}>
           {isPaid ? <IconCheck className="size-4" /> : <IconAlertCircle className="size-4" />}
         </span>
@@ -105,7 +105,7 @@ export function MonthRow({
           )}
         </div>
 
-        <span className={`text-sm font-semibold tabular-nums ${isPaid ? "text-emerald-600" : "text-destructive"}`}>
+        <span className={`text-sm font-semibold tabular-nums ${isPaid ? "text-success" : "text-destructive"}`}>
           {isPaid ? `${alreadyPaid.toFixed(2)} ₼` : `${owed.toFixed(2)} ₼`}
         </span>
 
@@ -130,21 +130,21 @@ export function MonthRow({
             {monthName(locale, year, month)} {year} · {t("blockFloor", {entrance, floor})}
           </p>
           <form onSubmit={handlePay} className="space-y-5 mt-2">
-            <div className="space-y-1.5 rounded-lg border bg-muted/30 p-4">
+            <div className="space-y-1.5 rounded-[4px] border bg-muted/30 p-4">
               <div className="flex justify-between text-sm">
-                <span className="text-zinc-500">{tp("amountDue")}</span>
+                <span className="text-muted-foreground">{tp("amountDue")}</span>
                 <span className="font-medium">{monthlyFee.toFixed(2)} ₼</span>
               </div>
               {alreadyPaid > 0 && (
                 <div className="flex justify-between text-sm">
-                  <span className="text-zinc-400">{t("paidThisMonth")}</span>
-                  <span className="text-green-600">{alreadyPaid.toFixed(2)} ₼</span>
+                  <span className="text-muted-foreground/70">{t("paidThisMonth")}</span>
+                  <span className="text-success">{alreadyPaid.toFixed(2)} ₼</span>
                 </div>
               )}
               {owed > 0 && (
-                <div className="flex justify-between border-t border-zinc-200 pt-1.5 dark:border-zinc-700">
-                  <span className="text-sm font-medium text-red-600">{tp("toPay")}</span>
-                  <span className="font-bold text-red-600">{owed.toFixed(2)} ₼</span>
+                <div className="flex justify-between border-t border-border pt-1.5 dark:border-border">
+                  <span className="text-sm font-medium text-danger">{tp("toPay")}</span>
+                  <span className="font-bold text-danger">{owed.toFixed(2)} ₼</span>
                 </div>
               )}
             </div>
@@ -168,7 +168,7 @@ export function MonthRow({
             </div>
             <div className="flex gap-3 pt-2">
               <Button type="button" variant="outline" onClick={() => setPayOpen(false)} className="flex-1">{tc("cancel")}</Button>
-              <Button type="submit" disabled={pending} className="flex-[2] bg-green-600 hover:bg-green-700">
+              <Button type="submit" disabled={pending} className="flex-[2] ">
                 {pending ? tp("processing") : tp("payAmount", {amount: Number(amount || 0).toFixed(2)})}
               </Button>
             </div>

@@ -2,6 +2,7 @@
 
 import {
     IconArrowRight,
+    IconBuildingCommunity,
     IconLoader2,
     IconLock,
 } from "@tabler/icons-react";
@@ -59,88 +60,114 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="grid min-h-svh bg-background lg:grid-cols-[5fr_6fr]">
-      {/* Facade panel: the entrance sign itself */}
-      <aside className="relative hidden flex-col justify-between overflow-hidden bg-(--primary) p-10 text-(--primary-foreground) lg:flex">
-        {/* floor-line motif */}
-        <div aria-hidden className="absolute inset-0 opacity-[0.07]" style={{
-          backgroundImage: "repeating-linear-gradient(to top, transparent 0 79px, currentColor 79px 80px)",
-        }} />
-        <div className="relative">
-          <p className="text-xs font-medium uppercase tracking-[0.3em] opacity-70">MMMC · Bakı</p>
+    <main className="grid min-h-svh lg:grid-cols-[1.1fr_0.9fr]">
+      {/* Launch panel: blue light over the storefront's dark surface */}
+      <aside
+        className="relative hidden flex-col justify-between overflow-hidden border-r border-border p-10 xl:p-14 lg:flex"
+        style={{
+          background:
+            "radial-gradient(780px 520px at 6% 0%, color-mix(in srgb, #0074E0 46%, transparent), transparent 62%), radial-gradient(560px 380px at 98% 100%, color-mix(in srgb, #FFB400 8%, transparent), transparent 65%), #111218",
+        }}
+      >
+        <div className="relative flex items-center gap-3">
+          <span className="flex size-9 items-center justify-center rounded-[4px] bg-[#0074E0] text-white shadow-[inset_0_0_0_1px_rgb(255_255_255/0.24)]">
+            <IconBuildingCommunity className="size-[18px]" />
+          </span>
+          <div className="leading-tight">
+            <p className="font-heading text-sm font-bold text-white">{PLATFORM_NAME}</p>
+            <p className="mt-0.5 text-xs text-white/50">Bakı · MMMC</p>
+          </div>
         </div>
 
-        <div className="relative max-w-md">
-          <div className="inline-flex items-center gap-2 rounded-sm border border-white/25 px-2.5 py-1 text-[11px] uppercase tracking-[0.18em]">
-            <span className="size-1.5 rounded-[1px] bg-brass" style={{background: "#C4A45C"}} />
-            {tn("houseManagement")}
-          </div>
-          <h1 className="mt-6 font-(family-name:--font-display) text-4xl font-semibold leading-[1.08] tracking-tight">
+        <div className="relative max-w-xl">
+          <p className="text-xs font-semibold text-white/50">{tn("houseManagement")}</p>
+          <h1 className="mt-3 font-heading text-[2.4rem] font-extrabold leading-[1.05] tracking-[-0.025em] text-white xl:text-[3rem]">
             {t("heroTitle")}
           </h1>
-          <p className="mt-4 max-w-sm text-sm leading-6 opacity-75">{t("heroSubtitle")}</p>
+          <p className="mt-4 max-w-md text-sm leading-6 text-white/60">{t("heroSubtitle")}</p>
+
+          <div className="mt-8 flex flex-wrap gap-2">
+            {[tn("finance"), tn("tickets"), tn("meetings"), tn("announcements")].map((label) => (
+              <span
+                key={label}
+                className="rounded-[4px] bg-white/[0.08] px-3 py-1.5 text-xs font-semibold text-white/75"
+              >
+                {label}
+              </span>
+            ))}
+          </div>
         </div>
 
-        <p className="relative font-(family-name:--font-mono-brand) text-xs tracking-wide opacity-60">
-          {PLATFORM_NAME}
-        </p>
+        <div className="relative flex items-center justify-between border-t border-white/10 pt-4">
+          <p className="amount text-[10px] text-white/40">{PLATFORM_NAME}</p>
+          <span className="flex items-center gap-1.5 text-[10px] text-white/40">
+            <IconLock className="size-3" /> {t("secureEntry")}
+          </span>
+        </div>
       </aside>
 
-      {/* Form on plaster */}
-      <div className="flex items-center justify-center p-5 sm:p-8 md:p-12">
+      {/* Credentials */}
+      <section className="flex items-center justify-center p-5 sm:p-8 lg:p-12">
         <div className="w-full max-w-sm">
-          <div className="mb-8 flex items-center gap-3 lg:hidden">
-            <span className="inline-flex items-center gap-2 rounded-sm bg-primary px-2.5 py-1.5 text-xs font-semibold text-primary-foreground">
-              {PLATFORM_NAME}
+          <div className="mb-7 flex items-center gap-3 lg:hidden">
+            <span className="flex size-9 items-center justify-center rounded-[4px] bg-[#0074E0] text-white">
+              <IconBuildingCommunity className="size-[18px]" />
             </span>
-            <span className="text-xs uppercase tracking-[0.22em] text-muted-foreground">Bakı</span>
+            <span className="font-heading text-sm font-bold">{PLATFORM_NAME}</span>
           </div>
 
-          <form onSubmit={handleSubmit} className="surface-panel p-6 sm:p-8">
-            <h2 className="text-xl font-semibold tracking-tight">{t("welcomeBack")}</h2>
-            <p className="page-description">{t("loginInstructions")}</p>
+          <div className="panel p-6 sm:p-8">
+            <form onSubmit={handleSubmit}>
+              <p className="text-xs font-semibold text-muted-foreground">{t("secureEntry")}</p>
+              <h2 className="mt-1.5 font-heading text-2xl font-extrabold tracking-[-0.02em]">{t("welcomeBack")}</h2>
+              <p className="mt-1.5 text-sm leading-6 text-muted-foreground">{t("loginInstructions")}</p>
 
-            <div className="mt-7 grid gap-5">
-              <div className="grid gap-2">
-                <Label htmlFor="username">{t("login")}</Label>
-                <Input
-                  id="username"
-                  name="username"
-                  className="h-10"
-                  placeholder={t("loginPlaceholder")}
-                  pattern="[\p{L}]+\.[\p{L}]+"
-                  autoComplete="username"
-                  required
-                />
+              <div className="mt-6 grid gap-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="username" className="text-sm font-semibold">{t("login")}</Label>
+                  <Input
+                    id="username"
+                    name="username"
+                    className="h-10"
+                    placeholder={t("loginPlaceholder")}
+                    pattern="[\p{L}]+\.[\p{L}]+"
+                    autoComplete="username"
+                    required
+                  />
+                </div>
+
+                <div className="grid gap-2">
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="password" className="text-sm font-semibold">{t("password")}</Label>
+                    <span className="flex items-center gap-1 text-[11px] text-muted-foreground">
+                      <IconLock className="size-3" /> {t("secureEntry")}
+                    </span>
+                  </div>
+                  <Input id="password" name="password" type="password" className="h-10" autoComplete="current-password" required minLength={8} />
+                </div>
+
+                {error && (
+                  <div role="alert" aria-live="polite" className="rounded-[4px] border border-destructive/40 bg-destructive/15 px-3 py-2.5 text-sm text-destructive">
+                    {error}
+                  </div>
+                )}
+
+                <Button type="submit" disabled={pending} size="lg" className="mt-1 w-full">
+                  {pending ? <><IconLoader2 className="animate-spin" /> {t("signingIn")}</> : <>{t("signIn")} <IconArrowRight /></>}
+                </Button>
               </div>
 
-              <div className="grid gap-2">
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="password">{t("password")}</Label>
-                  <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                    <IconLock className="size-3.5" /> {t("secureEntry")}
-                  </span>
-                </div>
-                <Input id="password" name="password" type="password" className="h-10" autoComplete="current-password" required minLength={8} />
-              </div>
+              <p className="mt-6 border-t border-border pt-4 text-xs leading-5 text-muted-foreground">
+                {t("recoveryNote")}
+              </p>
+            </form>
+          </div>
 
-              {error && (
-                <div role="alert" aria-live="polite" className="rounded-lg border border-destructive/20 bg-destructive/5 px-3 py-2.5 text-sm text-destructive">
-                  {error}
-                </div>
-              )}
-
-              <Button type="submit" disabled={pending} size="lg" className="w-full">
-                {pending ? <><IconLoader2 className="animate-spin" /> {t("signingIn")}</> : <>{t("signIn")} <IconArrowRight /></>}
-              </Button>
-            </div>
-
-            <p className="mt-7 border-t border-border pt-4 text-xs text-muted-foreground">
-              {t("recoveryNote")}
-            </p>
-          </form>
+          <p className="mt-5 text-center text-[10px] text-muted-foreground/60">
+            {PLATFORM_NAME} · {new Date().getFullYear()}
+          </p>
         </div>
-      </div>
+      </section>
     </main>
   );
 }

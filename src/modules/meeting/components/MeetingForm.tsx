@@ -63,20 +63,20 @@ export function MeetingForm({
     <form onSubmit={handleSubmit} className="space-y-4">
       <div>
         <label className="block text-sm font-medium">{tm("name")}</label>
-        <input name="title" defaultValue={meeting?.title} required className="mt-1 block w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900" />
+        <input name="title" defaultValue={meeting?.title} required className="mt-1 field" />
       </div>
 
       <div className="grid grid-cols-2 gap-4">
         <div>
           <label className="block text-sm font-medium">{tm("type")}</label>
-          <select name="meetingType" defaultValue={meeting?.meetingType ?? "annual"} className="mt-1 block w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900">
+          <select name="meetingType" defaultValue={meeting?.meetingType ?? "annual"} className="mt-1 field">
             <option value="annual">{tm("types.annual")}</option>
             <option value="extraordinary">{tm("types.extraordinary")}</option>
           </select>
         </div>
         <div>
           <label className="block text-sm font-medium">{tc("format")}</label>
-          <select name="meetingFormat" defaultValue={meeting?.meetingFormat ?? "in_person"} className="mt-1 block w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900">
+          <select name="meetingFormat" defaultValue={meeting?.meetingFormat ?? "in_person"} className="mt-1 field">
             <option value="in_person">{tc("formatInPerson")}</option>
             <option value="online">{tc("formatOnline")}</option>
             <option value="mixed">{tc("formatMixed")}</option>
@@ -84,11 +84,11 @@ export function MeetingForm({
         </div>
         <div>
           <label className="block text-sm font-medium">{tc("date")}</label>
-          <input name="proposedDate" type="date" defaultValue={meeting ? new Date(meeting.proposedDate).toISOString().slice(0, 10) : undefined} required className="mt-1 block w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900" />
+          <input name="proposedDate" type="date" defaultValue={meeting ? new Date(meeting.proposedDate).toISOString().slice(0, 10) : undefined} required className="mt-1 field" />
         </div>
         <div>
           <label className="block text-sm font-medium">{tc("location")}</label>
-          <input name="location" defaultValue={meeting?.location ?? ""} className="mt-1 block w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900" />
+          <input name="location" defaultValue={meeting?.location ?? ""} className="mt-1 field" />
         </div>
       </div>
 
@@ -105,10 +105,10 @@ export function MeetingForm({
                   setAgendas(next);
                 }}
                 placeholder={`${tm("agenda")} ${i + 1}`}
-                className="block w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900"
+                className="field"
               />
               {agendas.length > 1 && (
-                <button type="button" onClick={() => setAgendas(agendas.filter((_, j) => j !== i))} className="text-sm text-red-500 hover:text-red-700">×</button>
+                <button type="button" onClick={() => setAgendas(agendas.filter((_, j) => j !== i))} className="px-2 text-sm text-danger transition-opacity hover:opacity-70">×</button>
               )}
             </div>
           ))}
@@ -116,7 +116,7 @@ export function MeetingForm({
         <Button type="button" variant="ghost" size="sm" onClick={() => setAgendas([...agendas, ""])} className="mt-2">+ {tc("addItem")}</Button>
       </div>
 
-      {error && <p className="text-sm text-red-500">{error}</p>}
+      {error && <p className="text-sm text-danger">{error}</p>}
 
       <div className="flex justify-end gap-3">
         <Button type="button" variant="outline" onClick={onDone}>{tc("cancel")}</Button>

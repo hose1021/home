@@ -9,7 +9,7 @@ import {payments} from "@/core/db/schema/payments";
 import {units} from "@/core/db/schema/units";
 import {userRoles, users, sessions} from "@/core/db/schema/users";
 import {DomainError} from "@/core/errors/app-error";
-import {buildPeriods, getDebtConfig, unitDebt, type BillingPeriod} from "@/modules/finance/services/debt.service";
+import {buildPeriods, getDebtConfig, getOutstandingByUnit, type BillingPeriod} from "@/modules/finance/services/debt.service";
 
 export async function getOwnerById(tenantId: string, id: string) {
   const [o] = await db
@@ -163,23 +163,20 @@ export async function getOwnerDetail(tenantId: string, ownerId: string): Promise
       ])
     : [[], []];
 
-  const cfg = getDebtConfig();
+  const cfg = await getDebtConfig(tenantId);
   const periods = buildPeriods(cfg.billingStart);
   const paidMap = buildPaidByUnit(paidAgg);
-  const paidFor = (unitId: string, p: BillingPeriod) =>
-    paidMap.get(unitId)?.get(`${p.year}-${p.month}`) ?? 0;
+  const outstandingByUnit = await getOutstandingByUnit(tenantId);
 
   let grandDebt = 0;
   let totalArea = 0;
-  for (const u of ownerUnits) {
-    const area = Number(u.area);
-    totalArea += area;
-    grandDebt += unitDebt(area * cfg.tariffPerSqm, periods, (p) => paidFor(u.id, p));
-  }
+  for (const u of ownerUnits) totalArea += Number(u.area);
   const unitsWithMoney = ownerUnits.map((u) => {
     const area = Number(u.area);
     const monthlyFee = area * cfg.tariffPerSqm;
-    return {...u, monthlyFee, totalDebt: unitDebt(monthlyFee, periods, (p) => paidFor(u.id, p))};
+    const totalDebt = outstandingByUnit.get(u.id) ?? 0;
+    grandDebt += totalDebt;
+    return {...u, monthlyFee, totalDebt};
   });
 
   return {

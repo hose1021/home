@@ -23,7 +23,7 @@ export default async function SettingsPage() {
   ]);
 
   return (
-    <div className="page-shell max-w-2xl">
+    <div className="page-shell">
       <div>
         <p className="text-sm text-muted-foreground">Управление домом</p>
         <h1 className="page-heading mt-1">Настройки</h1>

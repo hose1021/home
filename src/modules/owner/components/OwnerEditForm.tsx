@@ -77,16 +77,16 @@ export function OwnerEditForm({
     <form onSubmit={handleSubmit} className="space-y-4">
       <div>
         <label className="block text-sm font-medium">ФИО</label>
-        <input name="fullName" defaultValue={owner.fullName} required className="mt-1 block w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900" />
+        <input name="fullName" defaultValue={owner.fullName} required className="mt-1 field" />
       </div>
       <div className="grid grid-cols-2 gap-4">
         <div>
           <label className="block text-sm font-medium">Телефон</label>
-          <input name="phone" defaultValue={owner.phone ?? ""} className="mt-1 block w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900" />
+          <input name="phone" defaultValue={owner.phone ?? ""} className="mt-1 field" />
         </div>
         <div>
           <label className="block text-sm font-medium">Логин</label>
-          <input name="username" defaultValue={owner.username} className="mt-1 block w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900" />
+          <input name="username" defaultValue={owner.username} className="mt-1 field" />
         </div>
       </div>
 
@@ -100,7 +100,7 @@ export function OwnerEditForm({
                   type="checkbox"
                   checked={selectedRoles.includes(r)}
                   onChange={() => toggleRole(r)}
-                  className="rounded border-zinc-300 dark:border-zinc-700"
+                  className="rounded border-border dark:border-border"
                 />
                 <span className="text-sm">{ROLE_LABELS[r]}</span>
               </label>
@@ -110,9 +110,9 @@ export function OwnerEditForm({
       )}
 
       {canManageRoles && (
-        <div className="rounded-lg border border-zinc-200 p-3 dark:border-zinc-800">
+        <div className="rounded-[4px] border border-border p-3 dark:border-border">
           <label className="block text-sm font-medium mb-1">Сменить пароль</label>
-          <p className="text-xs text-zinc-500 mb-2">Минимум 8 символов. Все сессии пользователя будут сброшены.</p>
+          <p className="text-xs text-muted-foreground mb-2">Минимум 8 символов. Все сессии пользователя будут сброшены.</p>
           <div className="flex gap-2">
             <input
               type="password"
@@ -120,7 +120,7 @@ export function OwnerEditForm({
               onChange={(e) => setNewPassword(e.target.value)}
               placeholder="Новый пароль"
               minLength={12}
-              className="block w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900"
+              className="field"
             />
             <Button
               type="button"
@@ -134,7 +134,7 @@ export function OwnerEditForm({
         </div>
       )}
 
-      {error && <p className="text-sm text-red-500">{error}</p>}
+      {error && <p className="text-sm text-danger">{error}</p>}
 
       <div className="flex justify-end gap-3">
         <Button type="button" variant="outline" onClick={onDone}>Отмена</Button>

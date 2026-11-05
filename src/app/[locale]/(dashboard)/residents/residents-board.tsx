@@ -143,14 +143,14 @@ function ResidentDialog({ units, onClose }: {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <Label htmlFor="r-unit">{t("unit")}</Label>
-              <select id="r-unit" value={unitId} onChange={(e) => setUnitId(e.target.value)} required className="mt-1 block w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900">
+              <select id="r-unit" value={unitId} onChange={(e) => setUnitId(e.target.value)} required className="mt-1 field">
                 <option value="">—</option>
                 {units.map((u) => <option key={u.id} value={u.id}>{u.unitNumber}</option>)}
               </select>
             </div>
             <div>
               <Label htmlFor="r-type">{t("type")}</Label>
-              <select id="r-type" value={residentType ?? "family"} onChange={(e) => setResidentType(e.target.value as Resident["residentType"])} className="mt-1 block w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900">
+              <select id="r-type" value={residentType ?? "family"} onChange={(e) => setResidentType(e.target.value as Resident["residentType"])} className="mt-1 field">
                 {(["owner", "family", "tenant", "guest"] as const).map((ty) => <option key={ty} value={ty}>{t(`types.${ty}`)}</option>)}
               </select>
             </div>

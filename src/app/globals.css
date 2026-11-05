@@ -37,125 +37,454 @@
   --color-card: var(--card);
   --color-foreground: var(--foreground);
   --color-background: var(--background);
-  --radius-sm: calc(var(--radius) * 0.6);
-  --radius-md: calc(var(--radius) * 0.8);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) * 1.4);
-  --radius-2xl: calc(var(--radius) * 1.8);
-  --radius-3xl: calc(var(--radius) * 2.2);
-  --radius-4xl: calc(var(--radius) * 2.6);
+  --color-brand: var(--brand);
+  --color-brand-soft: var(--brand-soft);
+  --color-action: var(--action);
+  --color-action-pressed: var(--action-pressed);
+  --color-gold: var(--gold);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-danger: var(--danger);
+  --radius-sm: 2px;
+  --radius-md: 3px;
+  --radius-lg: 4px;
+  --radius-xl: 6px;
+  --radius-2xl: 8px;
+  --radius-3xl: 10px;
+  --radius-4xl: 12px;
 }
 
-/* «Табличка подъезда» — enamel signage, brass numerals, plaster walls */
+/* ------------------------------------------------------------------
+   Battle.net storefront language:
+   page #15171E · content #111218 · elevated #1A1C23
+   action #0074E0 · link #148EFF
+   borders white 18% / 36% · descriptions white 48%
+   Grotesque headings, 4px radii, flat surfaces.
+------------------------------------------------------------------ */
 :root {
-  --background: #E8E6E0;
-  --foreground: #1B2531;
-  --card: #FAF9F6;
-  --card-foreground: #1B2531;
-  --popover: #FAF9F6;
-  --popover-foreground: #1B2531;
-  --primary: #14555C;
-  --primary-foreground: #F8F7F4;
-  --secondary: #DDDAD2;
-  --secondary-foreground: #1B2531;
-  --muted: #E2DFD8;
-  --muted-foreground: #5D6670;
-  --accent: #DDE4E2;
-  --accent-foreground: #14555C;
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: #D3CFC6;
-  --input: #D3CFC6;
-  --ring: #14555C;
-  --chart-1: #14555C;
-  --chart-2: #A9822F;
-  --chart-3: #5D6670;
-  --chart-4: #1C6A72;
-  --chart-5: #1B2531;
-  --radius: 0.45rem;
-  --sidebar: #FAF9F6;
-  --sidebar-foreground: #1B2531;
-  --sidebar-primary: #14555C;
-  --sidebar-primary-foreground: #F8F7F4;
-  --sidebar-accent: #DDE4E2;
-  --sidebar-accent-foreground: #14555C;
-  --sidebar-border: #D9D5CC;
-  --sidebar-ring: #14555C;
+  color-scheme: light;
+
+  --background: #F2F4F8;
+  --foreground: #14171E;
+  --card: #FFFFFF;
+  --card-foreground: #14171E;
+  --popover: #FFFFFF;
+  --popover-foreground: #14171E;
+  --primary: #0074E0;
+  --primary-foreground: #FFFFFF;
+  --secondary: #E7ECF4;
+  --secondary-foreground: #14171E;
+  --muted: #EAEEF5;
+  --muted-foreground: #59616E;
+  --accent: #E4EFFC;
+  --accent-foreground: #005AAD;
+  --destructive: #C2263B;
+  --border: #D7DDE7;
+  --input: #C6CEDA;
+  --ring: #0074E0;
+
+  --brand: #0074E0;
+  --brand-soft: #47A6FF;
+  --action: #0074E0;
+  --action-pressed: #005AAD;
+  --gold: #A87413;
+  --success: #128148;
+  --warning: #A36A08;
+  --danger: #C2263B;
+  --danger-solid: #C2263B;
+
+  --chart-1: #0074E0;
+  --chart-2: #47A6FF;
+  --chart-3: #128148;
+  --chart-4: #FFB400;
+  --chart-5: #59616E;
+
+  --radius: 0.25rem;
+
+  --sidebar: #FFFFFF;
+  --sidebar-foreground: #3A424F;
+  --sidebar-primary: #0074E0;
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent: #EAF2FD;
+  --sidebar-accent-foreground: #005AAD;
+  --sidebar-border: #E1E6EE;
+  --sidebar-ring: #0074E0;
+
+  --surface-elevated: #FFFFFF;
+  --surface-sunken: #EAEEF5;
+  --input-bg: #F7F9FC;
+  --btn-soft-bg: #0000000F;
+  --btn-soft-bg-hover: #0000001A;
+  --btn-soft-bg-active: #0000000A;
+  --btn-soft-ring: #00000026;
+  --topbar: color-mix(in srgb, #F2F4F8 88%, transparent);
+  --banner-glow: color-mix(in srgb, #0074E0 18%, transparent);
+  --banner-base: #E8EFFA;
 }
 
 .dark {
-  --background: #12181F;
-  --foreground: #E9EAE6;
-  --card: #1A222B;
-  --card-foreground: #E9EAE6;
-  --popover: #1A222B;
-  --popover-foreground: #E9EAE6;
-  --primary: #4FA3A8;
-  --primary-foreground: #0F1519;
-  --secondary: #232C36;
-  --secondary-foreground: #E9EAE6;
-  --muted: #20282F;
-  --muted-foreground: #97A1AB;
-  --accent: #22343A;
-  --accent-foreground: #7FC4C9;
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: rgba(233, 234, 230, 12%);
-  --input: rgba(233, 234, 230, 16%);
-  --ring: #4FA3A8;
-  --chart-1: #4FA3A8;
-  --chart-2: #C4A45C;
-  --chart-3: #97A1AB;
-  --chart-4: #2F6E74;
-  --chart-5: #E9EAE6;
-  --sidebar: #161D24;
-  --sidebar-foreground: #E9EAE6;
-  --sidebar-primary: #4FA3A8;
-  --sidebar-primary-foreground: #0F1519;
-  --sidebar-accent: #22343A;
-  --sidebar-accent-foreground: #7FC4C9;
-  --sidebar-border: rgba(233, 234, 230, 10%);
-  --sidebar-ring: #4FA3A8;
+  color-scheme: dark;
+
+  --background: #15171E;
+  --foreground: #FFFFFF;
+  --card: #22242C;
+  --card-foreground: #FFFFFF;
+  --popover: #26282F;
+  --popover-foreground: #FFFFFF;
+  --primary: #148EFF;
+  --primary-foreground: #FFFFFF;
+  --secondary: #1F222A;
+  --secondary-foreground: #FFFFFF;
+  --muted: #1A1C23;
+  --muted-foreground: #FFFFFFA8;
+  --accent: #FFFFFF1F;
+  --accent-foreground: #FFFFFF;
+  --destructive: #FF6B6B;
+  --danger-solid: #DD0000;
+  --border: #FFFFFF2E;
+  --input: #FFFFFF5C;
+  --ring: #148EFF;
+
+  --brand: #148EFF;
+  --brand-soft: #47A6FF;
+  --action: #0074E0;
+  --action-pressed: #003F7A;
+  --gold: #FFB400;
+  --success: #6CDB00;
+  --warning: #FFB400;
+  --danger: #FF6B6B;
+
+  --chart-1: #148EFF;
+  --chart-2: #47A6FF;
+  --chart-3: #6CDB00;
+  --chart-4: #FFB400;
+  --chart-5: #FFFFFFA8;
+
+  --sidebar: #111218;
+  --sidebar-foreground: #FFFFFFB8;
+  --sidebar-primary: #148EFF;
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent: #FFFFFF1F;
+  --sidebar-accent-foreground: #FFFFFF;
+  --sidebar-border: #FFFFFF1F;
+  --sidebar-ring: #148EFF;
+
+  --surface-elevated: #26282F;
+  --surface-sunken: #111218;
+  --input-bg: #171920;
+  --btn-soft-bg: #FFFFFF1F;
+  --btn-soft-bg-hover: #FFFFFF2E;
+  --btn-soft-bg-active: #FFFFFF0F;
+  --btn-soft-ring: #FFFFFF5C;
+  --topbar: color-mix(in srgb, #15171E 88%, transparent);
+  --banner-glow: color-mix(in srgb, #0074E0 42%, transparent);
+  --banner-base: #0F1D2E;
 }
 
 @layer base {
   * {
     @apply border-border outline-ring/50;
   }
+
+  html {
+    scrollbar-color: color-mix(in srgb, var(--muted-foreground) 40%, transparent) transparent;
+  }
+
   body {
-    @apply bg-background text-foreground antialiased;
+    @apply text-foreground antialiased;
+    background-color: var(--background);
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
   }
-  h1, h2, h3 {
-    font-family: var(--font-display), var(--font-sans), sans-serif;
-    letter-spacing: -0.01em;
+
+  ::selection {
+    background: color-mix(in srgb, #148EFF 40%, transparent);
+    color: #FFFFFF;
   }
+
+  h1, h2, h3, h4 {
+    font-family: var(--font-display), var(--font-sans), sans-serif;
+    letter-spacing: -0.012em;
+  }
+
   button:not(:disabled),
   [role="button"]:not(:disabled) {
     cursor: pointer;
+  }
+
+  :focus-visible {
+    outline: 1px solid var(--ring);
+    outline-offset: 2px;
+  }
+
+  /* Native module tables share the storefront table header */
+  table thead th {
+    background-color: transparent;
+    color: var(--muted-foreground);
+    font-family: var(--font-display), var(--font-sans), sans-serif;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.6px;
+    text-transform: uppercase;
+  }
+
+  /* Long finance tables keep their header in view while scrolling. */
+  [data-slot="table-container"] {
+    max-height: 70svh;
+  }
+
+  [data-slot="table-container"] thead th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    background-color: var(--card);
   }
 }
 
 @layer components {
   .page-shell {
-    @apply mx-auto flex w-full max-w-[1600px] flex-col gap-4 px-4 py-4 md:gap-6 md:py-6 lg:px-6;
+    @apply mx-auto flex w-full flex-col gap-5 px-4 py-5 md:gap-6 md:px-6 md:py-6 lg:px-8;
   }
 
-  /* Headings: quiet editorial type — identity lives in palette and mono money */
-  .page-heading {
-    @apply text-2xl font-semibold tracking-tight;
+  .eyebrow {
+    @apply text-xs font-semibold;
     font-family: var(--font-display), var(--font-sans), sans-serif;
+    color: var(--muted-foreground);
+  }
+
+  .page-heading {
+    font-family: var(--font-display), var(--font-sans), sans-serif;
+    @apply text-[1.6rem] font-bold leading-[1.15] md:text-[2rem];
+    letter-spacing: -0.012em;
+    text-wrap: balance;
   }
 
   .page-description {
-    @apply mt-2 text-sm text-muted-foreground;
+    @apply mt-2 max-w-2xl text-sm leading-6;
+    color: var(--muted-foreground);
   }
 
-  .surface-panel {
-    @apply rounded-lg border bg-card text-card-foreground shadow-sm;
+  .micro-label {
+    @apply text-xs font-semibold;
+    color: var(--muted-foreground);
   }
 
-  /* Money is always a receipt numeral */
+  /* Flat storefront plate: 4px radius, hairline border, 1px top light */
+  .surface-panel,
+  .panel {
+    position: relative;
+    background-color: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 3%);
+  }
+
+  .surface-panel--hover {
+    transition: border-color 140ms ease, background-color 140ms ease;
+  }
+
+  .surface-panel--hover:hover {
+    border-color: color-mix(in srgb, #148EFF 55%, var(--border));
+    background-color: color-mix(in srgb, #148EFF 6%, var(--card));
+  }
+
+  /* Banner: the storefront hero — blue light rising out of the page */
+  .banner {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+    border-radius: var(--radius-xl);
+    border: 1px solid var(--border);
+    background:
+      radial-gradient(760px 420px at 8% -20%, var(--banner-glow), transparent 68%),
+      radial-gradient(620px 360px at 96% 120%, color-mix(in srgb, #FFB400 10%, transparent), transparent 62%),
+      linear-gradient(150deg, var(--banner-base), var(--card) 62%);
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 5%);
+  }
+
+  .banner::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    background-image: radial-gradient(1px 1px at 20% 30%, rgb(255 255 255 / 14%) 1px, transparent 0);
+    background-size: 26px 26px;
+    mask-image: linear-gradient(120deg, black, transparent 60%);
+    opacity: 0.5;
+  }
+
+  /* Small square glyph container */
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border);
+    background-color: var(--accent);
+    color: var(--foreground);
+  }
+
+  /* Primary action plate: solid Blizzard blue, 4px radius, ring lightens on hover */
+  .btn-solid {
+    background-color: var(--action);
+    color: #FFFFFF;
+    border-radius: var(--radius-lg);
+    box-shadow: inset 0 0 0 1px rgb(255 255 255 / 24%);
+    transition: background-color 120ms ease, box-shadow 120ms ease, color 120ms ease;
+  }
+
+  .btn-solid:hover {
+    box-shadow: inset 0 0 0 1px rgb(255 255 255 / 36%);
+  }
+
+  .btn-solid:active {
+    background-color: var(--action-pressed);
+    color: rgb(255 255 255 / 72%);
+    box-shadow: inset 0 0 0 1px rgb(255 255 255 / 18%);
+  }
+
+  /* Secondary action: translucent plate, ring appears on hover */
+  .btn-soft {
+    background-color: var(--btn-soft-bg);
+    color: var(--foreground);
+    border-radius: var(--radius-lg);
+    transition: background-color 120ms ease, box-shadow 120ms ease;
+  }
+
+  .btn-soft:hover {
+    background-color: var(--btn-soft-bg-hover);
+    box-shadow: inset 0 0 0 1px var(--btn-soft-ring);
+  }
+
+  .btn-soft:active {
+    background-color: var(--btn-soft-bg-active);
+    box-shadow: inset 0 0 0 1px var(--btn-soft-ring);
+  }
+
+  /* Native form control used by the module forms */
+  .field {
+    @apply block h-10 w-full rounded-[4px] border px-3 text-sm outline-none;
+    border-color: var(--input);
+    background-color: var(--input-bg);
+    color: var(--foreground);
+    transition: border-color 120ms ease, background-color 120ms ease;
+  }
+
+  .field:hover {
+    border-color: color-mix(in srgb, var(--muted-foreground) 70%, transparent);
+  }
+
+  .field:focus-visible {
+    border-color: #148EFF;
+    box-shadow: none;
+  }
+
+  /* Native filter select: input plate with a custom chevron (light + dark) */
+  .filter-select {
+    @apply h-10 rounded-[4px] border px-3 text-sm outline-none;
+    appearance: none;
+    border-color: var(--input);
+    background-color: var(--input-bg);
+    color: var(--foreground);
+    padding-right: 2.25rem;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%2314171E' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m4 6 4 4 4-4'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.75rem center;
+    background-size: 1rem;
+    transition: border-color 120ms ease;
+  }
+
+  .filter-select:hover {
+    border-color: color-mix(in srgb, var(--muted-foreground) 70%, transparent);
+  }
+
+  .filter-select:focus-visible {
+    border-color: #148EFF;
+  }
+
+  .dark .filter-select {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23FFFFFFA8' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m4 6 4 4 4-4'/%3E%3C/svg%3E");
+  }
+
+  /* Content slab sits beside the rail with a single hairline */
+  [data-slot="sidebar-inset"] {
+    background-color: var(--background);
+    box-shadow: inset 1px 0 0 var(--border);
+  }
+
+  .topbar {
+    background: var(--topbar);
+    border-bottom: 1px solid var(--border);
+    backdrop-filter: blur(14px) saturate(140%);
+  }
+
+  .empty-slot {
+    @apply flex flex-col items-center justify-center gap-2 rounded-[4px] border border-dashed px-6 py-10 text-center text-sm;
+    color: var(--muted-foreground);
+    background-color: var(--surface-sunken);
+  }
+
+  /* Money is always a terminal numeral */
   .amount {
-    font-family: var(--font-mono-brand), monospace;
+    font-family: var(--font-mono-brand), ui-monospace, monospace;
     font-variant-numeric: tabular-nums;
+    letter-spacing: -0.01em;
   }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* react-day-picker: storefront surfaces, 4px cells, theme-aware accent */
+.rdp-root.rdp-theme {
+  --rdp-accent-color: var(--action);
+  --rdp-accent-background-color: var(--accent);
+  --rdp-day-height: 2rem;
+  --rdp-day-width: 2rem;
+  --rdp-day_button-height: 2rem;
+  --rdp-day_button-width: 2rem;
+  --rdp-day_button-border-radius: 4px;
+  --rdp-selected-border: none;
+  --rdp-today-color: var(--primary);
+  --rdp-outside-opacity: 0.4;
+  --rdp-nav_button-height: 1.75rem;
+  --rdp-nav_button-width: 1.75rem;
+  color: var(--foreground);
+  font-size: 0.8125rem;
+}
+
+.rdp-theme .rdp-month_caption {
+  font-family: var(--font-display), var(--font-sans), sans-serif;
+  font-weight: 700;
+}
+
+.rdp-theme .rdp-month_grid {
+  border-collapse: separate;
+  border-spacing: 2px;
+}
+
+.rdp-theme .rdp-day_button {
+  font-weight: 500;
+}
+
+.rdp-theme .rdp-day_button:hover {
+  background-color: var(--accent);
+  color: var(--accent-foreground);
+}
+
+.rdp-theme .rdp-nav_button {
+  border-radius: 4px;
+}
+
+.rdp-theme .rdp-nav_button:hover {
+  background-color: var(--accent);
+  color: var(--accent-foreground);
+}
+
+.rdp-theme .rdp-chevron {
+  fill: currentColor;
 }

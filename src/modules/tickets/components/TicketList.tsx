@@ -27,10 +27,10 @@ export type TicketListItem = {
 };
 
 const STATUS_COLORS: Record<TicketStatus, string> = {
-  pending: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200",
-  in_progress: "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200",
-  rejected: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200",
-  done: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200",
+  pending: "bg-primary/12 border-primary/35 text-primary",
+  in_progress: "bg-gold/12 border-gold/35 text-gold",
+  rejected: "bg-danger/12 border-danger/35 text-danger",
+  done: "bg-success/12 border-success/35 text-success",
 };
 
 export function TicketList({
@@ -76,7 +76,7 @@ export function TicketList({
               className="surface-panel group block p-4 transition-colors hover:bg-muted/20 sm:p-5"
             >
               <div className="flex items-start gap-4">
-                <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
+                <span className="flex size-9 shrink-0 items-center justify-center rounded-[4px] bg-muted text-muted-foreground">
                   <IconTicket className="size-5" />
                 </span>
                 <div className="min-w-0 flex-1">
@@ -90,14 +90,14 @@ export function TicketList({
                       </div>
                     </div>
                     <div className="flex shrink-0 items-center gap-2">
-                      <Badge variant="outline" className={ticket.priority === "urgent" ? "border-red-200 text-red-600" : "text-muted-foreground"}>{priorityLabel(ticket.priority)}</Badge>
+                      <Badge variant="outline" className={ticket.priority === "urgent" ? "border-danger/40 text-danger" : "text-muted-foreground"}>{priorityLabel(ticket.priority)}</Badge>
                       <Badge className={`border-0 ${STATUS_COLORS[ticket.status]}`}>{statusLabel(ticket.status)}</Badge>
                       <IconChevronRight className="size-4 text-muted-foreground" />
                     </div>
                   </div>
                   {ticket.ownerName && <p className="mt-3 text-xs text-muted-foreground">{t("applicant")}: {ticket.ownerName}{ticket.ownerPhone ? ` · ${ticket.ownerPhone}` : ""}</p>}
                   {ticket.status === "rejected" && ticket.rejectionReason && (
-                    <p className="mt-3 rounded-lg bg-red-500/8 px-3 py-2 text-xs text-red-600">{t("rejectionReason")}: {ticket.rejectionReason}</p>
+                    <p className="mt-3 rounded-[4px] bg-danger/10 px-3 py-2 text-xs text-danger">{t("rejectionReason")}: {ticket.rejectionReason}</p>
                   )}
                 </div>
               </div>
@@ -105,7 +105,7 @@ export function TicketList({
           ))}
           {tickets.length === 0 && (
             <div className="surface-panel flex flex-col items-center px-6 py-16 text-center">
-              <span className="flex size-10 items-center justify-center rounded-lg bg-muted text-muted-foreground"><IconTicket className="size-5" /></span>
+              <span className="flex size-10 items-center justify-center rounded-[4px] bg-muted text-muted-foreground"><IconTicket className="size-5" /></span>
               <p className="mt-4 font-semibold">{t("noTickets")}</p>
               <p className="mt-1 text-sm text-muted-foreground">{t("noTicketsDesc")}</p>
             </div>

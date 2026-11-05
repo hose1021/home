@@ -43,28 +43,28 @@ export function UnitCreateForm({
       <div className="grid grid-cols-2 gap-4">
         <div>
           <label className="block text-sm font-medium">{tu("unitNumber")}</label>
-          <input name="unitNumber" required className="mt-1 block w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900" />
+          <input name="unitNumber" required className="mt-1 field" />
         </div>
         <div>
           <label className="block text-sm font-medium">{tu("floor")}</label>
-          <input name="floor" type="number" required className="mt-1 block w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900" />
+          <input name="floor" type="number" required className="mt-1 field" />
         </div>
         <div>
           <label className="block text-sm font-medium">{tu("entrance")}</label>
-          <input name="entrance" type="number" defaultValue={1} className="mt-1 block w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900" />
+          <input name="entrance" type="number" defaultValue={1} className="mt-1 field" />
         </div>
         <div>
           <label className="block text-sm font-medium">{tu("type")}</label>
-          <select name="type" className="mt-1 block w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900">
+          <select name="type" className="mt-1 field">
             {types.map((t) => <option key={t} value={t}>{tu(`types.${t}`)}</option>)}
           </select>
         </div>
         <div>
           <label className="block text-sm font-medium">{tu("area")}</label>
-          <input name="area" type="number" step="0.01" required className="mt-1 block w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900" />
+          <input name="area" type="number" step="0.01" required className="mt-1 field" />
         </div>
       </div>
-      {error && <p className="text-sm text-red-500">{error}</p>}
+      {error && <p className="text-sm text-danger">{error}</p>}
       <div className="flex justify-end gap-3">
         <Button type="button" variant="outline" onClick={onDone}>{tc("cancel")}</Button>
         <Button type="submit" disabled={pending}>{pending ? tc("create") + "..." : tc("create")}</Button>

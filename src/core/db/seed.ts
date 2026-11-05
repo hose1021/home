@@ -6,14 +6,14 @@ import {
     meetingAgendas,
     meetings,
     payments,
+    paymentAllocations,
     protocols,
     protocolSignatures
 } from "@/core/db/schema";
 import {createUser, hashPassword} from "../auth/auth";
 import type {Role} from "../auth/permissions";
-import {budgetItems, budgets} from "./schema/budgets";
-import {charges, chargeTemplates} from "./schema/charges";
-import {funds} from "./schema/funds";
+import {charges} from "./schema/charges";
+import {expenses} from "./schema/expenses";
 import {owners, ownerships} from "./schema/owners";
 import {tenants} from "./schema/tenants";
 import {units} from "./schema/units";
@@ -295,99 +295,14 @@ async function seed() {
     await ensureRole(commandant.id, tenant.id, "commandant");
     await ensureRole(commandant.id, tenant.id, "owner");
 
-    // ─── FUNDS ─────────────────────────────────────────────────
-    let createdFunds = await db.select().from(funds).where(eq(funds.tenantId, tenant.id));
-    if (createdFunds.length === 0) {
-        createdFunds = await db.insert(funds).values([
-            {
-                tenantId: tenant.id,
-                name: "Əsaslı Fond",
-                type: "improvement",
-                targetAmount: "50000.00",
-                currentBalance: "25000.00"
-            },
-            {
-                tenantId: tenant.id,
-                name: "Ehtiyat Fondu",
-                type: "reserve",
-                targetAmount: "20000.00",
-                currentBalance: "10000.00"
-            },
-            {
-                tenantId: tenant.id,
-                name: "Təmir Fondu",
-                type: "repair",
-                targetAmount: "30000.00",
-                currentBalance: "15000.00"
-            },
-            {
-                tenantId: tenant.id,
-                name: "Fövqəladə Hallar Fondu",
-                type: "emergency",
-                targetAmount: "15000.00",
-                currentBalance: "5000.00"
-            },
-        ]).returning();
-        console.log(`Created ${createdFunds.length} funds`);
-    }
+    // ─── FINANCE SETTINGS ──────────────────────────────────────
+    await db.update(tenants).set({
+        tariffPerSqm: "0.40",
+        billingStart: "2026-05",
+        dueDay: 15,
+    }).where(eq(tenants.id, tenant.id));
 
-    // ─── CHARGE TEMPLATES (demo monthly rates) ───
-    let templates = await db.select().from(chargeTemplates).where(eq(chargeTemplates.tenantId, tenant.id));
-    if (templates.length === 0) {
-        templates = await db.insert(chargeTemplates).values([
-            {
-                tenantId: tenant.id,
-                name: "Yaşayış sahəsi xidmət haqqı",
-                type: "monthly",
-                amount: "40.00",
-                calculation: "fixed_per_unit",
-                fundId: createdFunds[0]!.id
-            },
-            {
-                tenantId: tenant.id,
-                name: "Qeyri-yaşayış sahəsi xidmət haqqı",
-                type: "monthly",
-                amount: "100.00",
-                calculation: "fixed_per_unit",
-                fundId: createdFunds[0]!.id
-            },
-            {
-                tenantId: tenant.id,
-                name: "Təmir fondu yığımı",
-                type: "monthly",
-                amount: "30.00",
-                calculation: "fixed_per_unit",
-                fundId: createdFunds[2]!.id
-            },
-            {
-                tenantId: tenant.id,
-                name: "Liftə xidmət",
-                type: "monthly",
-                amount: "120.00",
-                calculation: "fixed_per_unit",
-                fundId: createdFunds[0]!.id
-            },
-        ]).returning();
-        console.log(`Created ${templates.length} charge templates`);
-    } else {
-        for (const tpl of templates) {
-            if (tpl.name.includes("Yaşayış")) {
-                await db
-                    .update(chargeTemplates)
-                    .set({amount: "40.00", calculation: "fixed_per_unit"})
-                    .where(eq(chargeTemplates.id, tpl.id));
-            }
-            if (tpl.name.includes("Təmir fondu")) {
-                await db
-                    .update(chargeTemplates)
-                    .set({amount: "30.00", calculation: "fixed_per_unit"})
-                    .where(eq(chargeTemplates.id, tpl.id));
-            }
-        }
-        templates = await db.select().from(chargeTemplates).where(eq(chargeTemplates.tenantId, tenant.id));
-    }
-
-    // ─── CHARGES (3 months: May, June, July 2026) ─────────────
+    // ─── CHARGES: one apartment charge = area × tariff ─────────
     let createdCharges = await db.select().from(charges).where(eq(charges.tenantId, tenant.id));
     if (createdCharges.length === 0) {
         const periods = [
@@ -396,41 +311,58 @@ async function seed() {
             {year: 2026, month: 7, due: "2026-07-15"},
         ];
         const rows: typeof createdCharges = [];
-
         for (const period of periods) {
             for (const u of allUnits) {
                 const ownerId = createdOwnerships.find((o) => o.unitId === u.id)?.ownerId;
                 if (!ownerId) continue;
-                for (const tpl of templates) {
-                    const created = await db.insert(charges).values({
-                        tenantId: tenant.id, templateId: tpl.id, unitId: u.id, ownerId,
-                        amount: tpl.amount, periodYear: period.year, periodMonth: period.month,
-                        dueDate: period.due, status: period.month < 7 ? "paid" : "pending", createdBy: admin.id,
-                    }).returning();
-                    rows.push(created[0]!);
-                }
+                const [created] = await db.insert(charges).values({
+                    tenantId: tenant.id, unitId: u.id, ownerId,
+                    amount: (Number(u.area) * 0.40).toFixed(2),
+                    periodYear: period.year, periodMonth: period.month,
+                    dueDate: period.due, status: "pending", createdBy: admin.id,
+                }).returning();
+                if (created) rows.push(created);
             }
         }
         createdCharges = rows;
         console.log(`Created ${createdCharges.length} charges`);
     }
 
-    // ─── PAYMENTS ──────────────────────────────────────────────
+    // ─── PAYMENTS + ALLOCATIONS (May and June settled) ────────
     let createdPayments = await db.select().from(payments).where(eq(payments.tenantId, tenant.id));
     if (createdPayments.length === 0) {
-        const paid = createdCharges.filter((c) => c.status === "paid");
         const rows: typeof createdPayments = [];
-        for (const c of paid) {
-            const created = await db.insert(payments).values({
-                tenantId: tenant.id, chargeId: c.id, unitId: c.unitId, ownerId: c.ownerId,
-                amount: c.amount, periodYear: c.periodYear, periodMonth: c.periodMonth,
-                paymentDate: new Date(c.dueDate),
-                paymentMethod: "bank_transfer", status: "confirmed", confirmedBy: admin.id,
+        for (const charge of createdCharges.filter((c) => c.periodMonth < 7)) {
+            const [created] = await db.insert(payments).values({
+                tenantId: tenant.id, chargeId: charge.id, unitId: charge.unitId, ownerId: charge.ownerId,
+                amount: charge.amount, periodYear: charge.periodYear, periodMonth: charge.periodMonth,
+                paymentDate: new Date(charge.dueDate), paymentMethod: "bank_transfer",
+                status: "confirmed", confirmedBy: admin.id,
             }).returning();
-            rows.push(created[0]!);
+            if (!created) continue;
+            rows.push(created);
+            await db.insert(paymentAllocations).values({
+                tenantId: tenant.id, paymentId: created.id, chargeId: charge.id, amount: charge.amount,
+            });
+            await db.update(charges).set({status: "paid"}).where(eq(charges.id, charge.id));
         }
         createdPayments = rows;
         console.log(`Created ${createdPayments.length} payments`);
+    }
+
+    // ─── EXPENSES: the building pays house services ────────────
+    let createdExpenses = await db.select().from(expenses).where(eq(expenses.tenantId, tenant.id));
+    if (createdExpenses.length === 0) {
+        createdExpenses = await db.insert(expenses).values([
+            {tenantId: tenant.id, amount: "180.00", description: "Mühafizə xidməti — may", expenseDate: "2026-05-05", createdBy: admin.id},
+            {tenantId: tenant.id, amount: "120.00", description: "Lift xidməti — may", expenseDate: "2026-05-06", createdBy: admin.id},
+            {tenantId: tenant.id, amount: "90.00", description: "Xadimə xidməti — may", expenseDate: "2026-05-07", createdBy: admin.id},
+            {tenantId: tenant.id, amount: "180.00", description: "Mühafizə xidməti — iyun", expenseDate: "2026-06-05", createdBy: admin.id},
+            {tenantId: tenant.id, amount: "120.00", description: "Lift xidməti — iyun", expenseDate: "2026-06-06", createdBy: admin.id},
+            {tenantId: tenant.id, amount: "90.00", description: "Xadimə xidməti — iyun", expenseDate: "2026-06-07", createdBy: admin.id},
+            {tenantId: tenant.id, amount: "75.00", description: "Ümumi sahə elektrik — iyun", expenseDate: "2026-06-10", createdBy: admin.id},
+        ]).returning();
+        console.log(`Created ${createdExpenses.length} expenses`);
     }
 
     // ─── MEETING ──────────────────────────────────────────────
@@ -512,126 +444,15 @@ async function seed() {
         console.log("Protocol signed");
     }
 
-    // ─── BUDGET (2026) — demo smeta ───────────
-    let budget = (await db.select().from(budgets).where(eq(budgets.tenantId, tenant.id)).limit(1))[0];
-    if (!budget) {
-        [budget] = await db.insert(budgets).values({
-            tenantId: tenant.id, year: 2026, status: "approved",
-            totalIncome: "10000.00", totalExpense: "10000.00",
-            approvedBy: admin.id, approvedAt: new Date("2026-03-20"),
-        }).returning();
-        if (!budget) throw new Error("Budget seed failed");
-        console.log("Budget 2026 created");
-
-        await db.insert(budgetItems).values([
-            // GƏLİRLƏR (Income)
-            {
-                budgetId: budget.id,
-                accountCode: "4010",
-                plannedAmount: "8800.00",
-                actualAmount: "4400.00",
-                notes: "167 Mənzil × 0.40 AZN/m² × 22.000 m² (6 ay)"
-            },
-            {
-                budgetId: budget.id,
-                accountCode: "4020",
-                plannedAmount: "1200.00",
-                actualAmount: "600.00",
-                notes: "12 Obyekt × 50-200 AZN (6 ay)"
-            },
-            // XƏRCLƏR (Expenses)
-            {
-                budgetId: budget.id,
-                accountCode: "5010",
-                plannedAmount: "1000.00",
-                actualAmount: "600.00",
-                notes: "Təsərrüfat müdiri (Komendant) — 6 ay"
-            },
-            {
-                budgetId: budget.id,
-                accountCode: "5011",
-                plannedAmount: "700.00",
-                actualAmount: "420.00",
-                notes: "Texnik-fəhlə — 6 ay"
-            },
-            {
-                budgetId: budget.id,
-                accountCode: "5020",
-                plannedAmount: "1800.00",
-                actualAmount: "1080.00",
-                notes: "3 nəfər növbəli Mühafizə — 6 ay"
-            },
-            {
-                budgetId: budget.id,
-                accountCode: "5012",
-                plannedAmount: "1800.00",
-                actualAmount: "1080.00",
-                notes: "3 nəfər Xadimə — 6 ay"
-            },
-            {
-                budgetId: budget.id,
-                accountCode: "5030",
-                plannedAmount: "400.00",
-                actualAmount: "240.00",
-                notes: "Azərişıq (ümumi sahə) — 6 ay"
-            },
-            {
-                budgetId: budget.id,
-                accountCode: "5040",
-                plannedAmount: "120.00",
-                actualAmount: "72.00",
-                notes: "Azərsu (ümumi sahə) — 6 ay"
-            },
-            {
-                budgetId: budget.id,
-                accountCode: "5100",
-                plannedAmount: "1200.00",
-                actualAmount: "720.00",
-                notes: "10 ədəd Lift — 6 ay"
-            },
-            {
-                budgetId: budget.id,
-                accountCode: "5990",
-                plannedAmount: "650.00",
-                actualAmount: "390.00",
-                notes: "Ə/h vergiləri — 6 ay"
-            },
-            {
-                budgetId: budget.id,
-                accountCode: "5991",
-                plannedAmount: "300.00",
-                actualAmount: "180.00",
-                notes: "Daimi aylıq təsərrüfat xərcləri — 6 ay"
-            },
-            {
-                budgetId: budget.id,
-                accountCode: "5080",
-                plannedAmount: "400.00",
-                actualAmount: "240.00",
-                notes: "Kənar Mühasib xidməti — 6 ay"
-            },
-            {
-                budgetId: budget.id,
-                accountCode: "3020",
-                plannedAmount: "1630.00",
-                actualAmount: "978.00",
-                notes: "Rezerv fondu — 6 ay"
-            },
-        ]);
-        console.log("Budget items created");
-    }
-
     console.log(`\n✓ Seed complete!
   Owners:     ${createdOwners.length}
   Ownerships: ${createdOwnerships.length}
-  Funds:      ${createdFunds.length}
-  Templates:  ${templates.length}
   Charges:    ${createdCharges.length}
   Payments:   ${createdPayments.length}
+  Expenses:   ${createdExpenses.length}
   Meeting:    ${meeting ? "✓" : "—"}
   Voting:     ${voting ? "✓" : "—"}
-  Protocol:   ${protocol ? "✓" : "—"}
-  Budget:     ${budget ? "✓" : "—"}`);
+  Protocol:   ${protocol ? "✓" : "—"}`);
     process.exit(0);
 }
 

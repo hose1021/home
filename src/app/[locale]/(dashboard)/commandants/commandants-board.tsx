@@ -80,7 +80,7 @@ export function CommandantsBoard({
                   <p className="text-base font-semibold">{commandant.fullName}</p>
                   <p className="mt-1 text-sm text-muted-foreground">{commandant.phone ?? "Нет телефона"}</p>
                 </div>
-                <Badge className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">Активен</Badge>
+                <Badge className="bg-success/12 border-success/35 text-success">Активен</Badge>
               </div>
               <p className="mt-3 text-sm text-muted-foreground">{formatPeriod(commandant.startDate, commandant.endDate)}</p>
               {commandant.ownerId && <p className="mt-1 text-xs text-muted-foreground">Из собственников</p>}

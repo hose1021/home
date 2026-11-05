@@ -120,33 +120,33 @@ export function OwnerTable({ owners, canManage, canManageRoles, initialSearch, i
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-2">
           <div className="relative">
-            <IconSearch className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-zinc-400" />
+            <IconSearch className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground/70" />
             <Input
               value={search}
               onChange={(e) => { setSearch(e.target.value); updateURL(e.target.value, roleFilter, unitsFilter, paymentFilter); }}
               placeholder={to("searchPlaceholder")}
-              className="h-9 w-64 pl-9 pr-8"
+              className="w-80 pl-9 pr-8"
             />
             {search && (
-              <button onClick={() => { setSearch(""); updateURL("", roleFilter, unitsFilter, paymentFilter); }} className="absolute right-2 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-700">
+              <button onClick={() => { setSearch(""); updateURL("", roleFilter, unitsFilter, paymentFilter); }} className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground/70 hover:text-muted-foreground">
                 <IconX className="size-4" />
               </button>
             )}
           </div>
 
           <select value={roleFilter} onChange={(e) => { setRoleFilter(e.target.value); updateURL(search, e.target.value, unitsFilter, paymentFilter); }}
-            className="h-9 rounded-lg border border-input bg-background px-3 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50">
+            className="filter-select">
             <option value="">{to("filterByRole")}</option>
             {ALL_ROLES.map((r) => (<option key={r.value} value={r.value}>{r.label}</option>))}
           </select>
 
           <select value={unitsFilter} onChange={(e) => { setUnitsFilter(e.target.value); updateURL(search, roleFilter, e.target.value, paymentFilter); }}
-            className="h-9 rounded-lg border border-input bg-background px-3 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50">
+            className="filter-select">
             {UNIT_OPTIONS.map((o) => (<option key={o.value} value={o.value}>{o.label}</option>))}
           </select>
 
           <select value={paymentFilter} onChange={(e) => { setPaymentFilter(e.target.value); updateURL(search, roleFilter, unitsFilter, e.target.value); }}
-            className="h-9 rounded-lg border border-input bg-background px-3 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50">
+            className="filter-select">
             {PAYMENT_OPTIONS.map((o) => (<option key={o.value} value={o.value}>{o.label}</option>))}
           </select>
         </div>
@@ -162,12 +162,12 @@ export function OwnerTable({ owners, canManage, canManageRoles, initialSearch, i
         <table className="min-w-full divide-y divide-border">
           <thead className="bg-muted/50">
             <tr>
-              <th className="px-4 py-3 text-left text-xs font-medium uppercase text-zinc-500">{to("fullName")}</th>
-              <th className="px-4 py-3 text-left text-xs font-medium uppercase text-zinc-500">{to("role")}</th>
-              <th className="px-4 py-3 text-left text-xs font-medium uppercase text-zinc-500">{to("phone")}</th>
-              <th className="px-4 py-3 text-left text-xs font-medium uppercase text-zinc-500">{tc("auth.login")}</th>
-              <th className="px-4 py-3 text-right text-xs font-medium uppercase text-zinc-500">{to("units")}</th>
-              <th className="px-4 py-3 text-right text-xs font-medium uppercase text-zinc-500" />
+              <th className="px-4 py-3 text-left text-xs font-bold text-muted-foreground">{to("fullName")}</th>
+              <th className="px-4 py-3 text-left text-xs font-bold text-muted-foreground">{to("role")}</th>
+              <th className="px-4 py-3 text-left text-xs font-bold text-muted-foreground">{to("phone")}</th>
+              <th className="px-4 py-3 text-left text-xs font-bold text-muted-foreground">{tc("auth.login")}</th>
+              <th className="px-4 py-3 text-right text-xs font-bold text-muted-foreground">{to("units")}</th>
+              <th className="px-4 py-3 text-right text-xs font-bold text-muted-foreground" />
             </tr>
           </thead>
           <tbody className="divide-y divide-border">

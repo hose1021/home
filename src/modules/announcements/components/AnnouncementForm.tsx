@@ -58,18 +58,18 @@ export function AnnouncementForm({
     <form onSubmit={handleSubmit} className="space-y-4">
       <div>
         <label className="block text-sm font-medium">{ta("title_")}</label>
-        <input name="title" defaultValue={announcement?.title} required className="mt-1 block w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900" />
+        <input name="title" defaultValue={announcement?.title} required className="mt-1 field" />
       </div>
 
       <div>
         <label className="block text-sm font-medium">{ta("content")}</label>
-        <textarea name="content" defaultValue={announcement?.content} rows={5} required className="mt-1 block w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900" />
+        <textarea name="content" defaultValue={announcement?.content} rows={5} required className="mt-1 field" />
       </div>
 
       <div className="flex gap-4">
         <div className="flex-1">
           <label className="block text-sm font-medium">{ta("priority")}</label>
-          <select name="priority" defaultValue={announcement?.priority ?? "normal"} className="mt-1 block w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900">
+          <select name="priority" defaultValue={announcement?.priority ?? "normal"} className="mt-1 field">
             <option value="low">{ta("priorities.low")}</option>
             <option value="normal">{ta("priorities.medium")}</option>
             <option value="high">{ta("priorities.high")}</option>
@@ -78,17 +78,17 @@ export function AnnouncementForm({
         </div>
         <div className="flex items-end gap-4 pb-1">
           <label className="flex items-center gap-2 cursor-pointer">
-            <input name="isPinned" type="checkbox" defaultChecked={announcement?.isPinned} className="rounded border-zinc-300 dark:border-zinc-700" />
+            <input name="isPinned" type="checkbox" defaultChecked={announcement?.isPinned} className="rounded border-border dark:border-border" />
             <span className="text-sm font-medium">{ta("pin")}</span>
           </label>
           <label className="flex items-center gap-2 cursor-pointer">
-            <input name="isDashboard" type="checkbox" defaultChecked={announcement?.isDashboard} className="rounded border-zinc-300 dark:border-zinc-700" />
+            <input name="isDashboard" type="checkbox" defaultChecked={announcement?.isDashboard} className="rounded border-border dark:border-border" />
             <span className="text-sm font-medium">{ta("showOnDashboard")}</span>
           </label>
         </div>
       </div>
 
-      {error && <p className="text-sm text-red-500">{error}</p>}
+      {error && <p className="text-sm text-danger">{error}</p>}
 
       <div className="flex justify-end gap-3">
         <Button type="button" variant="outline" onClick={onDone}>{tc("cancel")}</Button>

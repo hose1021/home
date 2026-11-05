@@ -23,7 +23,7 @@ export type OwnerOption = {
 };
 
 const inputClass =
-  "mt-1 block w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900";
+  "mt-1 field";
 
 function today(): string {
   return new Date().toISOString().slice(0, 10);
@@ -162,7 +162,7 @@ export function CommandantDialog({
               type="checkbox"
               checked={form.isActive}
               onChange={(e) => set("isActive", e.target.checked)}
-              className="rounded border-zinc-300 dark:border-zinc-700"
+              className="rounded border-border dark:border-border"
             />
             <span className="text-sm">Активный комендант</span>
           </label>

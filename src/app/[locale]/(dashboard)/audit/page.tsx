@@ -30,20 +30,20 @@ export default async function AuditPage({
 
       {logs.length > 0 ? (
         <div className="surface-panel overflow-hidden">
-          <table className="min-w-full divide-y divide-zinc-200 dark:divide-zinc-800">
+          <table className="min-w-full divide-y divide-border">
             <thead className="bg-muted/50">
               <tr>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase text-zinc-500">{t("audit.action")}</th>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase text-zinc-500">{t("audit.entity")}</th>
-                <th className="px-4 py-3 text-right text-xs font-medium uppercase text-zinc-500">{t("audit.date")}</th>
+                <th className="px-4 py-3 text-left text-xs font-bold text-muted-foreground">{t("audit.action")}</th>
+                <th className="px-4 py-3 text-left text-xs font-bold text-muted-foreground">{t("audit.entity")}</th>
+                <th className="px-4 py-3 text-right text-xs font-bold text-muted-foreground">{t("audit.date")}</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-zinc-200 dark:divide-zinc-800">
+            <tbody className="divide-y divide-border">
               {logs.map((l) => (
                 <tr key={l.id} className="transition-colors hover:bg-muted/50">
                   <td className="px-4 py-3 text-sm">{actionLabel(t, l.action)}</td>
-                  <td className="px-4 py-3 text-sm text-zinc-500">{l.entityType}</td>
-                  <td className="px-4 py-3 text-right text-sm text-zinc-400">
+                  <td className="px-4 py-3 text-sm text-muted-foreground">{l.entityType}</td>
+                  <td className="px-4 py-3 text-right text-sm text-muted-foreground/70">
                     {new Date(l.createdAt).toLocaleString(locale)}
                   </td>
                 </tr>

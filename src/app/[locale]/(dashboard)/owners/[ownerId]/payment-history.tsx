@@ -66,10 +66,10 @@ export function PaymentHistory({
     <div className="surface-panel divide-y overflow-hidden">
       {payments.map((p) => (
         <div key={p.id} className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-muted/25 sm:px-5">
-          <span className={`flex size-8 shrink-0 items-center justify-center rounded-lg ${
+          <span className={`flex size-8 shrink-0 items-center justify-center rounded-[4px] ${
             p.status === "refunded"
               ? "bg-muted text-muted-foreground"
-              : "bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400"
+              : "bg-success/12 border-success/35 text-success"
           }`}>
             <IconCheck className="size-4" />
           </span>
@@ -87,7 +87,7 @@ export function PaymentHistory({
           {p.status === "confirmed" && (
             <Link
               href={`/receipt/${p.id}`}
-              className="inline-flex size-8 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted/25 hover:text-foreground"
+              className="inline-flex size-8 shrink-0 items-center justify-center rounded-[4px] text-muted-foreground transition-colors hover:bg-muted/25 hover:text-foreground"
               aria-label={tp("receiptAria")}
               title={tp("receiptAria")}
             >
@@ -111,7 +111,7 @@ export function PaymentHistory({
                   <AlertDialogAction
                     disabled={pendingId === p.id}
                     onClick={() => handleRefund(p.id)}
-                    className="bg-amber-600 hover:bg-amber-700"
+                    className="bg-[#0074E0] hover:bg-[#0A80F0]"
                   >
                     {pendingId === p.id ? tp("refunding") : tp("refundAction")}
                   </AlertDialogAction>

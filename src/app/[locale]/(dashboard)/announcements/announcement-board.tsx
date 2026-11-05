@@ -54,7 +54,7 @@ export function AnnouncementBoard({
     <>
       {announcements.length === 0 ? (
         <div className="surface-panel flex flex-col items-center border-dashed px-6 py-16 text-center">
-          <span className="flex size-10 items-center justify-center rounded-lg bg-muted text-muted-foreground"><IconBell className="size-5" /></span>
+          <span className="flex size-10 items-center justify-center rounded-[4px] bg-muted text-muted-foreground"><IconBell className="size-5" /></span>
           <p className="mt-4 font-medium">{ta("noAnnouncements")}</p>
           <p className="mt-1 text-sm text-muted-foreground">{ta("description")}</p>
         </div>
@@ -64,23 +64,23 @@ export function AnnouncementBoard({
             <div
               key={a.id}
               className={`surface-panel p-5 ${
-                  a.priority === "urgent" ? "border-l-red-500" :
-                      a.priority === "high" ? "border-l-amber-500" :
+                  a.priority === "urgent" ? "border-l-danger" :
+                      a.priority === "high" ? "border-l-warning" :
                           a.priority === "low" ? "border-l-muted-foreground" :
-                              "border-l-blue-500"
+                              "border-l-primary"
               } border-l-4`}
             >
               <div className="flex items-start justify-between gap-4">
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
-                    {a.isPinned && <IconPin className="size-4 shrink-0 text-zinc-400" />}
+                    {a.isPinned && <IconPin className="size-4 shrink-0 text-muted-foreground/70" />}
                     <h3 className="font-medium">{a.title}</h3>
                     {a.isDashboard && <Badge variant="outline">{ta("showOnDashboard")}</Badge>}
                     <Badge variant="secondary" className={
-                      a.priority === "urgent" ? "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-200" :
-                      a.priority === "high" ? "bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-200" :
-                      a.priority === "low" ? "bg-zinc-100 text-zinc-500 dark:bg-zinc-900" :
-                      "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-200"
+                      a.priority === "urgent" ? "bg-danger/12 border-danger/35 text-danger" :
+                      a.priority === "high" ? "bg-warning/12 border-warning/35 text-warning" :
+                      a.priority === "low" ? "bg-muted text-muted-foreground" :
+                      "bg-primary/12 border-primary/35 text-primary"
                     }>
                       {priorityLabel(a.priority)}
                     </Badge>

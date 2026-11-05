@@ -57,6 +57,7 @@
       "12": "December"
     },
     "currency": "₼",
+    "language": "Language",
     "squareMeters": "m²",
     "confirmDelete": "Are you sure you want to delete?",
     "confirmDeleteTitle": "Delete record",
@@ -231,9 +232,18 @@
       "fundCount": "Active funds"
     },
     "tabs": {
-      "charges": "Charges",
-      "payments": "Payments",
-      "funds": "Funds"
+      "ledger": "Operations",
+      "funds": "Funds",
+      "budget": "Budget",
+      "debtors": "Debtors",
+      "analytics": "Analytics"
+    },
+    "budget": {
+      "subtitle": "Planned income and expenses",
+      "yearTitle": "Budget {year}",
+      "income": "Income",
+      "expense": "Expenses",
+      "balance": "Planned balance"
     },
     "charges": {
       "generate": "Generate",
@@ -256,7 +266,10 @@
         "fixed_per_unit": "Fixed per unit",
         "per_owner": "Per owner",
         "percentage_of_income": "% of income"
-      }
+      },
+      "details": "Charge details",
+      "apartmentCharge": "Apartment charge",
+      "generateHint": "One bill per apartment: area × tariff."
     },
     "payments": {
       "register": "Register payment",
@@ -276,6 +289,11 @@
         "pos_terminal": "POS terminal",
         "other": "Other"
       },
+      "status": {
+        "confirmed": "Confirmed",
+        "rejected": "Rejected",
+        "refunded": "Refunded"
+      },
       "receipt": {
         "title": "Payment receipt",
         "number": "No. {number}",
@@ -292,7 +310,10 @@
         "amount": "Amount paid",
         "refunded": "Payment refunded",
         "footer": "Internal document of the building self-governance. Not a fiscal receipt."
-      }
+      },
+      "details": "Payment details",
+      "allocated": "Allocated",
+      "unallocated": "Unallocated"
     },
     "funds": {
       "create": "Create fund",
@@ -315,7 +336,199 @@
         "improvement": "Improvement",
         "emergency": "Emergency",
         "other": "Other"
+      },
+      "movements": "Fund movements",
+      "noMovements": "No movements yet",
+      "movementKinds": {
+        "deposit": "Deposit",
+        "withdrawal": "Withdrawal"
       }
+    },
+    "filters": {
+      "status": "Status",
+      "period": "Period",
+      "method": "Payment method",
+      "type": "Type",
+      "allStatuses": "All statuses",
+      "allPeriods": "All periods",
+      "allMethods": "All methods",
+      "allTypes": "All types",
+      "searchFunds": "Name or description",
+      "reset": "Reset",
+      "clear": "Clear",
+      "notFound": "Nothing found",
+      "searchLedger": "Owner, unit, template, ref.",
+      "basis": "Basis",
+      "all": "All",
+      "searchCharges": "Unit, owner or template",
+      "searchPayments": "Owner, unit or no."
+    },
+    "ledger": {
+      "charge": "Charge",
+      "payment": "Payment"
+    },
+    "dateRange": {
+      "placeholder": "Period",
+      "today": "Today",
+      "last7": "Last 7 days",
+      "last30": "Last 30 days",
+      "thisMonth": "This month",
+      "lastMonth": "Last month",
+      "last3Months": "Last 3 months"
+    },
+    "debtors": {
+      "owner": "Owner",
+      "units": "Units",
+      "outstanding": "Debt",
+      "oldest": "Oldest due",
+      "days": "Days overdue",
+      "empty": "No debtors",
+      "export": "Export",
+      "search": "Search by owner or unit"
+    },
+    "analytics": {
+      "charged": "Charged",
+      "paid": "Paid",
+      "outstanding": "Debt",
+      "advances": "Advances",
+      "collectionRate": "Collection rate",
+      "ageing": "Debt ageing",
+      "notDue": "Not due",
+      "days1to30": "1–30 days",
+      "days31to60": "31–60 days",
+      "days61to90": "61–90 days",
+      "over90": "90+ days",
+      "reconciliation": "KPI reconciliation",
+      "balanced": "Balanced",
+      "mismatch": "Mismatch",
+      "chargesTotal": "Charges",
+      "allocated": "Allocated",
+      "confirmed": "Confirmed payments",
+      "advance": "Advance",
+      "count": "Charges"
+    },
+    "nav": {
+      "label": "Finance sections",
+      "overview": "Overview",
+      "charges": "Charges",
+      "payments": "Payments",
+      "debts": "Debts",
+      "funds": "Funds & expenses",
+      "budget": "Budget & reports",
+      "settings": "Settings",
+      "expenses": "Expenses"
+    },
+    "overview": {
+      "title": "Financial overview",
+      "description": "Cash movement, debt and today's tasks",
+      "chargeAction": "Create charge",
+      "paymentAction": "Register payment",
+      "expenseAction": "Add expense",
+      "updated": "Updated",
+      "kpi": {
+        "charged": "Charged in period",
+        "chargedHint": "Charges by accounting period inside the selected range",
+        "paid": "Received in period",
+        "paidHint": "Confirmed payments by payment date",
+        "outstanding": "Current debt",
+        "outstandingHint": "Balance of all non-cancelled charges as of today",
+        "overdue": "Overdue",
+        "overdueHint": "Debt past its due date",
+        "cash": "Available cash",
+        "cashHint": "Collected payments minus service expenses",
+        "collection": "Collection rate",
+        "collectionHint": "Received / charged in period"
+      },
+      "charts": {
+        "monthly": "Charges and receipts by month",
+        "cashflow": "Income and building expenses",
+        "ageing": "Debt ageing",
+        "budget": "Budget: plan vs actual"
+      },
+      "inflow": "Inflow",
+      "outflow": "Expenses",
+      "plan": "Plan",
+      "actual": "Actual",
+      "income": "Income",
+      "expense": "Expenses",
+      "actions": {
+        "title": "Needs attention",
+        "overdue": "Overdue debt",
+        "unallocated": "Unallocated",
+        "upcoming": "Due soon",
+        "empty": "No pending tasks"
+      },
+      "open": "Open",
+      "activity": {
+        "title": "Recent activity",
+        "empty": "No operations yet"
+      }
+    },
+    "chargesPage": {
+      "title": "Charges",
+      "description": "Charges by unit, period and template"
+    },
+    "paymentsPage": {
+      "title": "Payments",
+      "description": "Receipts and their allocation to charges"
+    },
+    "debtsPage": {
+      "title": "Debts",
+      "description": "Owner balances and due dates",
+      "account": "Debtor account"
+    },
+    "fundsPage": {
+      "title": "Funds & expenses",
+      "description": "Fund balances and money movement"
+    },
+    "budgetPage": {
+      "title": "Budget & reports",
+      "description": "Plan, actual and exports",
+      "reportsTitle": "Reports",
+      "reportCharges": "Charges CSV",
+      "reportPayments": "Payments CSV",
+      "reportDebtors": "Debtors CSV"
+    },
+    "settingsPage": {
+      "title": "Finance settings",
+      "description": "Templates, methods and access",
+      "templates": "Apartment charge components",
+      "methods": "Payment methods",
+      "policy": "Accounting policy",
+      "tariff": "Tariff per m²",
+      "billingStart": "Billing start",
+      "access": "Access by role",
+      "permissions": "permissions",
+      "component": "Component",
+      "save": "Save",
+      "saved": "Settings saved",
+      "policyHint": "Charges are area × tariff. The building pays services out of this money.",
+      "dueDay": "Due day"
+    },
+    "adjustments": {
+      "title": "Adjustments",
+      "kinds": {
+        "credit": "Credit",
+        "debit": "Debit"
+      }
+    },
+    "expensesPage": {
+      "title": "Building expenses",
+      "description": "Item",
+      "income": "Collected from owners",
+      "incomeHint": "Confirmed payments over all time",
+      "spent": "Spent",
+      "spentHint": "Payments for building services",
+      "balance": "Budget balance",
+      "search": "Search by item or date",
+      "create": "Add expense",
+      "descriptionHint": "For example: security for November",
+      "amountLabel": "Amount",
+      "dateLabel": "Date",
+      "save": "Save",
+      "empty": "No expenses yet",
+      "item": "Item",
+      "itemHint": "For example: security for November"
     }
   },
   "tickets": {
@@ -749,5 +962,73 @@
       "too_large": "File exceeds 25 MB",
       "forbidden_mime": "File type is not supported"
     }
+  },
+  "help": {
+    "title": "Help",
+    "subtitle": "Short answers for daily tasks: payments, requests, debt and board contact.",
+    "blocks": {
+      "payments": {
+        "title": "Payments and receipts",
+        "description": "How to pay a charge, where to get a receipt and what a payment status means."
+      },
+      "debt": {
+        "title": "Debt and charges",
+        "description": "Where debt comes from and how to check charges by month."
+      },
+      "tickets": {
+        "title": "Requests",
+        "description": "Report a problem in the house and follow its resolution."
+      },
+      "news": {
+        "title": "Announcements",
+        "description": "House news, planned works and important board messages."
+      },
+      "board": {
+        "title": "Board and commandant",
+        "description": "Who manages the house and how to contact them."
+      },
+      "units": {
+        "title": "Units and owners",
+        "description": "Area, tariff and the building layout."
+      },
+      "notifications": {
+        "title": "Notifications",
+        "description": "How to keep track of important house events."
+      },
+      "security": {
+        "title": "Access and security",
+        "description": "Password, sessions and house data access rules."
+      }
+    },
+    "contact": {
+      "title": "Didn't find an answer?",
+      "text": "Create a request — the board or commandant will see it and reply.",
+      "action": "Create request"
+    }
+  },
+  "resident": {
+    "houseOverview": "My home",
+    "greeting": "Hello, {name}",
+    "subtitle": "Your debt, payments, charges and house news in one place.",
+    "myCharges": "My charges",
+    "createTicket": "Create request",
+    "debt": "Your debt",
+    "monthlyFee": "Monthly charge",
+    "noProfile": "Owner profile not found. Contact the house administrator.",
+    "myUnits": "My units",
+    "totalArea": "Total area {area} m²",
+    "openCharges": "Charges in this list",
+    "unit": "unit {unit}",
+    "entrance": "entrance {entrance}, floor {floor}",
+    "debtShort": "Debt",
+    "myPayments": "My payments",
+    "openAll": "View all",
+    "period": "{month}.{year}",
+    "noPayments": "No payments yet",
+    "dueBy": "due",
+    "noCharges": "No charges yet",
+    "news": "House news",
+    "noNews": "No announcements yet",
+    "board": "Board and commandant"
   }
 }

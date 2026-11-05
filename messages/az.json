@@ -57,6 +57,7 @@
       "12": "Dekabr"
     },
     "currency": "₼",
+    "language": "Dil",
     "squareMeters": "m²",
     "confirmDelete": "Silmək istədiyinizə əminsiniz?",
     "confirmDeleteTitle": "Qeydi sil",
@@ -231,9 +232,18 @@
       "fundCount": "Aktiv fondlar"
     },
     "tabs": {
-      "charges": "Hesablamalar",
-      "payments": "Ödənişlər",
-      "funds": "Fondlar"
+      "ledger": "Əməliyyatlar",
+      "funds": "Fondlar",
+      "budget": "Büdcə",
+      "debtors": "Borclular",
+      "analytics": "Analitika"
+    },
+    "budget": {
+      "subtitle": "Planlı gəlirlər və xərclər",
+      "yearTitle": "{year} büdcəsi",
+      "income": "Gəlirlər",
+      "expense": "Xərclər",
+      "balance": "Plan balansı"
     },
     "charges": {
       "generate": "Hesabla",
@@ -242,7 +252,7 @@
       "generateDescription": "Hesablama üçün şablon və dövr seçin",
       "template": "Şablon",
       "selectTemplate": "Şablon seçin",
-      "dueDate": "Ödəniş tarixi",
+      "dueDate": "Ödəniş müddəti",
       "generated": "Hesablamalar formalaşdırıldı",
       "noCharges": "Hələ hesablama yoxdur",
       "status": {
@@ -256,7 +266,10 @@
         "fixed_per_unit": "Mənzil üzrə sabit",
         "per_owner": "Sahib üzrə",
         "percentage_of_income": "Gəlirin %-i"
-      }
+      },
+      "details": "Hesablama detalları",
+      "apartmentCharge": "Mənzil haqqı",
+      "generateHint": "Bir mənzil üçün bir hesab: sahə × tarif."
     },
     "payments": {
       "register": "Ödənişi qeydiyyata al",
@@ -276,6 +289,11 @@
         "pos_terminal": "POS-terminal",
         "other": "Digər"
       },
+      "status": {
+        "confirmed": "Təsdiqlənib",
+        "rejected": "Rədd edilib",
+        "refunded": "Qaytarılıb"
+      },
       "receipt": {
         "title": "Ödəniş qəbzi",
         "number": "№ {number}",
@@ -292,7 +310,10 @@
         "amount": "Ödəniləcək məbləğ",
         "refunded": "Ödəniş qaytarılıb",
         "footer": "Evin özünüidarəsinin daxili sənədi. Fiskal çek deyil."
-      }
+      },
+      "details": "Ödəniş detalları",
+      "allocated": "Ayrılıb",
+      "unallocated": "Ayrılmayıb"
     },
     "funds": {
       "create": "Fond yarat",
@@ -315,7 +336,199 @@
         "improvement": "Abadlıq",
         "emergency": "Qəza",
         "other": "Digər"
+      },
+      "movements": "Fond hərəkətləri",
+      "noMovements": "Hələ hərəkət yoxdur",
+      "movementKinds": {
+        "deposit": "Artırma",
+        "withdrawal": "Silinmə"
       }
+    },
+    "filters": {
+      "status": "Status",
+      "period": "Dövr",
+      "method": "Ödəniş üsulu",
+      "type": "Növ",
+      "allStatuses": "Bütün statuslar",
+      "allPeriods": "Bütün dövrlər",
+      "allMethods": "Bütün üsullar",
+      "allTypes": "Bütün növlər",
+      "searchFunds": "Ad və ya təsvir",
+      "reset": "Sıfırla",
+      "clear": "Təmizlə",
+      "notFound": "Heç nə tapılmadı",
+      "searchLedger": "Sahib, mənzil, şablon, №",
+      "basis": "Əsas",
+      "all": "Hamısı",
+      "searchCharges": "Mənzil, sahib və ya şablon",
+      "searchPayments": "Sahib, mənzil və ya №"
+    },
+    "ledger": {
+      "charge": "Hesablama",
+      "payment": "Ödəniş"
+    },
+    "dateRange": {
+      "placeholder": "Dövr",
+      "today": "Bu gün",
+      "last7": "Son 7 gün",
+      "last30": "Son 30 gün",
+      "thisMonth": "Bu ay",
+      "lastMonth": "Keçən ay",
+      "last3Months": "Son 3 ay"
+    },
+    "debtors": {
+      "owner": "Sahib",
+      "units": "Mənzillər",
+      "outstanding": "Borc",
+      "oldest": "Ən köhnə tarix",
+      "days": "Gecikmə günü",
+      "empty": "Borclu yoxdur",
+      "export": "İxrac",
+      "search": "Sahib və ya mənzil üzrə axtar"
+    },
+    "analytics": {
+      "charged": "Hesablanıb",
+      "paid": "Ödənilib",
+      "outstanding": "Borc",
+      "advances": "Avanslar",
+      "collectionRate": "Yığım faizi",
+      "ageing": "Borcların yaşı",
+      "notDue": "Vaxtı keçməyib",
+      "days1to30": "1–30 gün",
+      "days31to60": "31–60 gün",
+      "days61to90": "61–90 gün",
+      "over90": "90+ gün",
+      "reconciliation": "KPI uzlaşması",
+      "balanced": "Uyğundur",
+      "mismatch": "Fərq var",
+      "chargesTotal": "Hesablamalar",
+      "allocated": "Bölüşdürülüb",
+      "confirmed": "Təsdiqlənmiş ödənişlər",
+      "advance": "Avans",
+      "count": "Hesablama"
+    },
+    "nav": {
+      "label": "Maliyyə bölmələri",
+      "overview": "İcmal",
+      "charges": "Hesablamalar",
+      "payments": "Ödənişlər",
+      "debts": "Borclar",
+      "funds": "Fondlar və xərclər",
+      "budget": "Büdcə və hesabatlar",
+      "settings": "Parametrlər",
+      "expenses": "Xərclər"
+    },
+    "overview": {
+      "title": "Maliyyə icmalı",
+      "description": "Pul hərəkəti, borc və günün tapşırıqları",
+      "chargeAction": "Hesabla",
+      "paymentAction": "Ödəniş qəbul et",
+      "expenseAction": "Xərc əlavə et",
+      "updated": "Yeniləndi",
+      "kpi": {
+        "charged": "Dövr üzrə hesablanıb",
+        "chargedHint": "Seçilmiş aralıqda dövrlər üzrə hesablamalar",
+        "paid": "Dövr üzrə daxil olub",
+        "paidHint": "Ödəniş tarixinə görə təsdiqlənmiş ödənişlər",
+        "outstanding": "Cari borc",
+        "outstandingHint": "Bugünə ləğv edilməmiş hesablamaların qalığı",
+        "overdue": "Gecikmiş",
+        "overdueHint": "Ödəniş müddəti keçmiş borc",
+        "cash": "Mövcud vəsait",
+        "cashHint": "Yığılan ödənişlər minus xidmət xərcləri",
+        "collection": "Yığım",
+        "collectionHint": "Dövr üzrə daxil olan / hesablanan"
+      },
+      "charts": {
+        "monthly": "Aylar üzrə hesablama və daxilolma",
+        "cashflow": "Daxilolma və bina xərcləri",
+        "ageing": "Borcların müddət üzrə strukturu",
+        "budget": "Büdcə: plan və fakt"
+      },
+      "inflow": "Daxilolma",
+      "outflow": "Xərclər",
+      "plan": "Plan",
+      "actual": "Fakt",
+      "income": "Gəlir",
+      "expense": "Xərc",
+      "actions": {
+        "title": "Diqqət tələb edir",
+        "overdue": "Gecikmiş borc",
+        "unallocated": "Bölüşdürülməyib",
+        "upcoming": "Ödəniş müddəti yaxınlaşır",
+        "empty": "Kritik tapşırıq yoxdur"
+      },
+      "open": "Aç",
+      "activity": {
+        "title": "Son əməliyyatlar",
+        "empty": "Hələ əməliyyat yoxdur"
+      }
+    },
+    "chargesPage": {
+      "title": "Hesablamalar",
+      "description": "Mənzillər, dövrlər və şablonlar üzrə hesablamalar"
+    },
+    "paymentsPage": {
+      "title": "Ödənişlər",
+      "description": "Daxilolmalar və onların hesablamalara bölüşdürülməsi"
+    },
+    "debtsPage": {
+      "title": "Borclar",
+      "description": "Sahiblərin borcu və ödəniş müddətləri",
+      "account": "Borclu kartı"
+    },
+    "fundsPage": {
+      "title": "Fondlar və xərclər",
+      "description": "Fond balansları və vəsait hərəkəti"
+    },
+    "budgetPage": {
+      "title": "Büdcə və hesabatlar",
+      "description": "Plan, fakt və ixrac",
+      "reportsTitle": "Hesabatlar",
+      "reportCharges": "Hesablamalar CSV",
+      "reportPayments": "Ödənişlər CSV",
+      "reportDebtors": "Borclular CSV"
+    },
+    "settingsPage": {
+      "title": "Maliyyə parametrləri",
+      "description": "Şablonlar, üsullar və giriş",
+      "templates": "Mənzil haqqının tərkibi",
+      "methods": "Ödəniş üsulları",
+      "policy": "Uçot siyasəti",
+      "tariff": "m² tarifi",
+      "billingStart": "Hesablama başlanğıcı",
+      "access": "Rollar üzrə giriş",
+      "permissions": "icazə",
+      "component": "Tərkib hissəsi",
+      "save": "Yadda saxla",
+      "saved": "Parametrlər saxlanıldı",
+      "policyHint": "Hesablamalar sahə × tarif kimi aparılır. Bu vəsaitdən bina xidmətləri ödənilir.",
+      "dueDay": "Ödəniş günü"
+    },
+    "adjustments": {
+      "title": "Düzəlişlər",
+      "kinds": {
+        "credit": "Endirim",
+        "debit": "Əlavə hesablama"
+      }
+    },
+    "expensesPage": {
+      "title": "Bina xərcləri",
+      "description": "Maddə",
+      "income": "Sahiblərdən yığılıb",
+      "incomeHint": "Bütün dövr üzrə təsdiqlənmiş ödənişlər",
+      "spent": "Xərclənib",
+      "spentHint": "Bina xidmətləri üzrə ödənişlər",
+      "balance": "Büdcə qalığı",
+      "search": "Maddə və ya tarix üzrə axtar",
+      "create": "Xərc əlavə et",
+      "descriptionHint": "Məsələn: noyabr üçün mühafizə",
+      "amountLabel": "Məbləğ",
+      "dateLabel": "Tarix",
+      "save": "Yadda saxla",
+      "empty": "Hələ xərc yoxdur",
+      "item": "Maddə",
+      "itemHint": "Məsələn: noyabr üçün mühafizə"
     }
   },
   "tickets": {
@@ -749,5 +962,73 @@
       "too_large": "Fayl 25 MB-dan böyükdür",
       "forbidden_mime": "Fayl növü dəstəklənmir"
     }
+  },
+  "help": {
+    "title": "Kömək",
+    "subtitle": "Gündəlik tapşırıqlara qısa cavablar: ödəniş, müraciətlər, borclar və idarə heyəti ilə əlaqə.",
+    "blocks": {
+      "payments": {
+        "title": "Ödəniş və qəbz",
+        "description": "Ödənişi necə etmək, qəbzi haradan almaq və ödəniş statusunun mənası."
+      },
+      "debt": {
+        "title": "Borclar və hesablamalar",
+        "description": "Borc haradan yaranır və aylıq hesablamaları necə yoxlamaq olar."
+      },
+      "tickets": {
+        "title": "Müraciətlər",
+        "description": "Evdə problem barədə məlumat verin və həllini izləyin."
+      },
+      "news": {
+        "title": "Elanlar",
+        "description": "Ev xəbərləri, planlı işlər və idarə heyətinin vacib mesajları."
+      },
+      "board": {
+        "title": "İdarə heyəti və komendant",
+        "description": "Evi kim idarə edir və onlarla necə əlaqə saxlamaq olar."
+      },
+      "units": {
+        "title": "Mənzillər və sahiblər",
+        "description": "Sahə, tarif və evin mənzil tərkibi."
+      },
+      "notifications": {
+        "title": "Bildirişlər",
+        "description": "Evin vacib hadisələrini necə qaçırmamaq olar."
+      },
+      "security": {
+        "title": "Giriş və təhlükəsizlik",
+        "description": "Şifrə, sessiyalar və ev məlumatlarına giriş qaydaları."
+      }
+    },
+    "contact": {
+      "title": "Cavab tapmadınız?",
+      "text": "Müraciət yaradın — idarə heyəti və ya komendant onu görüb cavab verəcək.",
+      "action": "Müraciət yarat"
+    }
+  },
+  "resident": {
+    "houseOverview": "Mənim evim",
+    "greeting": "Salam, {name}",
+    "subtitle": "Borcunuz, ödənişləriniz, hesablamalar və ev xəbərləri bir yerdə.",
+    "myCharges": "Hesablamalarım",
+    "createTicket": "Müraciət yarat",
+    "debt": "Borcunuz",
+    "monthlyFee": "Aylıq hesablama",
+    "noProfile": "Sahib profili tapılmadı. Ev administratoruna müraciət edin.",
+    "myUnits": "Mənzillərim",
+    "totalArea": "Ümumi sahə {area} m²",
+    "openCharges": "Bu siyahıda hesablamalar",
+    "unit": "mənzil {unit}",
+    "entrance": "{entrance} giriş, {floor} mərtəbə",
+    "debtShort": "Borc",
+    "myPayments": "Ödənişlərim",
+    "openAll": "Hamısına bax",
+    "period": "{month}.{year}",
+    "noPayments": "Hələ ödəniş yoxdur",
+    "dueBy": "son tarix",
+    "noCharges": "Hələ hesablama yoxdur",
+    "news": "Ev xəbərləri",
+    "noNews": "Hələ elan yoxdur",
+    "board": "İdarə heyəti və komendant"
   }
 }

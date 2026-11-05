@@ -109,7 +109,7 @@ function NotificationDialog({ users, onClose }: {
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <Label htmlFor="n-user">{t("recipient")}</Label>
-            <select id="n-user" value={userId} onChange={(e) => setUserId(e.target.value)} required className="mt-1 block w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900">
+            <select id="n-user" value={userId} onChange={(e) => setUserId(e.target.value)} required className="mt-1 field">
               <option value="">—</option>
               {users.map((u) => <option key={u.id} value={u.id}>{u.fullName}</option>)}
             </select>

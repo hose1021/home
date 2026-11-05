@@ -11,7 +11,7 @@ type ProfileData = {
 };
 
 const inputClass =
-  "mt-1 block w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900";
+  "mt-1 field";
 
 export function ProfileForm({ profile }: { profile: ProfileData }) {
   const [pending, setPending] = useState(false);

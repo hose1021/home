@@ -97,19 +97,19 @@ export function OwnerUnitCard({
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-sm font-medium">№ квартиры</label>
-                <input name="unitNumber" defaultValue={unit.unitNumber} required className="mt-1 block w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900" />
+                <input name="unitNumber" defaultValue={unit.unitNumber} required className="mt-1 field" />
               </div>
               <div>
                 <label className="block text-sm font-medium">Этаж</label>
-                <input name="floor" type="number" defaultValue={unit.floor} required className="mt-1 block w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900" />
+                <input name="floor" type="number" defaultValue={unit.floor} required className="mt-1 field" />
               </div>
               <div>
                 <label className="block text-sm font-medium">Подъезд</label>
-                <input name="entrance" type="number" defaultValue={unit.entrance} className="mt-1 block w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900" />
+                <input name="entrance" type="number" defaultValue={unit.entrance} className="mt-1 field" />
               </div>
               <div>
                 <label className="block text-sm font-medium">Тип</label>
-                <select name="type" defaultValue={unit.type} className="mt-1 block w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900">
+                <select name="type" defaultValue={unit.type} className="mt-1 field">
                   <option value="residential">Жилая</option>
                   <option value="commercial">Коммерческая</option>
                   <option value="parking">Парковка</option>
@@ -118,7 +118,7 @@ export function OwnerUnitCard({
               </div>
               <div>
                 <label className="block text-sm font-medium">Площадь (м²)</label>
-                <input name="area" type="number" step="0.01" defaultValue={unit.area} required className="mt-1 block w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900" />
+                <input name="area" type="number" step="0.01" defaultValue={unit.area} required className="mt-1 field" />
               </div>
             </div>
             <div className="flex justify-end gap-3">

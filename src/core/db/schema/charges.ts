@@ -1,26 +1,16 @@
-import {boolean, date, decimal, integer, pgTable, timestamp, unique, uuid, varchar} from "drizzle-orm/pg-core";
-import {funds} from "./funds";
+import {date, decimal, integer, pgTable, timestamp, unique, uuid, varchar} from "drizzle-orm/pg-core";
 import {owners} from "./owners";
 import {tenants} from "./tenants";
 import {units} from "./units";
 import {users} from "./users";
 
-export const chargeTemplates = pgTable("charge_templates", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  tenantId: uuid("tenant_id").notNull().references(() => tenants.id),
-  name: varchar("name", { length: 255 }).notNull(),
-  type: varchar("type", { length: 30 }).notNull().$type<"monthly" | "special" | "fine" | "rent" | "other">(),
-  amount: decimal("amount", { precision: 12, scale: 2 }).notNull(),
-  calculation: varchar("calculation", { length: 30 }).notNull().$type<"fixed_per_unit" | "per_owner" | "percentage_of_income">(),
-  fundId: uuid("fund_id").references(() => funds.id),
-  isActive: boolean("is_active").default(true),
-  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-});
-
+/**
+ * One apartment charge per period: area × tenant tariff. The building pays services out of these
+ * payments, so a charge is never split into service lines.
+ */
 export const charges = pgTable("charges", {
   id: uuid("id").defaultRandom().primaryKey(),
   tenantId: uuid("tenant_id").notNull().references(() => tenants.id),
-  templateId: uuid("template_id").references(() => chargeTemplates.id),
   unitId: uuid("unit_id").notNull().references(() => units.id),
   ownerId: uuid("owner_id").notNull().references(() => owners.id),
   amount: decimal("amount", { precision: 12, scale: 2 }).notNull(),
@@ -31,9 +21,8 @@ export const charges = pgTable("charges", {
   createdBy: uuid("created_by").notNull().references(() => users.id),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 }, (table) => ({
-  periodUnitTemplateUnique: unique("uq_charges_tenant_template_unit_period").on(
+  periodUnitUnique: unique("uq_charges_tenant_unit_period").on(
     table.tenantId,
-    table.templateId,
     table.unitId,
     table.periodYear,
     table.periodMonth,

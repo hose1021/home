@@ -1,5 +1,4 @@
-import {decimal, integer, pgTable, text, timestamp, unique, uuid, varchar} from "drizzle-orm/pg-core";
-import {funds} from "./funds";
+import {integer, pgTable, text, timestamp, unique, uuid, varchar} from "drizzle-orm/pg-core";
 import {tenants} from "./tenants";
 import {users} from "./users";
 
@@ -17,13 +16,3 @@ export const transactions = pgTable("transactions", {
 }, (table) => ({
   transactionNoUnique: unique("uq_transactions_tenant_no").on(table.tenantId, table.transactionNo),
 }));
-
-export const journalEntries = pgTable("journal_entries", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  transactionId: uuid("transaction_id").notNull().references(() => transactions.id),
-  accountCode: varchar("account_code", { length: 10 }).notNull(),
-  fundId: uuid("fund_id").references(() => funds.id),
-  debit: decimal("debit", { precision: 12, scale: 2 }).notNull().default("0"),
-  credit: decimal("credit", { precision: 12, scale: 2 }).notNull().default("0"),
-  description: text("description"),
-});

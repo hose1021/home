@@ -19,7 +19,7 @@ export default async function CommandantsPage() {
   ]);
 
   return (
-    <div className="page-shell max-w-6xl">
+    <div className="page-shell">
       <div className="flex items-end justify-between gap-4">
         <div>
           <p className="text-sm text-muted-foreground">Управление домом</p>

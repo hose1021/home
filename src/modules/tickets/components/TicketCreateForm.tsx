@@ -54,19 +54,19 @@ export function TicketCreateForm({
     <form onSubmit={handleSubmit} className="space-y-4">
       <div>
         <label className="block text-sm font-medium">{t("subject")}</label>
-        <input name="title" required maxLength={500} className="mt-1 block w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900" />
+        <input name="title" required maxLength={500} className="mt-1 field" />
       </div>
 
       <div className="grid grid-cols-2 gap-4">
         <div>
           <label className="block text-sm font-medium">{t("category")}</label>
-          <select name="category" required className="mt-1 block w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900">
+          <select name="category" required className="mt-1 field">
             {categories.map((c) => <option key={c} value={c}>{categoryLabel(c)}</option>)}
           </select>
         </div>
         <div>
           <label className="block text-sm font-medium">{t("priority")}</label>
-          <select name="priority" className="mt-1 block w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900">
+          <select name="priority" className="mt-1 field">
             {priorities.map((p) => <option key={p} value={p}>{priorityLabel(p)}</option>)}
           </select>
         </div>
@@ -74,7 +74,7 @@ export function TicketCreateForm({
 
       <div>
         <label className="block text-sm font-medium">{t("location")}</label>
-        <select name="unitId" className="mt-1 block w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900">
+        <select name="unitId" className="mt-1 field">
           <option value="__yard__">{t("yard")}</option>
           {units.map((u) => (
             <option key={u.id} value={u.id}>
@@ -82,15 +82,15 @@ export function TicketCreateForm({
             </option>
           ))}
         </select>
-        <p className="mt-1 text-xs text-zinc-400">{t("selectUnit")}</p>
+        <p className="mt-1 text-xs text-muted-foreground/70">{t("selectUnit")}</p>
       </div>
 
       <div>
         <label className="block text-sm font-medium">{tc("description")}</label>
-        <textarea name="description" required rows={4} className="mt-1 block w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900" />
+        <textarea name="description" required rows={4} className="mt-1 field" />
       </div>
 
-      {error && <p className="text-sm text-red-500">{error}</p>}
+      {error && <p className="text-sm text-danger">{error}</p>}
 
       <div className="flex justify-end gap-3">
         <Button type="button" variant="outline" onClick={onDone}>{tc("cancel")}</Button>

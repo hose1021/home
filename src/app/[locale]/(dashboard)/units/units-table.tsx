@@ -217,7 +217,7 @@ export function UnitsTable({
       </div>
       <div>
         <Label htmlFor="type">Тип</Label>
-        <select name="type" defaultValue={defaults?.type ?? "residential"} className="mt-1 block w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900">
+        <select name="type" defaultValue={defaults?.type ?? "residential"} className="mt-1 field">
           <option value="residential">Жилая</option>
           <option value="commercial">Коммерческая</option>
           <option value="parking">Парковка</option>
@@ -236,27 +236,27 @@ export function UnitsTable({
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-2">
           <div className="relative">
-            <IconSearch className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-zinc-400" />
+            <IconSearch className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground/70" />
             <Input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Поиск по номеру или собственнику..."
-              className="h-9 w-64 pl-9 pr-8"
+              className="w-80 pl-9 pr-8"
             />
             {search && (
-              <button type="button" aria-label="Очистить поиск" onClick={() => setSearch("")} className="absolute right-2 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-700">
+              <button type="button" aria-label="Очистить поиск" onClick={() => setSearch("")} className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground/70 hover:text-muted-foreground">
                 <IconX className="size-4" />
               </button>
             )}
           </div>
 
           <select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)}
-            className="h-9 rounded-lg border border-input bg-background px-3 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50">
+            className="filter-select">
             {TYPE_OPTIONS.map((o) => (<option key={o.value} value={o.value}>{o.label}</option>))}
           </select>
 
           <select value={ownerFilter} onChange={(e) => setOwnerFilter(e.target.value)}
-            className="h-9 rounded-lg border border-input bg-background px-3 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50">
+            className="filter-select">
             {OWNER_OPTIONS.map((o) => (<option key={o.value} value={o.value}>{o.label}</option>))}
           </select>
         </div>
@@ -272,13 +272,13 @@ export function UnitsTable({
         <table className="min-w-full divide-y divide-border">
           <thead className="bg-muted/50">
             <tr>
-              <th className="px-4 py-3 text-left text-xs font-medium uppercase text-zinc-500">№</th>
-              <th className="px-4 py-3 text-left text-xs font-medium uppercase text-zinc-500">Подъезд</th>
-              <th className="px-4 py-3 text-left text-xs font-medium uppercase text-zinc-500">Этаж</th>
-              <th className="px-4 py-3 text-left text-xs font-medium uppercase text-zinc-500">Тип</th>
-              <th className="px-4 py-3 text-right text-xs font-medium uppercase text-zinc-500">Площадь</th>
-              <th className="px-4 py-3 text-left text-xs font-medium uppercase text-zinc-500">Собственники</th>
-              <th className="px-4 py-3 text-right text-xs font-medium uppercase text-zinc-500" />
+              <th className="px-4 py-3 text-left text-xs font-bold text-muted-foreground">№</th>
+              <th className="px-4 py-3 text-left text-xs font-bold text-muted-foreground">Подъезд</th>
+              <th className="px-4 py-3 text-left text-xs font-bold text-muted-foreground">Этаж</th>
+              <th className="px-4 py-3 text-left text-xs font-bold text-muted-foreground">Тип</th>
+              <th className="px-4 py-3 text-right text-xs font-bold text-muted-foreground">Площадь</th>
+              <th className="px-4 py-3 text-left text-xs font-bold text-muted-foreground">Собственники</th>
+              <th className="px-4 py-3 text-right text-xs font-bold text-muted-foreground" />
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
@@ -365,7 +365,7 @@ export function UnitsTable({
                   value={selectedOwnerId}
                   onChange={(e) => setSelectedOwnerId(e.target.value)}
                   required
-                  className="mt-1 block w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900"
+                  className="mt-1 field"
                 >
                   <option value="">— Выберите —</option>
                   {owners.map((o) => (

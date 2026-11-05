@@ -16,7 +16,9 @@ type UpdateInput = Partial<CreateInput> & {
   status?: "active" | "archived";
 };
 
-export async function listAnnouncements(tenantId: string) {
+export type Announcement = typeof announcements.$inferSelect;
+
+export async function listAnnouncements(tenantId: string): Promise<Announcement[]> {
   return await db
     .select()
     .from(announcements)

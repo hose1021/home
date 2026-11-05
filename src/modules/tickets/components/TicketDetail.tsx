@@ -39,10 +39,10 @@ type TicketDetailData = {
 };
 
 const STATUS_COLORS: Record<string, string> = {
-  pending: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200",
-  in_progress: "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200",
-  rejected: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200",
-  done: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200",
+  pending: "bg-primary/12 border-primary/35 text-primary",
+  in_progress: "bg-gold/12 border-gold/35 text-gold",
+  rejected: "bg-danger/12 border-danger/35 text-danger",
+  done: "bg-success/12 border-success/35 text-success",
 };
 
 export function TicketDetail({
@@ -128,14 +128,14 @@ export function TicketDetail({
   }
 
   const transitions: { status: TicketStatus; label: string; className: string }[] = ([
-    { status: "in_progress", label: statusActionLabel("in_progress"), className: "border-zinc-300 hover:bg-purple-50 hover:border-purple-300 dark:border-zinc-700 dark:hover:bg-purple-950/30" },
-    { status: "done", label: statusActionLabel("done"), className: "border-zinc-300 hover:bg-green-50 hover:border-green-300 dark:border-zinc-700 dark:hover:bg-green-950/30" },
-    { status: "rejected", label: statusActionLabel("rejected"), className: "border-zinc-300 hover:bg-red-50 hover:border-red-300 dark:border-zinc-700 dark:hover:bg-red-950/30" },
-    { status: "pending", label: statusActionLabel("pending"), className: "border-zinc-300 hover:bg-blue-50 hover:border-blue-300 dark:border-zinc-700 dark:hover:bg-blue-950/30" },
+    { status: "in_progress", label: statusActionLabel("in_progress"), className: "border-border hover:border-gold/45 hover:bg-gold/10 hover:text-gold" },
+    { status: "done", label: statusActionLabel("done"), className: "border-border hover:border-success/45 hover:bg-success/10 hover:text-success" },
+    { status: "rejected", label: statusActionLabel("rejected"), className: "border-border hover:border-danger/45 hover:bg-danger/10 hover:text-danger" },
+    { status: "pending", label: statusActionLabel("pending"), className: "border-border hover:border-primary/45 hover:bg-primary/10 hover:text-primary" },
   ] as const).filter((tr) => tr.status !== currentStatus);
 
   return (
-    <div className="page-shell max-w-5xl">
+    <div className="page-shell">
       <div>
         <Link href="/tickets" className="text-sm text-muted-foreground hover:text-foreground">{tc("backToList")}</Link>
         <div className="mt-2 flex items-start justify-between gap-4">
@@ -155,10 +155,10 @@ export function TicketDetail({
             </div>
             {ticket.ownerName && (
               <div className="mt-2 flex flex-wrap gap-2 text-xs">
-                <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300">
+                <span className="rounded-full bg-muted px-2 py-0.5 text-muted-foreground">
                   {t("applicant")}: {ticket.ownerName}{ticket.ownerPhone ? ` · ${ticket.ownerPhone}` : ""}
                 </span>
-                <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300">
+                <span className="rounded-full bg-muted px-2 py-0.5 text-muted-foreground">
                   {t("createdBy")}: {ticket.createdBy}
                 </span>
               </div>
@@ -174,9 +174,9 @@ export function TicketDetail({
         <h2 className="mb-2 text-sm font-semibold">{tc("description")}</h2>
         <p className="whitespace-pre-wrap text-sm leading-6 text-muted-foreground">{ticket.description}</p>
         {ticket.status === "rejected" && ticket.rejectionReason && (
-          <div className="mt-4 rounded-lg bg-red-50 p-3 dark:bg-red-950/30">
-            <h3 className="text-xs font-semibold text-red-700 dark:text-red-400">{t("rejectionReason")}</h3>
-            <p className="mt-1 whitespace-pre-wrap text-sm text-red-800 dark:text-red-200">{ticket.rejectionReason}</p>
+          <div className="mt-4 rounded-[4px] bg-danger/10 p-3 dark:bg-danger/10">
+            <h3 className="text-xs font-semibold text-danger">{t("rejectionReason")}</h3>
+            <p className="mt-1 whitespace-pre-wrap text-sm text-danger/90">{ticket.rejectionReason}</p>
           </div>
         )}
       </div>
@@ -199,8 +199,8 @@ export function TicketDetail({
           </div>
 
           {rejectOpen && (
-            <div className="mt-3 space-y-2 rounded-lg border border-red-200 p-3 dark:border-red-900">
-              <label className="block text-sm font-medium text-red-700 dark:text-red-400">{t("rejectionReason")}</label>
+            <div className="mt-3 space-y-2 rounded-[4px] border border-danger/40 p-3">
+              <label className="block text-sm font-medium text-danger">{t("rejectionReason")}</label>
               <Textarea
                 value={rejectReason}
                 onChange={(e) => setRejectReason(e.target.value)}
@@ -239,18 +239,18 @@ export function TicketDetail({
         <h2 className="mb-3 text-sm font-semibold">{t("comments")} ({comments.length})</h2>
         <div className="space-y-3">
           {comments.map((c) => (
-            <div key={c.id} className="rounded-lg bg-muted/50 p-3">
-              <div className="flex items-center justify-between text-xs text-zinc-400">
-                <span className="font-medium text-zinc-600 dark:text-zinc-300">{c.authorName}</span>
+            <div key={c.id} className="rounded-[4px] bg-muted/50 p-3">
+              <div className="flex items-center justify-between text-xs text-muted-foreground/70">
+                <span className="font-medium text-muted-foreground dark:text-foreground">{c.authorName}</span>
                 <div className="flex items-center gap-2">
-                  {c.isInternal && <span className="rounded-full bg-amber-100 px-2 py-0.5 text-amber-700 dark:bg-amber-900 dark:text-amber-200">{t("internalNote")}</span>}
+                  {c.isInternal && <span className="rounded-full bg-warning/12 border-warning/35 text-warning">{t("internalNote")}</span>}
                   <span>{new Date(c.createdAt).toLocaleDateString("ru", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}</span>
                 </div>
               </div>
               <p className="mt-1 whitespace-pre-wrap text-sm">{c.content}</p>
             </div>
           ))}
-          {comments.length === 0 && <p className="text-sm text-zinc-400">{t("noComments")}</p>}
+          {comments.length === 0 && <p className="text-sm text-muted-foreground/70">{t("noComments")}</p>}
         </div>
 
         {canComment && (

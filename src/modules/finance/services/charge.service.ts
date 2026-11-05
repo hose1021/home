@@ -1,17 +1,26 @@
-import {and, eq, inArray} from "drizzle-orm";
+import {and, desc, eq} from "drizzle-orm";
 import {writeAuditLog} from "@/core/audit/audit.service";
 import {db} from "@/core/db";
-import {charges, chargeTemplates} from "@/core/db/schema/charges";
-import {owners, ownerships} from "@/core/db/schema/owners";
+import {charges} from "@/core/db/schema/charges";
+import {ownerships} from "@/core/db/schema/owners";
+import {tenants} from "@/core/db/schema/tenants";
 import {units} from "@/core/db/schema/units";
 
 type GenerateChargesInput = {
-  templateId: string;
   periodYear: number;
   periodMonth: number;
-  dueDate: string;
 };
 
+function dueDateFor(periodYear: number, periodMonth: number, dueDay: number): string {
+  const lastDay = new Date(periodYear, periodMonth, 0).getDate();
+  const day = Math.min(Math.max(dueDay, 1), lastDay);
+  return `${periodYear}-${String(periodMonth).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+}
+
+/**
+ * One apartment charge per period: area × tenant tariff. The building pays services from the
+ * collected money, so no other charge source exists.
+ */
 export async function generateMonthlyCharges(tenantId: string, input: GenerateChargesInput, userId: string) {
   if (!Number.isInteger(input.periodYear) || input.periodYear < 2000 || input.periodYear > 2200) {
     throw new Error("Invalid charge year");
@@ -19,21 +28,21 @@ export async function generateMonthlyCharges(tenantId: string, input: GenerateCh
   if (!Number.isInteger(input.periodMonth) || input.periodMonth < 1 || input.periodMonth > 12) {
     throw new Error("Invalid charge month");
   }
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(input.dueDate) || Number.isNaN(Date.parse(input.dueDate))) {
-    throw new Error("Invalid due date");
-  }
 
-  const [template] = await db
-    .select()
-    .from(chargeTemplates)
-    .where(and(eq(chargeTemplates.id, input.templateId), eq(chargeTemplates.tenantId, tenantId)))
+  const [tenant] = await db
+    .select({tariffPerSqm: tenants.tariffPerSqm, dueDay: tenants.dueDay})
+    .from(tenants)
+    .where(eq(tenants.id, tenantId))
     .limit(1);
+  if (!tenant) throw new Error("Tenant not found");
 
-  if (!template) throw new Error("Charge template not found");
+  const tariff = Number(tenant.tariffPerSqm);
+  if (!Number.isFinite(tariff) || tariff <= 0) throw new Error("Tariff is not configured");
 
   const unitList = await db
     .select({
       unitId: units.id,
+      area: units.area,
       ownerId: ownerships.ownerId,
     })
     .from(units)
@@ -44,50 +53,27 @@ export async function generateMonthlyCharges(tenantId: string, input: GenerateCh
     ))
     .where(eq(units.tenantId, tenantId));
 
-  const existingUnitIds = unitList.length > 0
-    ? await db
-        .select({unitId: charges.unitId})
-        .from(charges)
-        .where(and(
-          eq(charges.tenantId, tenantId),
-          eq(charges.templateId, template.id),
-          eq(charges.periodYear, input.periodYear),
-          eq(charges.periodMonth, input.periodMonth),
-          inArray(charges.unitId, unitList.map((unit) => unit.unitId)),
-        ))
-    : [];
-  const existingUnits = new Set(existingUnitIds.map((row) => row.unitId));
-
+  const dueDate = dueDateFor(input.periodYear, input.periodMonth, tenant.dueDay);
   const chargeValues = unitList
-    .filter((u): u is typeof u & { ownerId: string } => u.ownerId !== null)
-    .filter((u) => !existingUnits.has(u.unitId))
-    .map((u) => {
-      return {
-        tenantId,
-        templateId: template.id,
-        unitId: u.unitId,
-        ownerId: u.ownerId,
-        amount: template.amount,
-        periodYear: input.periodYear,
-        periodMonth: input.periodMonth,
-        dueDate: input.dueDate,
-        status: "pending" as const,
-        createdBy: userId,
-      };
-    });
+    .filter((unit): unit is typeof unit & {ownerId: string} => unit.ownerId !== null)
+    .map((unit) => ({
+      tenantId,
+      unitId: unit.unitId,
+      ownerId: unit.ownerId,
+      amount: (Math.round(Number(unit.area) * tariff * 100) / 100).toFixed(2),
+      periodYear: input.periodYear,
+      periodMonth: input.periodMonth,
+      dueDate,
+      status: "pending" as const,
+      createdBy: userId,
+    }));
 
   if (chargeValues.length === 0) return [];
 
   const created = await db
     .insert(charges)
     .values(chargeValues)
-    .onConflictDoNothing({ target: [
-      charges.tenantId,
-      charges.templateId,
-      charges.unitId,
-      charges.periodYear,
-      charges.periodMonth,
-    ] })
+    .onConflictDoNothing()
     .returning();
 
   if (created.length === 0) return [];
@@ -98,7 +84,7 @@ export async function generateMonthlyCharges(tenantId: string, input: GenerateCh
     action: "create",
     entityType: "charge",
     entityId: created[0]!.id,
-    newValues: { count: created.length, period: `${input.periodYear}-${input.periodMonth}` },
+    newValues: {count: created.length, period: `${input.periodYear}-${input.periodMonth}`, tariff},
   });
 
   return created;
@@ -118,16 +104,18 @@ export async function listCharges(tenantId: string, periodYear?: number, periodM
     .limit(500);
 }
 
-export async function listChargesWithDetails(tenantId: string, filter?: {
-  periodYear?: number;
-  periodMonth?: number;
-  status?: string;
-}) {
-  const conditions = [eq(charges.tenantId, tenantId)];
-  if (filter?.periodYear) conditions.push(eq(charges.periodYear, filter.periodYear));
-  if (filter?.periodMonth) conditions.push(eq(charges.periodMonth, filter.periodMonth));
-  if (filter?.status) conditions.push(eq(charges.status, filter.status as "pending" | "paid" | "partially_paid" | "overdue" | "cancelled"));
+export type OwnerCharge = {
+  id: string;
+  amount: string;
+  periodYear: number;
+  periodMonth: number;
+  dueDate: string;
+  status: "pending" | "paid" | "partially_paid" | "overdue" | "cancelled";
+  unitNumber: string | null;
+};
 
+/** Latest apartment charges for one owner. */
+export async function listChargesForOwner(tenantId: string, ownerId: string, limit = 6): Promise<OwnerCharge[]> {
   return await db
     .select({
       id: charges.id,
@@ -137,23 +125,10 @@ export async function listChargesWithDetails(tenantId: string, filter?: {
       dueDate: charges.dueDate,
       status: charges.status,
       unitNumber: units.unitNumber,
-      entrance: units.entrance,
-      floor: units.floor,
-      ownerName: owners.fullName,
-      templateName: chargeTemplates.name,
     })
     .from(charges)
     .leftJoin(units, and(eq(units.id, charges.unitId), eq(units.tenantId, tenantId)))
-    .leftJoin(owners, and(eq(owners.id, charges.ownerId), eq(owners.tenantId, tenantId)))
-    .leftJoin(chargeTemplates, and(eq(chargeTemplates.id, charges.templateId), eq(chargeTemplates.tenantId, tenantId)))
-    .where(and(...conditions))
-    .orderBy(charges.dueDate)
-    .limit(500);
-}
-
-export async function listChargeTemplates(tenantId: string) {
-  return await db
-    .select()
-    .from(chargeTemplates)
-    .where(and(eq(chargeTemplates.tenantId, tenantId), eq(chargeTemplates.isActive, true)));
+    .where(and(eq(charges.tenantId, tenantId), eq(charges.ownerId, ownerId)))
+    .orderBy(desc(charges.periodYear), desc(charges.periodMonth))
+    .limit(limit);
 }

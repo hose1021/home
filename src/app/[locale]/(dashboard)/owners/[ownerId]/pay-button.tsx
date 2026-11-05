@@ -72,7 +72,7 @@ export function PayButton({
     <>
       <button
         onClick={() => { setAmount(owed.toFixed(2)); setOpen(true); }}
-        className="rounded-lg bg-zinc-900 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-zinc-700 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300"
+        className="rounded-[4px] bg-[#0074E0] px-3 py-1.5 text-xs font-bold text-white shadow-[inset_0_0_0_1px_rgb(255_255_255/0.24)] transition hover:bg-[#0A80F0]"
       >
         {t("pay")}
       </button>
@@ -82,26 +82,26 @@ export function PayButton({
           <DialogHeader>
             <DialogTitle>{tp("payTitle", {unit: unitNumber})}</DialogTitle>
           </DialogHeader>
-          <p className="-mt-2 text-sm text-zinc-400">
+          <p className="-mt-2 text-sm text-muted-foreground/70">
             {monthName(locale, year, month)} {year} · {t("blockFloor", {entrance, floor})}
           </p>
 
           <form onSubmit={handleSubmit} className="space-y-5 mt-2">
-            <div className="rounded-lg bg-zinc-50 p-4 dark:bg-zinc-900 space-y-1.5">
+            <div className="rounded-[4px] bg-muted/40 p-4 dark:bg-muted/40 space-y-1.5">
               <div className="flex justify-between text-sm">
-                <span className="text-zinc-500">{tp("amountDue")}</span>
+                <span className="text-muted-foreground">{tp("amountDue")}</span>
                 <span className="font-medium">{monthlyFee.toFixed(2)} ₼</span>
               </div>
               {alreadyPaid > 0 && (
                 <div className="flex justify-between text-sm">
-                  <span className="text-zinc-400">{t("paidThisMonth")}</span>
-                  <span className="text-green-600">{alreadyPaid.toFixed(2)} ₼</span>
+                  <span className="text-muted-foreground/70">{t("paidThisMonth")}</span>
+                  <span className="text-success">{alreadyPaid.toFixed(2)} ₼</span>
                 </div>
               )}
               {owed > 0 && (
-                <div className="flex justify-between border-t border-zinc-200 pt-1.5 dark:border-zinc-700">
-                  <span className="text-sm font-medium text-red-600">{tp("toPay")}</span>
-                  <span className="font-bold text-red-600">{owed.toFixed(2)} ₼</span>
+                <div className="flex justify-between border-t border-border pt-1.5 dark:border-border">
+                  <span className="text-sm font-medium text-danger">{tp("toPay")}</span>
+                  <span className="font-bold text-danger">{owed.toFixed(2)} ₼</span>
                 </div>
               )}
             </div>
@@ -115,7 +115,7 @@ export function PayButton({
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
                 required
-                className="block w-full rounded-lg border border-zinc-300 px-4 py-3 text-base dark:border-zinc-700 dark:bg-zinc-900"
+                className="field py-3 text-base"
               />
             </div>
 
@@ -127,10 +127,10 @@ export function PayButton({
                     key={m}
                     type="button"
                     onClick={() => setMethod(m)}
-                    className={`rounded-lg border px-2 py-2.5 text-xs font-medium transition ${
+                    className={`rounded-[4px] border px-2 py-2.5 text-xs font-medium transition ${
                       method === m
-                        ? "border-zinc-900 bg-zinc-900 text-white dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900"
-                        : "border-zinc-200 text-zinc-600 hover:border-zinc-400 dark:border-zinc-700 dark:text-zinc-400"
+                        ? "border-primary bg-primary text-primary-foreground"
+                        : "border-border text-muted-foreground hover:border-primary/50 hover:text-foreground"
                     }`}
                   >
                     {t(`paymentMethods.${m}`)}
@@ -145,13 +145,13 @@ export function PayButton({
                 value={referenceNo}
                 onChange={(e) => setReferenceNo(e.target.value)}
                 placeholder={tp("referencePlaceholder")}
-                className="block w-full rounded-lg border border-zinc-300 px-4 py-3 text-base dark:border-zinc-700 dark:bg-zinc-900"
+                className="field py-3 text-base"
               />
             </div>
 
             <div className="flex gap-3 pt-2">
               <Button type="button" variant="outline" onClick={() => setOpen(false)} className="flex-1">{tc("cancel")}</Button>
-              <Button type="submit" disabled={pending} className="flex-[2] bg-green-600 hover:bg-green-700">
+              <Button type="submit" disabled={pending} className="flex-[2] ">
                 {pending ? tp("processing") : tp("payAmount", {amount: Number(amount || 0).toFixed(2)})}
               </Button>
             </div>

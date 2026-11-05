@@ -14,7 +14,7 @@ type TenantData = {
 };
 
 const inputClass =
-  "mt-1 block w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900";
+  "mt-1 field";
 
 export function SettingsForm({ tenant }: { tenant: TenantData }) {
   const [pending, setPending] = useState(false);
@@ -71,7 +71,7 @@ export function SettingsForm({ tenant }: { tenant: TenantData }) {
           className={inputClass}
         />
       </div>
-      {error && <p className="text-sm text-red-500">{error}</p>}
+      {error && <p className="text-sm text-danger">{error}</p>}
       <div className="flex justify-end pt-2">
         <Button type="submit" disabled={pending}>
           {pending ? "Сохранение..." : "Сохранить"}

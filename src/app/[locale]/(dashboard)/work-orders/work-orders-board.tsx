@@ -87,7 +87,7 @@ export function WorkOrdersBoard({ orders, contractors, canManage }: {
                     <select
                       value={o.status}
                       onChange={(e) => setStatus(o.id, e.target.value as Order["status"])}
-                      className="h-9 rounded-lg border border-input bg-background px-2 text-sm"
+                      className="filter-select"
                     >
                       {(["pending", "approved", "in_progress", "completed", "cancelled"] as const).map((s) => (
                         <option key={s} value={s}>{t(`statuses.${s}`)}</option>
@@ -156,7 +156,7 @@ function WorkOrderDialog({ contractors, onClose }: {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <Label htmlFor="wo-contractor">{t("contractor")}</Label>
-              <select id="wo-contractor" value={contractorId} onChange={(e) => setContractorId(e.target.value)} className="mt-1 block w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900">
+              <select id="wo-contractor" value={contractorId} onChange={(e) => setContractorId(e.target.value)} className="mt-1 field">
                 <option value="">—</option>
                 {contractors.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
               </select>

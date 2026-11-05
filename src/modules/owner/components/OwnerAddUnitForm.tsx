@@ -72,14 +72,14 @@ export function OwnerAddUnitForm({
 
   return (
     <div className="space-y-4">
-      <div className="flex rounded-lg border border-zinc-200 p-0.5 dark:border-zinc-800">
+      <div className="flex rounded-[4px] border border-border p-0.5 dark:border-border">
         <button
           type="button"
           onClick={() => setMode("existing")}
           className={`flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
             mode === "existing"
-              ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900"
-              : "text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+              ? "bg-primary text-primary-foreground"
+              : "text-muted-foreground hover:text-foreground dark:text-muted-foreground/70 dark:hover:text-foreground"
           }`}
         >
           Выбрать существующую
@@ -89,8 +89,8 @@ export function OwnerAddUnitForm({
           onClick={() => setMode("new")}
           className={`flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
             mode === "new"
-              ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900"
-              : "text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+              ? "bg-primary text-primary-foreground"
+              : "text-muted-foreground hover:text-foreground dark:text-muted-foreground/70 dark:hover:text-foreground"
           }`}
         >
           Создать новую
@@ -108,7 +108,7 @@ export function OwnerAddUnitForm({
               value={selectedUnitId}
               onChange={(e) => setSelectedUnitId(e.target.value)}
               required
-              className="block w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900"
+              className="field"
             >
               <option value="">— Выберите квартиру —</option>
               {units.map((u) => (
@@ -119,7 +119,7 @@ export function OwnerAddUnitForm({
             </select>
           )}
 
-          {error && <p className="text-sm text-red-500">{error}</p>}
+          {error && <p className="text-sm text-danger">{error}</p>}
 
           <div className="flex justify-end gap-3">
             <Button type="button" variant="outline" onClick={onDone}>Отмена</Button>
@@ -130,24 +130,24 @@ export function OwnerAddUnitForm({
         </form>
       ) : (
         <form onSubmit={handleCreate} className="space-y-4">
-          <fieldset className="rounded-lg border border-zinc-200 p-3 dark:border-zinc-800">
+          <fieldset className="rounded-[4px] border border-border p-3 dark:border-border">
             <legend className="px-1 text-sm font-medium">Новая квартира</legend>
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-sm font-medium">№ квартиры</label>
-                <input name="unitNumber" required className="mt-1 block w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900" />
+                <input name="unitNumber" required className="mt-1 field" />
               </div>
               <div>
                 <label className="block text-sm font-medium">Этаж</label>
-                <input name="floor" type="number" required className="mt-1 block w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900" />
+                <input name="floor" type="number" required className="mt-1 field" />
               </div>
               <div>
                 <label className="block text-sm font-medium">Подъезд</label>
-                <input name="entrance" type="number" defaultValue={1} className="mt-1 block w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900" />
+                <input name="entrance" type="number" defaultValue={1} className="mt-1 field" />
               </div>
               <div>
                 <label className="block text-sm font-medium">Тип</label>
-                <select name="type" className="mt-1 block w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900">
+                <select name="type" className="mt-1 field">
                   <option value="residential">Жилая</option>
                   <option value="commercial">Коммерческая</option>
                   <option value="parking">Парковка</option>
@@ -156,12 +156,12 @@ export function OwnerAddUnitForm({
               </div>
               <div>
                 <label className="block text-sm font-medium">Площадь (м²)</label>
-                <input name="area" type="number" step="0.01" required className="mt-1 block w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900" />
+                <input name="area" type="number" step="0.01" required className="mt-1 field" />
               </div>
             </div>
           </fieldset>
 
-          {error && <p className="text-sm text-red-500">{error}</p>}
+          {error && <p className="text-sm text-danger">{error}</p>}
 
           <div className="flex justify-end gap-3">
             <Button type="button" variant="outline" onClick={onDone}>Отмена</Button>

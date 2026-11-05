@@ -31,7 +31,7 @@ export function OwnerUnitsSection({
   return (
     <>
       <div className="flex items-center justify-between">
-        <h2 className="text-sm font-medium text-zinc-500">
+        <h2 className="text-sm font-medium text-muted-foreground">
           Квартиры ({units.length})
         </h2>
         {canManage && (

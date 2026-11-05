@@ -1,4 +1,4 @@
-import {and, desc, eq, inArray, sql} from "drizzle-orm";
+import {and, desc, eq, inArray} from "drizzle-orm";
 import {writeAuditLog} from "@/core/audit/audit.service";
 import {hasStaffRole} from "@/core/auth/permissions";
 import {db} from "@/core/db";
@@ -8,7 +8,7 @@ import {payments} from "@/core/db/schema/payments";
 import {tenants} from "@/core/db/schema/tenants";
 import {units} from "@/core/db/schema/units";
 import {AppError, ForbiddenError} from "@/core/errors/app-error";
-import {moneyToCents, sumMoneyCents} from "./money";
+import {allocatePayment, releasePaymentAllocations, syncChargeStatus} from "./allocation.service";
 
 
 /** Domain error with a machine code; server actions translate codes via next-intl (ADR 0001). */
@@ -31,61 +31,6 @@ type RegisterPaymentInput = {
   notes?: string;
   tariffPerSqm?: string;
 };
-
-type ChargeStatus = "pending" | "paid" | "partially_paid" | "overdue" | "cancelled";
-export function deriveChargeStatus(chargeAmount: string, confirmedPaymentTotalCents: number): ChargeStatus {
-  if (confirmedPaymentTotalCents <= 0) return "pending";
-  if (confirmedPaymentTotalCents >= moneyToCents(chargeAmount)) return "paid";
-  return "partially_paid";
-}
-
-async function confirmedPaymentTotalCents(tx: typeof db, tenantId: string, chargeId: string): Promise<number> {
-  const chargePayments = await tx
-    .select({amount: payments.amount})
-    .from(payments)
-    .where(and(
-      eq(payments.tenantId, tenantId),
-      eq(payments.chargeId, chargeId),
-      eq(payments.status, "confirmed"),
-    ));
-  return sumMoneyCents(chargePayments);
-}
-
-async function syncChargeStatus(tx: typeof db, tenantId: string, chargeId: string): Promise<ChargeStatus> {
-  const [charge] = await tx
-    .select({amount: charges.amount})
-    .from(charges)
-    .where(and(eq(charges.id, chargeId), eq(charges.tenantId, tenantId)))
-    .limit(1);
-  if (!charge) throw new Error("Charge not found");
-
-  const status = deriveChargeStatus(charge.amount, await confirmedPaymentTotalCents(tx, tenantId, chargeId));
-  await tx
-    .update(charges)
-    .set({status})
-    .where(and(eq(charges.id, chargeId), eq(charges.tenantId, tenantId)));
-  return status;
-}
-
-export async function getTenantOutstandingDebt(tenantId: string): Promise<string> {
-  const [result] = await db
-    .select({
-      total: sql<string>`coalesce(sum(greatest(${charges.amount}::numeric - coalesce((
-        select sum(${payments.amount}::numeric)
-        from ${payments}
-        where ${payments.tenantId} = ${tenantId}
-          and ${payments.chargeId} = ${charges.id}
-          and ${payments.status} = 'confirmed'
-      ), 0), 0)), 0)`,
-    })
-    .from(charges)
-    .where(and(
-      eq(charges.tenantId, tenantId),
-      inArray(charges.status, ["pending", "partially_paid", "overdue"]),
-    ));
-
-  return result?.total ?? "0";
-}
 
 export async function getOwnerPaymentFlags(
   tenantId: string,
@@ -136,15 +81,11 @@ export async function registerPayment(tenantId: string, input: RegisterPaymentIn
   const payment = await db.transaction(async (tx) => {
     if (input.chargeId) {
       const [charge] = await tx
-        .select()
+        .select({status: charges.status})
         .from(charges)
         .where(and(eq(charges.id, input.chargeId), eq(charges.tenantId, tenantId)))
         .limit(1);
       if (!charge || charge.status === "cancelled") throw new Error("Charge is not payable");
-      const paidBefore = await confirmedPaymentTotalCents(tx as unknown as typeof db, tenantId, input.chargeId);
-      if (paidBefore + moneyToCents(input.amount) > moneyToCents(charge.amount)) {
-        throw new Error("Payment exceeds the outstanding charge amount");
-      }
     }
 
     const [created] = await tx
@@ -177,9 +118,7 @@ export async function registerPayment(tenantId: string, input: RegisterPaymentIn
       newValues: input as unknown as Record<string, unknown>,
     }, tx as unknown as typeof db);
 
-    if (input.chargeId) {
-      await syncChargeStatus(tx as unknown as typeof db, tenantId, input.chargeId);
-    }
+    await allocatePayment(tx as unknown as typeof db, tenantId, created.id);
 
     return created;
   });
@@ -259,30 +198,41 @@ async function validatePaymentRelations(tenantId: string, input: RegisterPayment
 }
 
 export async function confirmPayment(tenantId: string, paymentId: string, userId: string) {
-  const [existing] = await db
-    .select()
-    .from(payments)
-    .where(and(eq(payments.id, paymentId), eq(payments.tenantId, tenantId)))
-    .limit(1);
-  if (!existing) return null;
+  return db.transaction(async (tx) => {
+    const executor = tx as unknown as typeof db;
+    const [existing] = await tx
+      .select()
+      .from(payments)
+      .where(and(eq(payments.id, paymentId), eq(payments.tenantId, tenantId)))
+      .limit(1);
+    if (!existing) return null;
 
-  const [payment] = await db
-    .update(payments)
-    .set({ status: "confirmed", confirmedBy: userId })
-    .where(and(eq(payments.id, paymentId), eq(payments.tenantId, tenantId)))
-    .returning();
+    if (existing.status !== "confirmed") {
+      await tx
+        .update(payments)
+        .set({ status: "confirmed", confirmedBy: userId, updatedAt: new Date() })
+        .where(and(eq(payments.id, paymentId), eq(payments.tenantId, tenantId)));
 
-  await writeAuditLog({
-    tenantId,
-    userId,
-    action: "update",
-    entityType: "payment",
-    entityId: paymentId,
-    oldValues: { status: existing.status } as Record<string, unknown>,
-    newValues: { status: "confirmed" } as Record<string, unknown>,
+      await writeAuditLog({
+        tenantId,
+        userId,
+        action: "update",
+        entityType: "payment",
+        entityId: paymentId,
+        oldValues: { status: existing.status } as Record<string, unknown>,
+        newValues: { status: "confirmed" } as Record<string, unknown>,
+      }, executor);
+    }
+
+    await allocatePayment(executor, tenantId, paymentId);
+
+    const [payment] = await tx
+      .select()
+      .from(payments)
+      .where(and(eq(payments.id, paymentId), eq(payments.tenantId, tenantId)))
+      .limit(1);
+    return payment ?? null;
   });
-
-  return payment;
 }
 
 export async function refundPayment(tenantId: string, paymentId: string, userId: string) {
@@ -302,9 +252,7 @@ export async function refundPayment(tenantId: string, paymentId: string, userId:
       .returning();
     if (!updated) throw new Error("Payment was changed concurrently");
 
-    if (existing.chargeId) {
-      await syncChargeStatus(tx as unknown as typeof db, tenantId, existing.chargeId);
-    }
+    await releasePaymentAllocations(tx as unknown as typeof db, tenantId, paymentId);
 
     await writeAuditLog({
       tenantId,
@@ -321,37 +269,39 @@ export async function refundPayment(tenantId: string, paymentId: string, userId:
 }
 
 export async function markChargePaidIfSettled(tenantId: string, chargeId: string, userId: string) {
-  const [existing] = await db
-    .select()
-    .from(charges)
-    .where(and(eq(charges.id, chargeId), eq(charges.tenantId, tenantId)))
-    .limit(1);
-  if (!existing) throw new Error("Charge not found");
-  if (existing.status === "cancelled") throw new Error("Charge is not payable");
+  return db.transaction(async (tx) => {
+    const executor = tx as unknown as typeof db;
+    const [existing] = await tx
+      .select()
+      .from(charges)
+      .where(and(eq(charges.id, chargeId), eq(charges.tenantId, tenantId)))
+      .limit(1);
+    if (!existing) throw new Error("Charge not found");
+    if (existing.status === "cancelled") throw new Error("Charge is not payable");
 
-  const status = deriveChargeStatus(existing.amount, await confirmedPaymentTotalCents(db, tenantId, chargeId));
-  if (status !== "paid") {
-    throw new Error("A charge can only be marked paid after the full amount is registered");
-  }
-  if (existing.status === "paid") return existing;
+    const status = await syncChargeStatus(executor, tenantId, chargeId);
+    if (status !== "paid") {
+      throw new Error("A charge can only be marked paid after the full amount is registered");
+    }
+    if (existing.status === "paid") return existing;
 
-  const [updated] = await db
-    .update(charges)
-    .set({status: "paid"})
-    .where(and(eq(charges.id, chargeId), eq(charges.tenantId, tenantId)))
-    .returning();
+    await writeAuditLog({
+      tenantId,
+      userId,
+      action: "update",
+      entityType: "charge",
+      entityId: chargeId,
+      oldValues: { status: existing.status } as Record<string, unknown>,
+      newValues: { status: "paid" } as Record<string, unknown>,
+    }, executor);
 
-  await writeAuditLog({
-    tenantId,
-    userId,
-    action: "update",
-    entityType: "charge",
-    entityId: chargeId,
-    oldValues: { status: existing.status } as Record<string, unknown>,
-    newValues: { status: "paid" } as Record<string, unknown>,
+    const [updated] = await tx
+      .select()
+      .from(charges)
+      .where(and(eq(charges.id, chargeId), eq(charges.tenantId, tenantId)))
+      .limit(1);
+    return updated ?? existing;
   });
-
-  return updated;
 }
 
 export async function listPayments(tenantId: string, unitId?: string) {

@@ -2,13 +2,11 @@ import {and, desc, eq, inArray, sql} from "drizzle-orm";
 import {db} from "@/core/db";
 import {auditLogs} from "@/core/db/schema/audit-logs";
 import {charges} from "@/core/db/schema/charges";
-import {funds} from "@/core/db/schema/funds";
+import {expenses} from "@/core/db/schema/expenses";
 import {owners, ownerships} from "@/core/db/schema/owners";
 import {payments} from "@/core/db/schema/payments";
 import {units} from "@/core/db/schema/units";
 import {users} from "@/core/db/schema/users";
-import {isExpenseCode, isIncomeCode} from "@/modules/finance/constants";
-import {getBudget, getBudgetItems} from "@/modules/finance/services/budget.service";
 import {buildPeriods, getDebtConfig, unitDebt, type DebtConfig} from "@/modules/finance/services/debt.service";
 import {formatMoney, moneyToCents} from "@/modules/finance/services/money";
 
@@ -76,7 +74,7 @@ export function computeDebtByOwner(
 
 /** Per-owner debt on canonical semantics: Σ over billing periods of max(0, tariff × area − confirmed paid). */
 export async function getDebtByOwnerReport(tenantId: string): Promise<DebtByOwnerRow[]> {
-  const cfg = getDebtConfig();
+  const cfg = await getDebtConfig(tenantId);
 
   const unitRows = await db
     .select({
@@ -154,73 +152,28 @@ export async function getIncomeExpenseReport(tenantId: string) {
     .slice(-12)
     .map(([month, cents]) => ({ month, amount: formatMoney(cents) }));
 
-  const budget = await getBudget(tenantId);
-  const items = budget ? await getBudgetItems(budget.id, tenantId) : [];
+  const expenseRows = await db
+    .select({ description: expenses.description, amount: expenses.amount, expenseDate: expenses.expenseDate })
+    .from(expenses)
+    .where(eq(expenses.tenantId, tenantId))
+    .orderBy(desc(expenses.expenseDate));
 
-  const expenses = items
-    .filter((item) => isExpenseCode(item.accountCode))
-    .map((item) => ({
-      accountCode: item.accountCode,
-      notes: item.notes ?? "",
-      amount: formatMoney(moneyToCents(item.actualAmount)),
-    }));
+  const expenseList = expenseRows.map((row) => ({
+    accountCode: row.expenseDate,
+    notes: row.description,
+    amount: formatMoney(moneyToCents(row.amount)),
+  }));
 
   const totalIncome = monthlyIncome.reduce((sum, row) => sum + moneyToCents(row.amount), 0);
-  const totalExpense = expenses.reduce((sum, row) => sum + moneyToCents(row.amount), 0);
+  const totalExpense = expenseList.reduce((sum, row) => sum + moneyToCents(row.amount), 0);
 
   return {
     monthlyIncome,
-    expenses,
+    expenses: expenseList,
     totalIncome: formatMoney(totalIncome),
     totalExpense: formatMoney(totalExpense),
     balance: formatMoney(totalIncome - totalExpense),
   };
-}
-
-export async function getBudgetVsActualReport(tenantId: string) {
-  const budget = await getBudget(tenantId);
-  if (!budget) {
-    return { rows: [], totalPlanned: "0.00", totalActual: "0.00" };
-  }
-
-  const items = await getBudgetItems(budget.id, tenantId);
-  const rows = items.map((item) => {
-    const planned = moneyToCents(item.plannedAmount);
-    const actual = moneyToCents(item.actualAmount);
-    return {
-      accountCode: item.accountCode,
-      notes: item.notes ?? "",
-      kind: isIncomeCode(item.accountCode) ? "Доход" : isExpenseCode(item.accountCode) ? "Расход" : "Прочее",
-      planned: formatMoney(planned),
-      actual: formatMoney(actual),
-      diff: formatMoney(actual - planned),
-    };
-  });
-
-  const totalPlanned = rows.reduce((sum, row) => sum + moneyToCents(row.planned), 0);
-  const totalActual = rows.reduce((sum, row) => sum + moneyToCents(row.actual), 0);
-
-  return { rows, totalPlanned: formatMoney(totalPlanned), totalActual: formatMoney(totalActual) };
-}
-
-export async function getFundsReport(tenantId: string) {
-  const rows = await db
-    .select()
-    .from(funds)
-    .where(eq(funds.tenantId, tenantId))
-    .orderBy(funds.name);
-
-  return rows.map((fund) => {
-    const target = fund.targetAmount ? moneyToCents(fund.targetAmount) : null;
-    const current = moneyToCents(fund.currentBalance);
-    return {
-      name: fund.name,
-      type: fund.type,
-      target: target === null ? null : formatMoney(target),
-      current: formatMoney(current),
-      filledPercent: target && target > 0 ? Math.min(100, (current / target) * 100) : null,
-    };
-  });
 }
 
 export async function getDebtAgingReport(tenantId: string) {

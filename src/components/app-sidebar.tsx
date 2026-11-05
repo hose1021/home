@@ -13,7 +13,6 @@ import {
     SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import type {Permission} from "@/core/auth/permissions";
-import {NavDocuments} from "./nav-documents";
 import {NavMain} from "./nav-main";
 import {NavSecondary} from "./nav-secondary";
 import {NavUser} from "./nav-user";
@@ -33,31 +32,38 @@ export function AppSidebar({
 }) {
   return (
     <Sidebar variant="inset" collapsible="icon">
-      <SidebarHeader className="border-b border-sidebar-border/70">
+      <SidebarHeader className="border-b border-sidebar-border px-2 py-3">
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton size="lg" render={<Link href="/" />}>
+            <SidebarMenuButton
+              size="lg"
+              className="h-auto gap-3 rounded-[4px] px-2 py-1.5 hover:bg-transparent"
+              render={<Link href="/" />}
+            >
               {tenantLogoUrl ? (
-                <Image src={tenantLogoUrl} alt={tenantName} width={32} height={32} className="size-8 shrink-0 rounded-lg object-cover" />
+                <Image src={tenantLogoUrl} alt={tenantName} width={36} height={36} className="size-9 shrink-0 rounded-[4px] object-cover" />
               ) : (
-                <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
-                  <IconBuildingCommunity className="size-4" />
+                <span className="flex size-9 shrink-0 items-center justify-center rounded-[4px] bg-[#0074E0] text-white shadow-[inset_0_0_0_1px_rgb(255_255_255/0.24)]">
+                  <IconBuildingCommunity className="size-[18px]" />
                 </span>
               )}
-              <span className="grid min-w-0 flex-1 text-left text-sm leading-tight">
-                <span className="truncate font-semibold">{tenantName}</span>
-                <span className="truncate text-xs text-sidebar-foreground/55">MMMC Platform</span>
+              <span className="grid min-w-0 flex-1 text-left leading-tight">
+                <span className="truncate font-heading text-[0.9rem] font-bold text-sidebar-foreground">
+                  {tenantName}
+                </span>
+                <span className="mt-0.5 truncate text-[11px] text-sidebar-foreground/50">
+                  MMMC Platform
+                </span>
               </span>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarHeader>
-      <SidebarContent>
+      <SidebarContent className="gap-1 py-1">
         <NavMain permissions={permissions} />
-        <NavDocuments permissions={permissions} />
         <NavSecondary permissions={permissions} className="mt-auto" />
       </SidebarContent>
-      <SidebarFooter>
+      <SidebarFooter className="border-t border-sidebar-border px-2 py-2">
         <NavUser userName={userName ?? "User"} userEmail={userEmail} />
       </SidebarFooter>
     </Sidebar>

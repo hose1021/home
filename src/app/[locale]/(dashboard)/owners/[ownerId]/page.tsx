@@ -58,7 +58,7 @@ export default async function OwnerDetailsPage({
   const initials = owner.fullName.split(" ").filter(Boolean).slice(0, 2).map((part) => part[0]).join("").toUpperCase();
 
   return (
-    <div className="page-shell max-w-5xl">
+    <div className="page-shell">
       <Breadcrumb>
         <BreadcrumbList>
           <BreadcrumbItem>
@@ -86,11 +86,11 @@ export default async function OwnerDetailsPage({
             <p className="page-description truncate">{owner.phone ?? t("noPhone")} · {owner.username}</p>
           </div>
         </div>
-        <div className="flex items-center gap-3 rounded-lg border bg-muted/30 px-4 py-3 sm:text-right">
-          <IconCash className={detail.grandDebt > 0 ? "size-5 text-destructive" : "size-5 text-emerald-600"} />
+        <div className="flex items-center gap-3 rounded-[4px] border bg-muted/30 px-4 py-3 sm:text-right">
+          <IconCash className={detail.grandDebt > 0 ? "size-5 text-destructive" : "size-5 text-success"} />
           <div>
             <p className="text-xs text-muted-foreground">{t("totalDebt")}</p>
-            <p className={`text-xl font-semibold tabular-nums ${detail.grandDebt > 0 ? "text-destructive" : "text-emerald-600"}`}>{detail.grandDebt.toFixed(2)} ₼</p>
+            <p className={`text-xl font-semibold tabular-nums ${detail.grandDebt > 0 ? "text-destructive" : "text-success"}`}>{detail.grandDebt.toFixed(2)} ₼</p>
           </div>
         </div>
       </div>
@@ -121,7 +121,7 @@ export default async function OwnerDetailsPage({
                 <div className="bg-muted/20 p-5 sm:p-6">
                   <div className="flex items-start justify-between gap-4">
                     <div>
-                      <div className="flex items-center gap-2"><span className="flex size-8 items-center justify-center rounded-lg bg-background shadow-xs"><IconHome className="size-4" /></span><h2 className="text-lg font-semibold">{t("unitNumber", {unit: unit.unitNumber})}</h2></div>
+                      <div className="flex items-center gap-2"><span className="flex size-8 items-center justify-center rounded-[4px] bg-background shadow-xs"><IconHome className="size-4" /></span><h2 className="text-lg font-semibold">{t("unitNumber", {unit: unit.unitNumber})}</h2></div>
                       <p className="mt-2 text-sm text-muted-foreground">
                         {t("blockFloor", {entrance: unit.entrance, floor: unit.floor})}, {area.toFixed(1)} м²
                       </p>
@@ -131,7 +131,7 @@ export default async function OwnerDetailsPage({
                     </div>
                     <div className="text-right">
                       <p className="text-xs text-muted-foreground">{t("unitDebt")}</p>
-                      <p className={`mt-1 text-xl font-semibold tabular-nums ${totalDebt > 0 ? "text-destructive" : "text-emerald-600"}`}>
+                      <p className={`mt-1 text-xl font-semibold tabular-nums ${totalDebt > 0 ? "text-destructive" : "text-success"}`}>
                         {totalDebt.toFixed(2)} ₼
                       </p>
                     </div>
@@ -202,7 +202,7 @@ function OwnerMetric({icon: Icon, label, value}: {icon: typeof IconHome; label: 
     <Card className="bg-gradient-to-t from-primary/5 to-card py-5">
       <CardContent className="flex items-center justify-between gap-4 px-5">
         <div><p className="text-sm text-muted-foreground">{label}</p><p className="mt-1 text-xl font-semibold tabular-nums">{value}</p></div>
-        <span className="flex size-9 items-center justify-center rounded-lg bg-muted text-muted-foreground"><Icon className="size-4" /></span>
+        <span className="flex size-9 items-center justify-center rounded-[4px] bg-muted text-muted-foreground"><Icon className="size-4" /></span>
       </CardContent>
     </Card>
   );

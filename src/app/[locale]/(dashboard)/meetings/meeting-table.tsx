@@ -56,9 +56,9 @@ export function MeetingTable({ meetings, canManage }: { meetings: Meeting[]; can
                 <div className="flex items-center gap-2">
                   <h3 className="font-medium">{m.title}</h3>
                   <Badge variant="secondary" className={
-                    m.status === "completed" ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200" :
-                    m.status === "scheduled" ? "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200" :
-                    "bg-zinc-100 text-zinc-800 dark:bg-zinc-800 dark:text-zinc-200"
+                    m.status === "completed" ? "bg-success/12 border-success/35 text-success" :
+                    m.status === "scheduled" ? "bg-primary/12 border-primary/35 text-primary" :
+                    "border border-border bg-muted text-foreground"
                   }>{statusLabel(m.status, tm)}</Badge>
                 </div>
                 <p className="mt-2 text-xs text-muted-foreground">

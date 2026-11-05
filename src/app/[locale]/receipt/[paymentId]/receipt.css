@@ -7,11 +7,19 @@
 }
 
 .receipt {
+  /* A receipt is paper: it stays light even in the dark console */
+  --background: #FBFCFE;
+  --foreground: #0A1220;
+  --muted-foreground: #566478;
+  --border: #D2DBE7;
+  --muted: #EDF1F7;
+
   width: min(100%, 210mm);
   background: var(--background);
   color: var(--foreground);
-  border-radius: 12px;
-  box-shadow: 0 1px 3px rgb(0 0 0 / 0.12);
+  border: 1px solid #D2DBE7;
+  border-radius: 2px;
+  box-shadow: 0 40px 70px -50px rgb(0 0 0 / 0.8);
   padding: 2rem;
   display: flex;
   flex-direction: column;

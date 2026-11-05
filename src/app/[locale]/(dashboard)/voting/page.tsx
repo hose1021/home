@@ -85,7 +85,7 @@ export default async function VotingPage() {
                     <span>•</span>
                     <span>{t("voting.oneOwnerOneVote")}</span>
                     <span>•</span>
-                    <Badge variant="secondary" className={v.status === "completed" ? "text-emerald-600" : "text-amber-600"}>{statusLabel(t, v.status)}</Badge>
+                    <Badge variant="secondary" className={v.status === "completed" ? "text-success" : "text-warning"}>{statusLabel(t, v.status)}</Badge>
                   </div>
 
                   {v.results.length > 0 && (

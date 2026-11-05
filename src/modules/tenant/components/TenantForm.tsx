@@ -34,7 +34,7 @@ export function TenantForm() {
           id="name"
           name="name"
           required
-          className="mt-1 block w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900"
+          className="mt-1 field"
         />
       </div>
       <div>
@@ -44,16 +44,16 @@ export function TenantForm() {
           name="slug"
           required
           pattern="[a-z0-9-]+"
-          className="mt-1 block w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900"
+          className="mt-1 field"
         />
-        <p className="mt-1 text-xs text-zinc-400">{tt("slugHint")}</p>
+        <p className="mt-1 text-xs text-muted-foreground/70">{tt("slugHint")}</p>
       </div>
       <div>
         <label htmlFor="address" className="block text-sm font-medium">{tt("address")}</label>
         <input
           id="address"
           name="address"
-          className="mt-1 block w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900"
+          className="mt-1 field"
         />
       </div>
       <div className="grid grid-cols-2 gap-4">
@@ -63,17 +63,17 @@ export function TenantForm() {
             id="phone"
             name="phone"
             type="tel"
-            className="mt-1 block w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900"
+            className="mt-1 field"
           />
         </div>
       </div>
       {state.error && (
-        <p className="text-sm text-red-500">{state.error}</p>
+        <p className="text-sm text-danger">{state.error}</p>
       )}
       <button
         type="submit"
         disabled={pending}
-        className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-700 disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900"
+        className="rounded-[4px] bg-[#0074E0] px-5 py-2 text-sm font-bold text-white shadow-[inset_0_0_0_1px_rgb(255_255_255/0.24)] transition hover:bg-[#0A80F0] disabled:opacity-50 dark:bg-zinc-100 dark:text-foreground"
       >
         {pending ? tc("create") + "..." : tc("create")}
       </button>

@@ -26,7 +26,7 @@ export function CommandantCard({
 
   if (!commandant) {
     return (
-      <div className="mt-4 flex items-center justify-between rounded-lg bg-muted/60 px-4 py-3 text-sm">
+      <div className="mt-4 flex items-center justify-between rounded-[4px] bg-muted/60 px-4 py-3 text-sm">
         <span className="flex items-center gap-2 text-muted-foreground"><IconBuilding className="size-4" /> Комендант</span>
         <span className="font-medium">Не назначен</span>
       </div>
@@ -37,7 +37,7 @@ export function CommandantCard({
     <>
       <button
         onClick={() => setOpen(true)}
-        className="mt-4 flex w-full items-center justify-between rounded-lg bg-muted/60 px-4 py-3 text-sm transition-colors hover:bg-muted"
+        className="mt-4 flex w-full items-center justify-between rounded-[4px] bg-muted/60 px-4 py-3 text-sm transition-colors hover:bg-muted"
       >
         <span className="flex items-center gap-2 text-muted-foreground"><IconBuilding className="size-4" /> Комендант</span>
         <span className="font-medium">{commandant.fullName}</span>
@@ -60,7 +60,7 @@ export function CommandantCard({
             </div>
             <div>
               <p className="text-xs text-muted-foreground">Статус</p>
-              <Badge className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">Активен</Badge>
+              <Badge className="bg-success/12 border-success/35 text-success">Активен</Badge>
             </div>
             {canBrowseOwners && commandant.ownerId && (
               <Link href={`/owners/${commandant.ownerId}`} className="inline-block text-primary hover:underline">

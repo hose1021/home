@@ -13,18 +13,18 @@ export function NavSecondary({ permissions, className }: { permissions?: Permiss
 
   const secondary: { title: string; url: string; icon: typeof IconSettings; perm?: Permission }[] = [
     { title: t("settings"), url: "/settings", icon: IconSettings },
-    { title: t("help"), url: "#", icon: IconHelp },
+    { title: t("help"), url: "/help", icon: IconHelp },
   ];
 
   const visible = secondary.filter((item) => !item.perm || permissions?.includes(item.perm));
   return (
     <SidebarGroup className={className}>
-      <SidebarMenu>
+      <SidebarMenu className="gap-0.5">
         {visible.map((item) => (
           <SidebarMenuItem key={item.title}>
             <SidebarMenuButton
-              isActive={item.url !== "#" && pathname === item.url}
-              className="h-9 rounded-lg px-3 text-sidebar-foreground/65"
+              isActive={pathname === item.url}
+              className="relative h-9 rounded-[4px] px-3 text-sm font-semibold text-sidebar-foreground/60 hover:bg-sidebar-accent hover:text-sidebar-foreground data-active:bg-sidebar-accent data-active:text-sidebar-accent-foreground data-active:before:absolute data-active:before:left-0 data-active:before:top-1/2 data-active:before:h-4 data-active:before:w-[2px] data-active:before:-translate-y-1/2 data-active:before:rounded-full data-active:before:bg-sidebar-primary [&_svg]:text-sidebar-foreground/45"
               render={<Link href={item.url} />}
             >
               <item.icon className="size-[18px]" />

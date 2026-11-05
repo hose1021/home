@@ -1,61 +1,28 @@
 "use client";
 
-import { useTranslations } from "next-intl";
-import { useState } from "react";
-import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { generateChargesAction } from "@/modules/finance/finance.actions";
+import {useTranslations} from "next-intl";
+import {useState} from "react";
+import {toast} from "sonner";
 
-type Template = { id: string; name: string; amount: string };
+import {Button} from "@/components/ui/button";
+import {Dialog, DialogContent, DialogHeader, DialogTitle} from "@/components/ui/dialog";
+import {Input} from "@/components/ui/input";
+import {Label} from "@/components/ui/label";
+import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from "@/components/ui/select";
+import {generateChargesAction} from "@/modules/finance/finance.actions";
 
-export function ChargeGenerateForm({
-  templates,
-  onDone,
-}: {
-  templates: Template[];
-  onDone: () => void;
-}) {
+export function ChargeGenerateForm({onDone}: {onDone: () => void}) {
   const t = useTranslations("finance");
   const tc = useTranslations("common");
   const [pending, setPending] = useState(false);
-  const [templateId, setTemplateId] = useState(templates[0]?.id ?? "");
   const [year, setYear] = useState(String(new Date().getFullYear()));
   const [month, setMonth] = useState(String(new Date().getMonth() + 1));
-  const [dueDate, setDueDate] = useState("");
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!templateId) {
-      toast.error(t("charges.selectTemplate"));
-      return;
-    }
-    if (!dueDate) {
-      toast.error(t("charges.dueDate"));
-      return;
-    }
     setPending(true);
     try {
-      const res = await generateChargesAction({
-        templateId,
-        periodYear: Number(year),
-        periodMonth: Number(month),
-        dueDate,
-      });
+      const res = await generateChargesAction({periodYear: Number(year), periodMonth: Number(month)});
       toast.success(`${t("charges.generated")}: ${res.count}`);
       onDone();
     } catch (err) {
@@ -65,116 +32,61 @@ export function ChargeGenerateForm({
     }
   }
 
-  const months = Array.from({ length: 12 }, (_, i) => ({
+  const months = Array.from({length: 12}, (_, i) => ({
     value: String(i + 1),
     label: tc(`months.${i + 1}`),
   }));
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      <div>
-        <Label htmlFor="charge-template">{t("charges.template")}</Label>
-        <Select
-          value={templateId}
-          onValueChange={(v) => setTemplateId(v ?? "")}
-        >
-          <SelectTrigger id="charge-template" className="mt-1">
-            <SelectValue>
-              {(v) => {
-                const tmpl = templates.find((x) => x.id === v);
-                return tmpl
-                  ? `${tmpl.name} (${Number(tmpl.amount).toFixed(2)} ${tc("currency")})`
-                  : "";
-              }}
-            </SelectValue>
-          </SelectTrigger>
-          <SelectContent>
-            {templates.map((tmpl) => (
-              <SelectItem key={tmpl.id} value={tmpl.id}>
-                {tmpl.name} ({Number(tmpl.amount).toFixed(2)} {tc("currency")})
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
+      <p className="text-sm text-muted-foreground">{t("charges.generateHint")}</p>
       <div className="grid grid-cols-2 gap-4">
         <div>
           <Label>{tc("year")}</Label>
-          <Input
-            value={year}
-            onChange={(e) => setYear(e.target.value)}
-            type="number"
-            min={2024}
-            max={2030}
-            className="mt-1"
-          />
+          <Input value={year} onChange={(e) => setYear(e.target.value)} type="number" min={2024} max={2030} className="mt-1" />
         </div>
         <div>
           <Label htmlFor="charge-month">{tc("month")}</Label>
           <Select value={month} onValueChange={(v) => setMonth(v ?? "")}>
             <SelectTrigger id="charge-month" className="mt-1">
-              <SelectValue>
-                {(v) => months.find((m) => m.value === v)?.label ?? ""}
-              </SelectValue>
+              <SelectValue>{(v) => months.find((m) => m.value === v)?.label ?? ""}</SelectValue>
             </SelectTrigger>
             <SelectContent>
-              {months.map((m) => (
-                <SelectItem key={m.value} value={m.value}>
-                  {m.label}
-                </SelectItem>
-              ))}
+              {months.map((m) => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}
             </SelectContent>
           </Select>
         </div>
       </div>
-
-      <div>
-        <Label>{t("charges.dueDate")}</Label>
-        <Input
-          type="date"
-          value={dueDate}
-          onChange={(e) => setDueDate(e.target.value)}
-          className="mt-1"
-        />
-      </div>
-
-      <div className="flex justify-end gap-3 pt-2">
-        <Button type="button" variant="outline" onClick={onDone}>
-          {tc("cancel")}
-        </Button>
-        <Button type="submit" disabled={pending}>
-          {pending ? t("charges.generating") : t("charges.generate")}
-        </Button>
-      </div>
+      <Button type="submit" className="w-full" disabled={pending}>
+        {pending ? t("charges.generating") : t("charges.generate")}
+      </Button>
     </form>
   );
 }
 
-export function ChargeGenerateDialog({
-  templates,
-  open,
-  onOpenChange,
-}: {
-  templates: Template[];
+export function ChargeGenerateDialog({open, onOpenChange}: {
   open: boolean;
-  onOpenChange: (o: boolean) => void;
+  onOpenChange: (open: boolean) => void;
 }) {
   const t = useTranslations("finance");
   return (
+    <DialogShell open={open} onOpenChange={onOpenChange} title={t("charges.generateTitle")}>
+      <ChargeGenerateForm onDone={() => onOpenChange(false)} />
+    </DialogShell>
+  );
+}
+
+function DialogShell({open, onOpenChange, title, children}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  title: string;
+  children: React.ReactNode;
+}) {
+  return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
-        <DialogHeader>
-          <DialogTitle>{t("charges.generateTitle")}</DialogTitle>
-        </DialogHeader>
-        {templates.length === 0 ? (
-          <p className="text-sm text-zinc-400">{t("charges.noCharges")}</p>
-        ) : (
-          <ChargeGenerateForm
-            templates={templates}
-            onDone={() => onOpenChange(false)}
-          />
-        )}
+        <DialogHeader><DialogTitle>{title}</DialogTitle></DialogHeader>
+        {children}
       </DialogContent>
     </Dialog>
   );

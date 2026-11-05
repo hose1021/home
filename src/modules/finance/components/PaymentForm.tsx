@@ -251,7 +251,7 @@ export function PaymentDialog({
           <DialogTitle>{t("payments.register")}</DialogTitle>
         </DialogHeader>
         {units.length === 0 ? (
-          <p className="text-sm text-zinc-400">{t("payments.noPayments")}</p>
+          <p className="text-sm text-muted-foreground/70">{t("payments.noPayments")}</p>
         ) : (
           <PaymentForm units={units} onDone={() => onOpenChange(false)} />
         )}

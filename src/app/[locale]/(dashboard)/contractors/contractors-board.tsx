@@ -158,7 +158,7 @@ function ContractorDialog({ contractor, onClose }: {
           </div>
           <div>
             <Label htmlFor="c-status">{t("status")}</Label>
-            <select id="c-status" value={status} onChange={(e) => setStatus(e.target.value as typeof status)} className="mt-1 block w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900">
+            <select id="c-status" value={status} onChange={(e) => setStatus(e.target.value as typeof status)} className="mt-1 field">
               {(["invited", "active", "suspended", "terminated"] as const).map((s) => (
                 <option key={s} value={s}>{t(`statuses.${s}`)}</option>
               ))}

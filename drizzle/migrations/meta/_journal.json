@@ -176,6 +176,20 @@
       "when": 1788013848472,
       "tag": "0024_stiff_stark_industries",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1793874596749,
+      "tag": "0025_fancy_centennial",
+      "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1793876548419,
+      "tag": "0026_mysterious_blizzard",
+      "breakpoints": true
     }
   ]
 }

@@ -14,7 +14,7 @@ export function ThemeToggle() {
       size="icon-sm"
       aria-label="Переключить цветовую тему"
       onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
-      className="rounded-lg text-muted-foreground"
+      className="rounded-[4px] text-muted-foreground"
     >
       <IconMoon className="dark:hidden" />
       <IconSun className="hidden dark:block" />

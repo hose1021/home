@@ -2,10 +2,8 @@ import {getTranslations} from "next-intl/server";
 import {requireTenantPermission} from "@/core/auth/session";
 import {
   getAuditReport,
-  getBudgetVsActualReport,
   getDebtAgingReport,
   getDebtByOwnerReport,
-  getFundsReport,
   getIncomeExpenseReport,
 } from "@/modules/reports/report.service";
 import {ReportsView} from "./reports-view";
@@ -14,11 +12,9 @@ export default async function ReportsPage() {
   const t = await getTranslations("reports");
   const {tenantId} = await requireTenantPermission("report:read");
 
-  const [debtByOwner, incomeExpense, budgetVsActual, funds, debtAging, audit] = await Promise.all([
+  const [debtByOwner, incomeExpense, debtAging, audit] = await Promise.all([
     getDebtByOwnerReport(tenantId),
     getIncomeExpenseReport(tenantId),
-    getBudgetVsActualReport(tenantId),
-    getFundsReport(tenantId),
     getDebtAgingReport(tenantId),
     getAuditReport(tenantId),
   ]);
@@ -33,8 +29,6 @@ export default async function ReportsPage() {
       <ReportsView
         debtByOwner={debtByOwner}
         incomeExpense={incomeExpense}
-        budgetVsActual={budgetVsActual}
-        funds={funds}
         debtAging={debtAging}
         audit={audit}
       />
