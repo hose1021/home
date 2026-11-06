@@ -1,11 +1,12 @@
 "use client";
 
-import {useTranslations} from "next-intl";
+import {useLocale, useTranslations} from "next-intl";
 
 import {FilterSearch, FilterSelect, TableFilters, matchesQuery, useTableQuery} from "@/components/table-filters";
-import {Table, TableBody, TableCell, TableHead, TableHeader, TableRow} from "@/components/ui/table";
+import {TableBody, TableCell, TableHead, TableHeader, TableRow} from "@/components/ui/table";
 import {Link} from "@/i18n/navigation";
-import {formatAmount} from "@/modules/finance/money-format";
+import {FinanceTable} from "@/modules/finance/components/finance-table";
+import {formatAmount, formatDate} from "@/modules/finance/money-format";
 import type {DebtorRow} from "@/modules/finance/services/finance-analytics.service";
 
 const BUCKETS = ["notDue", "days1to30", "days31to60", "days61to90", "over90"] as const;
@@ -21,6 +22,7 @@ function bucketOf(days: number): (typeof BUCKETS)[number] {
 export function DebtorsTable({rows}: {rows: DebtorRow[]}) {
     const t = useTranslations("finance");
     const tc = useTranslations("common");
+    const locale = useLocale();
     const params = useTableQuery("debtors");
     const query = params.value("q");
     const bucket = params.value("bucket");
@@ -32,7 +34,7 @@ export function DebtorsTable({rows}: {rows: DebtorRow[]}) {
 
     return (
         <>
-            <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex flex-wrap items-center gap-2">
                 <TableFilters>
                     <FilterSearch value={query} onChange={(value) => params.update({q: value})} placeholder={t("debtors.search")} clearLabel={t("filters.clear")} />
                     <FilterSelect
@@ -45,11 +47,10 @@ export function DebtorsTable({rows}: {rows: DebtorRow[]}) {
                         ]}
                     />
                 </TableFilters>
-                <p className="ml-auto text-sm text-muted-foreground">{filtered.length} / {rows.length} {tc("pieces")}</p>
+                <p className="ml-auto text-xs text-muted-foreground tabular-nums">{filtered.length} / {rows.length} {tc("pieces")}</p>
             </div>
 
-            <div className="surface-panel overflow-hidden">
-                <Table>
+            <FinanceTable>
                     <TableHeader>
                         <TableRow>
                             <TableHead>{t("debtors.owner")}</TableHead>
@@ -61,24 +62,23 @@ export function DebtorsTable({rows}: {rows: DebtorRow[]}) {
                     </TableHeader>
                     <TableBody>
                         {filtered.map((row) => (
-                            <TableRow key={row.ownerId} className="cursor-pointer hover:bg-white/[0.04]">
+                            <TableRow key={row.ownerId} className="cursor-pointer">
                                 <TableCell className="text-sm font-medium">
                                     <Link href={`/finance/debts/${row.ownerId}`} className="hover:text-primary">{row.ownerName}</Link>
                                 </TableCell>
                                 <TableCell className="text-sm text-muted-foreground">{row.unitNumbers.join(", ")}</TableCell>
-                                <TableCell className="text-right text-sm font-semibold text-danger">{formatAmount(row.outstanding)}</TableCell>
-                                <TableCell className="text-sm text-muted-foreground">{row.oldestDueDate ?? "—"}</TableCell>
-                                <TableCell className="text-right text-sm tabular-nums">{row.daysOverdue}</TableCell>
+                                <TableCell className="text-right text-sm font-semibold tabular-nums">{formatAmount(row.outstanding)}</TableCell>
+                                <TableCell className="text-sm text-muted-foreground tabular-nums">{row.oldestDueDate ? formatDate(row.oldestDueDate, locale) : "—"}</TableCell>
+                                <TableCell className={row.daysOverdue > 90 ? "text-right text-sm tabular-nums text-danger" : "text-right text-sm tabular-nums"}>{row.daysOverdue}</TableCell>
                             </TableRow>
                         ))}
                         {filtered.length === 0 && (
                             <TableRow>
-                                <TableCell colSpan={5} className="py-8 text-center text-sm text-muted-foreground/70">{t("debtors.empty")}</TableCell>
+                                <TableCell colSpan={5} className="py-10 text-center text-sm text-muted-foreground">{t("debtors.empty")}</TableCell>
                             </TableRow>
                         )}
                     </TableBody>
-                </Table>
-            </div>
+            </FinanceTable>
         </>
     );
 }

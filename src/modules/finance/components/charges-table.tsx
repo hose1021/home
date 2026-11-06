@@ -1,17 +1,18 @@
 "use client";
 
-import {useRouter} from "next/navigation";
-import {useTranslations} from "next-intl";
+import {useRouter, useSearchParams} from "next/navigation";
+import {useTranslations, useLocale} from "next-intl";
 import {useState} from "react";
 
-import {DateRangePicker, formatIsoDate} from "@/components/date-range-picker";
 import {FilterReset, FilterSearch, FilterSelect, SortableHead, TableFilters, matchesQuery, sortRows, useTableQuery, type SortDirection} from "@/components/table-filters";
 import {Button} from "@/components/ui/button";
 import {Dialog, DialogContent, DialogHeader, DialogTitle} from "@/components/ui/dialog";
-import {Table, TableBody, TableCell, TableHeader, TableRow} from "@/components/ui/table";
+import {TableBody, TableCell, TableHeader, TableRow} from "@/components/ui/table";
 import {ChargeGenerateDialog} from "@/modules/finance/components/ChargeGenerateForm";
 import {FinanceStatusBadge} from "@/modules/finance/components/finance-status-badge";
-import {formatAmount} from "@/modules/finance/money-format";
+import {FinanceTable} from "@/modules/finance/components/finance-table";
+import {formatAmount, formatDate} from "@/modules/finance/money-format";
+import {isWholeMonth, resolvePeriod} from "@/modules/finance/period";
 import type {ChargeView} from "@/modules/finance/services/finance-analytics.service";
 
 const STATUSES = ["pending", "partially_paid", "paid", "overdue", "cancelled"] as const;
@@ -22,24 +23,29 @@ export function ChargesTable({rows, canWrite}: {
 }) {
     const t = useTranslations("finance");
     const tc = useTranslations("common");
+    const locale = useLocale();
     const router = useRouter();
     const params = useTableQuery("charges");
+    const searchParams = useSearchParams();
     const [selected, setSelected] = useState<ChargeView | null>(null);
     const [generateOpen, setGenerateOpen] = useState(false);
 
     const query = params.value("q");
     const status = params.value("status");
-    const from = params.value("from");
-    const to = params.value("to");
+    const period = resolvePeriod({month: searchParams.get("month"), from: searchParams.get("from"), to: searchParams.get("to")});
+    const byBillingMonth = isWholeMonth(period.from, period.to);
+    const billingMonth = period.from.slice(0, 7);
     const sortKey = params.value("sort");
     const sortDir: SortDirection = params.value("dir") === "desc" ? "desc" : "asc";
 
-    const filtered = rows.filter((row) =>
-        (!status || row.status === status) &&
-        (!from || row.dueDate >= from) &&
-        (!to || row.dueDate <= to) &&
-        matchesQuery(query, [row.ownerName, row.unitNumber])
-    );
+    const filtered = rows.filter((row) => {
+        const inPeriod = byBillingMonth
+            ? `${row.periodYear}-${String(row.periodMonth).padStart(2, "0")}` === billingMonth
+            : (!period.from || row.dueDate >= period.from) && (!period.to || row.dueDate <= period.to);
+        return inPeriod &&
+            (!status || row.status === status) &&
+            matchesQuery(query, [row.ownerName, row.unitNumber]);
+    });
     const sorted = sortRows(filtered, sortKey, sortDir, {
         due: (row) => row.dueDate,
         period: (row) => row.periodYear * 100 + row.periodMonth,
@@ -50,8 +56,16 @@ export function ChargesTable({rows, canWrite}: {
         outstanding: (row) => row.outstanding,
         status: (row) => row.status,
     });
-    const hasFilters = Boolean(query || status || from || to);
+    const hasFilters = Boolean(query || status);
     const sort = {key: sortKey, direction: sortDir};
+    const totals = sorted.reduce(
+        (acc, row) => ({
+            amount: acc.amount + Number(row.amount),
+            paid: acc.paid + Number(row.paid),
+            outstanding: acc.outstanding + Number(row.outstanding),
+        }),
+        {amount: 0, paid: 0, outstanding: 0},
+    );
 
     function toggle(key: string) {
         if (sortKey !== key) params.update({sort: key, dir: "asc"});
@@ -61,7 +75,7 @@ export function ChargesTable({rows, canWrite}: {
 
     return (
         <>
-            <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex flex-wrap items-center gap-2">
                 <TableFilters>
                     <FilterSearch value={query} onChange={(value) => params.update({q: value})} placeholder={t("filters.searchCharges")} clearLabel={t("filters.clear")} />
                     <FilterSelect
@@ -70,22 +84,19 @@ export function ChargesTable({rows, canWrite}: {
                         onChange={(value) => params.update({status: value})}
                         options={[{value: "", label: t("filters.allStatuses")}, ...STATUSES.map((item) => ({value: item, label: t(`charges.status.${item}`)}))]}
                     />
-                    <DateRangePicker
-                        value={{from: from ? new Date(`${from}T00:00:00`) : undefined, to: to ? new Date(`${to}T00:00:00`) : undefined}}
-                        onChange={(range) => params.update({from: formatIsoDate(range.from), to: formatIsoDate(range.to)})}
-                        placeholder={t("dateRange.placeholder")}
-                        presets={[]}
-                    />
-                    <FilterReset active={hasFilters} onReset={() => params.update({q: "", status: "", from: "", to: ""})} label={t("filters.reset")} />
+                    <FilterReset active={hasFilters} onReset={() => params.update({q: "", status: ""})} label={t("filters.reset")} />
                 </TableFilters>
-                <div className="ml-auto flex flex-wrap items-center gap-3">
-                    <p className="text-sm text-muted-foreground">{sorted.length} / {rows.length} {tc("pieces")}</p>
-                    {canWrite && <Button variant="outline" size="sm" onClick={() => setGenerateOpen(true)}>+ {t("charges.generate")}</Button>}
-                </div>
+                <p className="ml-auto text-xs text-muted-foreground tabular-nums">{sorted.length} / {rows.length} {tc("pieces")}</p>
+                {canWrite && <Button size="sm" onClick={() => setGenerateOpen(true)}>+ {t("charges.generate")}</Button>}
             </div>
 
-            <div className="surface-panel overflow-hidden">
-                <Table>
+            <div className="flex flex-wrap items-center gap-x-6 gap-y-1 text-xs text-muted-foreground">
+                <span>{t("analytics.charged")} <span className="amount font-semibold text-foreground">{formatAmount(totals.amount)}</span></span>
+                <span>{t("analytics.paid")} <span className="amount font-semibold text-foreground">{formatAmount(totals.paid)}</span></span>
+                <span>{t("debtors.outstanding")} <span className="amount font-semibold text-foreground">{formatAmount(totals.outstanding)}</span></span>
+            </div>
+
+            <FinanceTable>
                     <TableHeader>
                         <TableRow>
                             <SortableHead label={t("charges.dueDate")} sortKey="due" sort={sort} onSort={toggle} />
@@ -101,26 +112,25 @@ export function ChargesTable({rows, canWrite}: {
                     <TableBody>
                         {sorted.map((row) => (
                             <TableRow key={row.id} className="cursor-pointer" onClick={() => setSelected(row)}>
-                                <TableCell className="text-sm text-muted-foreground">{row.dueDate}</TableCell>
-                                <TableCell className="text-sm">{row.periodMonth}.{row.periodYear}</TableCell>
+                                <TableCell className="text-sm text-muted-foreground tabular-nums">{formatDate(row.dueDate, locale)}</TableCell>
+                                <TableCell className="text-sm tabular-nums">{String(row.periodMonth).padStart(2, "0")}.{row.periodYear}</TableCell>
                                 <TableCell className="text-sm">{row.unitNumber ?? "—"}</TableCell>
                                 <TableCell className="text-sm">{row.ownerName ?? "—"}</TableCell>
                                 <TableCell className="text-right text-sm font-medium">{formatAmount(row.amount)}</TableCell>
-                                <TableCell className="text-right text-sm text-success">{formatAmount(row.paid)}</TableCell>
-                                <TableCell className="text-right text-sm font-semibold">{row.outstanding > 0 ? formatAmount(row.outstanding) : "—"}</TableCell>
+                                <TableCell className="text-right text-sm text-muted-foreground tabular-nums">{formatAmount(row.paid)}</TableCell>
+                                <TableCell className="text-right text-sm font-semibold tabular-nums">{row.outstanding > 0 ? formatAmount(row.outstanding) : "—"}</TableCell>
                                 <TableCell><FinanceStatusBadge kind="charge" status={row.status} /></TableCell>
                             </TableRow>
                         ))}
                         {sorted.length === 0 && (
                             <TableRow>
-                                <TableCell colSpan={8} className="py-8 text-center text-sm text-muted-foreground/70">
+                                <TableCell colSpan={8} className="py-10 text-center text-sm text-muted-foreground">
                                     {rows.length === 0 ? t("charges.noCharges") : t("filters.notFound")}
                                 </TableCell>
                             </TableRow>
                         )}
                     </TableBody>
-                </Table>
-            </div>
+            </FinanceTable>
 
             <Dialog open={!!selected} onOpenChange={(open) => { if (!open) setSelected(null); }}>
                 <DialogContent>
@@ -132,7 +142,7 @@ export function ChargesTable({rows, canWrite}: {
                             <Detail label={t("payments.owner")} value={selected.ownerName ?? "—"} />
                             <Detail label={t("payments.unit")} value={selected.unitNumber ?? "—"} />
                             <Detail label={tc("period")} value={`${selected.periodMonth}.${selected.periodYear}`} />
-                            <Detail label={t("charges.dueDate")} value={selected.dueDate} />
+                            <Detail label={t("charges.dueDate")} value={formatDate(selected.dueDate, locale)} />
                             <Detail label={tc("amount")} value={formatAmount(selected.amount)} />
                             <Detail label={t("payments.allocated")} value={formatAmount(selected.paid)} />
                             <Detail label={t("debtors.outstanding")} value={formatAmount(selected.outstanding)} />

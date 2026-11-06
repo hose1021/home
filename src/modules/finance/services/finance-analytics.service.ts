@@ -7,6 +7,7 @@ import {owners} from "@/core/db/schema/owners";
 import {payments} from "@/core/db/schema/payments";
 import {units} from "@/core/db/schema/units";
 import {users} from "@/core/db/schema/users";
+import {isoDate} from "@/modules/finance/period";
 import {getAdvanceBalance} from "./allocation.service";
 import {getTenantDebtSummary} from "./debt.service";
 import {getBuildingBudget, listExpenses} from "./expense.service";
@@ -153,9 +154,16 @@ export function daysBetween(dueDate: string, today: Date): number {
     return Math.floor((now - due) / 86_400_000);
 }
 
-export async function getFinanceAnalytics(tenantId: string): Promise<FinanceAnalytics> {
+/** Stored status can lag behind the calendar: an unpaid charge past its due date is overdue. */
+export function resolveChargeStatus(status: string, dueDate: string, outstanding: number, today: Date): string {
+    if (status === "paid" || status === "cancelled" || outstanding <= 0) return status;
+    return dueDate < isoDate(today) ? "overdue" : status;
+}
+
+export async function getFinanceAnalytics(tenantId: string, asOf = new Date()): Promise<FinanceAnalytics> {
     const [balances, advances] = await Promise.all([loadBalances(tenantId), getAdvanceBalance(tenantId)]);
-    const today = new Date();
+    const today = asOf;
+    const asOfKey = isoDate(asOf);
 
     let charged = 0;
     let paid = 0;
@@ -165,6 +173,7 @@ export async function getFinanceAnalytics(tenantId: string): Promise<FinanceAnal
     const ageing: AgeingBuckets = {notDue: 0, days1to30: 0, days31to60: 0, days61to90: 0, over90: 0};
 
     for (const balance of balances) {
+        if (balance.dueDate > asOfKey) continue;
         charged += netDueCents(balance);
         paid += Math.min(balance.allocatedCents, netDueCents(balance));
         const due = outstandingCents(balance);
@@ -194,7 +203,7 @@ export async function getFinanceAnalytics(tenantId: string): Promise<FinanceAnal
     };
 }
 
-export async function listDebtors(tenantId: string): Promise<DebtorRow[]> {
+export async function listDebtors(tenantId: string, asOf = new Date()): Promise<DebtorRow[]> {
     const [balances, ownerRows] = await Promise.all([
         loadBalances(tenantId),
         db
@@ -204,10 +213,12 @@ export async function listDebtors(tenantId: string): Promise<DebtorRow[]> {
             .where(eq(owners.tenantId, tenantId)),
     ]);
     const ownerNames = new Map(ownerRows.map((row) => [row.id, row.fullName]));
-    const today = new Date();
+    const today = asOf;
+    const asOfKey = isoDate(asOf);
     const grouped = new Map<string, {outstanding: number; units: Set<string>; oldest: string | null}>();
 
     for (const balance of balances) {
+        if (balance.dueDate > asOfKey) continue;
         const due = outstandingCents(balance);
         if (due <= 0) continue;
         const entry = grouped.get(balance.ownerId) ?? {outstanding: 0, units: new Set<string>(), oldest: null};
@@ -286,21 +297,24 @@ export type ChargeView = {
     status: string;
 };
 
-export async function listChargeViews(tenantId: string): Promise<ChargeView[]> {
+export async function listChargeViews(tenantId: string, asOf = new Date()): Promise<ChargeView[]> {
     const balances = await loadBalances(tenantId);
-    const views = balances.map((balance) => ({
-        id: balance.id,
-        ownerId: balance.ownerId,
-        ownerName: balance.ownerName,
-        unitNumber: balance.unitNumber,
-        dueDate: balance.dueDate,
-        periodYear: balance.periodYear,
-        periodMonth: balance.periodMonth,
-        amount: toMoney(netDueCents(balance)),
-        paid: toMoney(Math.min(balance.allocatedCents, netDueCents(balance))),
-        outstanding: toMoney(outstandingCents(balance)),
-        status: balance.status,
-    }));
+    const views = balances.map((balance) => {
+        const outstanding = outstandingCents(balance);
+        return {
+            id: balance.id,
+            ownerId: balance.ownerId,
+            ownerName: balance.ownerName,
+            unitNumber: balance.unitNumber,
+            dueDate: balance.dueDate,
+            periodYear: balance.periodYear,
+            periodMonth: balance.periodMonth,
+            amount: toMoney(netDueCents(balance)),
+            paid: toMoney(Math.min(balance.allocatedCents, netDueCents(balance))),
+            outstanding: toMoney(outstanding),
+            status: resolveChargeStatus(balance.status, balance.dueDate, outstanding, asOf),
+        };
+    });
     return views.sort((a, b) => b.dueDate.localeCompare(a.dueDate));
 }
 
@@ -533,7 +547,7 @@ export async function getOverviewData(tenantId: string, from: string, to: string
             date: balance.dueDate,
             title: `${balance.ownerName ?? "—"} · ${balance.unitNumber ?? ""}`,
             amount: toMoney(netDueCents(balance)),
-            status: balance.status,
+            status: resolveChargeStatus(balance.status, balance.dueDate, outstandingCents(balance), today),
         })),
     ].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 8);
 

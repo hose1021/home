@@ -15,7 +15,7 @@ export default async function FinanceSettingsPage() {
 
     return (
         <>
-            <FinancePageHeader eyebrow={t("title")} title={t("settingsPage.title")} description={t("settingsPage.description")} />
+            <FinancePageHeader title={t("settingsPage.title")} description={t("settingsPage.description")} />
 
             <div className="grid gap-4 xl:grid-cols-2">
                 {permissions.includes("settings:write")

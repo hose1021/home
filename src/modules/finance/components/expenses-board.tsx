@@ -1,7 +1,7 @@
 "use client";
 
 import {useRouter} from "next/navigation";
-import {useTranslations} from "next-intl";
+import {useLocale, useTranslations} from "next-intl";
 import {useState} from "react";
 import {toast} from "sonner";
 
@@ -10,32 +10,38 @@ import {Button} from "@/components/ui/button";
 import {Dialog, DialogContent, DialogHeader, DialogTitle} from "@/components/ui/dialog";
 import {Input} from "@/components/ui/input";
 import {Label} from "@/components/ui/label";
-import {Table, TableBody, TableCell, TableHead, TableHeader, TableRow} from "@/components/ui/table";
+import {TableBody, TableCell, TableHead, TableHeader, TableRow} from "@/components/ui/table";
+import {FinanceTable} from "@/modules/finance/components/finance-table";
 import {createExpenseAction} from "@/modules/finance/finance.actions";
-import {formatAmount} from "@/modules/finance/money-format";
+import {formatAmount, formatDate} from "@/modules/finance/money-format";
 import type {ExpenseRow} from "@/modules/finance/services/expense.service";
 
 export function ExpensesBoard({rows, canWrite}: {rows: ExpenseRow[]; canWrite: boolean}) {
   const t = useTranslations("finance");
   const tc = useTranslations("common");
+  const locale = useLocale();
   const router = useRouter();
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
 
   const filtered = rows.filter((row) => matchesQuery(query, [row.description, row.expenseDate]));
+  const total = filtered.reduce((sum, row) => sum + Number(row.amount), 0);
 
   return (
     <>
-      <div className="flex flex-wrap items-center justify-between gap-3">
+      <div className="flex flex-wrap items-center gap-2">
         <TableFilters>
           <FilterSearch value={query} onChange={setQuery} placeholder={t("expensesPage.search")} clearLabel={t("filters.clear")} />
         </TableFilters>
-        <p className="text-sm text-muted-foreground">{filtered.length} / {rows.length} {tc("pieces")}</p>
+        <p className="ml-auto text-xs text-muted-foreground tabular-nums">{filtered.length} / {rows.length} {tc("pieces")}</p>
         {canWrite && <Button size="sm" onClick={() => setOpen(true)}>+ {t("expensesPage.create")}</Button>}
       </div>
 
-      <div className="surface-panel overflow-hidden">
-        <Table>
+      <div className="flex flex-wrap items-center gap-x-6 gap-y-1 text-xs text-muted-foreground">
+        <span>{tc("amount")} <span className="amount font-semibold text-foreground">{formatAmount(total)}</span></span>
+      </div>
+
+      <FinanceTable>
           <TableHeader>
             <TableRow>
               <TableHead>{tc("date")}</TableHead>
@@ -46,21 +52,20 @@ export function ExpensesBoard({rows, canWrite}: {rows: ExpenseRow[]; canWrite: b
           <TableBody>
             {filtered.map((row) => (
               <TableRow key={row.id}>
-                <TableCell className="text-sm text-muted-foreground">{row.expenseDate}</TableCell>
+                <TableCell className="text-sm text-muted-foreground tabular-nums">{formatDate(row.expenseDate, locale)}</TableCell>
                 <TableCell className="text-sm font-medium">{row.description}</TableCell>
                 <TableCell className="text-right text-sm font-semibold">{formatAmount(row.amount)}</TableCell>
               </TableRow>
             ))}
             {filtered.length === 0 && (
               <TableRow>
-                <TableCell colSpan={3} className="py-8 text-center text-sm text-muted-foreground/70">
+                <TableCell colSpan={3} className="py-10 text-center text-sm text-muted-foreground">
                   {rows.length === 0 ? t("expensesPage.empty") : t("filters.notFound")}
                 </TableCell>
               </TableRow>
             )}
           </TableBody>
-        </Table>
-      </div>
+      </FinanceTable>
 
       <ExpenseDialog open={open} onOpenChange={setOpen} onDone={() => router.refresh()} />
     </>

@@ -368,13 +368,19 @@
       "payment": "Payment"
     },
     "dateRange": {
+      "mode": "Period type",
+      "month": "Month",
+      "range": "Range",
+      "prevYear": "Previous year",
+      "nextYear": "Next year",
       "placeholder": "Period",
       "today": "Today",
       "last7": "Last 7 days",
       "last30": "Last 30 days",
       "thisMonth": "This month",
       "lastMonth": "Last month",
-      "last3Months": "Last 3 months"
+      "last3Months": "Last 3 months",
+      "apply": "Select"
     },
     "debtors": {
       "owner": "Owner",
@@ -421,9 +427,6 @@
     "overview": {
       "title": "Financial overview",
       "description": "Cash movement, debt and today's tasks",
-      "chargeAction": "Create charge",
-      "paymentAction": "Register payment",
-      "expenseAction": "Add expense",
       "updated": "Updated",
       "kpi": {
         "charged": "Charged in period",
@@ -441,8 +444,11 @@
       },
       "charts": {
         "monthly": "Charges and receipts by month",
+        "monthlyHint": "By month within the selected period",
         "cashflow": "Income and building expenses",
+        "cashflowHint": "Resident payments and service payouts",
         "ageing": "Debt ageing",
+        "ageingHint": "Outstanding balance by due date",
         "budget": "Budget: plan vs actual"
       },
       "inflow": "Inflow",
@@ -453,6 +459,7 @@
       "expense": "Expenses",
       "actions": {
         "title": "Needs attention",
+        "hint": "What needs a decision now",
         "overdue": "Overdue debt",
         "unallocated": "Unallocated",
         "upcoming": "Due soon",
@@ -475,7 +482,9 @@
     "debtsPage": {
       "title": "Debts",
       "description": "Owner balances and due dates",
-      "account": "Debtor account"
+      "account": "Debtor account",
+      "outstandingHint": "Unpaid charges as of today",
+      "over90Hint": "Debt overdue by more than 90 days"
     },
     "fundsPage": {
       "title": "Funds & expenses",
@@ -514,12 +523,13 @@
     },
     "expensesPage": {
       "title": "Building expenses",
-      "description": "Item",
+      "description": "Building service costs and the remaining budget",
       "income": "Collected from owners",
       "incomeHint": "Confirmed payments over all time",
       "spent": "Spent",
-      "spentHint": "Payments for building services",
+      "spentHint": "Payouts within the selected period",
       "balance": "Budget balance",
+      "balanceHint": "All-time collected minus spent",
       "search": "Search by item or date",
       "create": "Add expense",
       "descriptionHint": "For example: security for November",

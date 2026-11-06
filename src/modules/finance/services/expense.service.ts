@@ -1,4 +1,4 @@
-import {and, desc, eq, sql} from "drizzle-orm";
+import {and, desc, eq, gte, lte, sql} from "drizzle-orm";
 import {writeAuditLog} from "@/core/audit/audit.service";
 import {db} from "@/core/db";
 import {expenses} from "@/core/db/schema/expenses";
@@ -12,7 +12,11 @@ export type ExpenseRow = {
 };
 
 /** Building payments for house services: security, lift, cleaning, repairs. */
-export async function listExpenses(tenantId: string, limit = 200): Promise<ExpenseRow[]> {
+export async function listExpenses(tenantId: string, limit = 200, range?: {from?: string; to?: string}): Promise<ExpenseRow[]> {
+  const conditions = [eq(expenses.tenantId, tenantId)];
+  if (range?.from) conditions.push(gte(expenses.expenseDate, range.from));
+  if (range?.to) conditions.push(lte(expenses.expenseDate, range.to));
+
   return await db
     .select({
       id: expenses.id,
@@ -21,7 +25,7 @@ export async function listExpenses(tenantId: string, limit = 200): Promise<Expen
       expenseDate: expenses.expenseDate,
     })
     .from(expenses)
-    .where(eq(expenses.tenantId, tenantId))
+    .where(and(...conditions))
     .orderBy(desc(expenses.expenseDate), desc(expenses.createdAt))
     .limit(limit);
 }

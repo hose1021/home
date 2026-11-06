@@ -1,45 +1,63 @@
 "use client";
 
-import {endOfMonth, startOfMonth, subDays, subMonths} from "date-fns";
-import {usePathname, useRouter} from "next/navigation";
+import {usePathname, useRouter, useSearchParams} from "next/navigation";
 import {useTranslations} from "next-intl";
 
-import {DateRangePicker, formatIsoDate, type DateRangePreset} from "@/components/date-range-picker";
+import {DateRangePicker, formatIsoDate, type DateRangeSelection} from "@/components/date-range-picker";
+import {resolvePeriod} from "@/modules/finance/period";
 
-/** Period for the overview. Unlike table filters, it changes server data, so it navigates. */
-export function FinancePeriodPicker({from, to}: {from: string; to: string}) {
+const toDate = (iso: string) => (iso ? new Date(`${iso}T00:00:00`) : undefined);
+
+/** Shared `month` / `from`+`to` period for every finance tab; state lives in the URL. */
+export function FinancePeriodPicker() {
     const t = useTranslations("finance.dateRange");
+    const tf = useTranslations("finance");
     const router = useRouter();
     const pathname = usePathname();
-    const today = new Date();
-    const presets: DateRangePreset[] = [
-        {label: t("today"), range: {from: today, to: today}},
-        {label: t("last7"), range: {from: subDays(today, 6), to: today}},
-        {label: t("last30"), range: {from: subDays(today, 29), to: today}},
-        {label: t("thisMonth"), range: {from: startOfMonth(today), to: endOfMonth(today)}},
-        {label: t("lastMonth"), range: {from: startOfMonth(subMonths(today, 1)), to: endOfMonth(subMonths(today, 1))}},
-        {label: t("last3Months"), range: {from: startOfMonth(subMonths(today, 2)), to: today}},
-    ];
+    const searchParams = useSearchParams();
+    const period = resolvePeriod({
+        month: searchParams.get("month"),
+        from: searchParams.get("from"),
+        to: searchParams.get("to"),
+    });
+    const explicit = searchParams.has("month") || searchParams.has("from") || searchParams.has("to");
 
-    function apply(range: {from?: Date; to?: Date}) {
-        const params = new URLSearchParams(window.location.search);
-        const nextFrom = formatIsoDate(range.from);
-        const nextTo = formatIsoDate(range.to);
-        if (nextFrom) params.set("from", nextFrom); else params.delete("from");
-        if (nextTo) params.set("to", nextTo); else params.delete("to");
+    function apply(selection: DateRangeSelection) {
+        const params = new URLSearchParams(searchParams.toString());
+        params.delete("month");
+        params.delete("from");
+        params.delete("to");
+
+        if (selection.month) {
+            params.set("month", selection.month);
+        } else {
+            const from = formatIsoDate(selection.from);
+            const to = formatIsoDate(selection.to);
+            if (from) params.set("from", from);
+            if (to) params.set("to", to);
+        }
+
         const query = params.toString();
         router.replace(`${pathname}${query ? `?${query}` : ""}`);
     }
 
     return (
-        <DateRangePicker
-            value={{
-                from: from ? new Date(`${from}T00:00:00`) : undefined,
-                to: to ? new Date(`${to}T00:00:00`) : undefined,
-            }}
-            onChange={apply}
-            placeholder={t("placeholder")}
-            presets={presets}
-        />
+        <>
+            <DateRangePicker
+                value={{month: period.month || undefined, from: toDate(period.from), to: toDate(period.to)}}
+                onChange={apply}
+                placeholder={t("placeholder")}
+                applyLabel={t("apply")}
+            />
+            {explicit && (
+                <button
+                    type="button"
+                    onClick={() => apply({})}
+                    className="h-10 px-2 text-sm font-bold text-primary transition-colors hover:text-brand-soft"
+                >
+                    {tf("filters.reset")}
+                </button>
+            )}
+        </>
     );
 }

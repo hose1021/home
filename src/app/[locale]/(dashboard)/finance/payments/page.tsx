@@ -19,7 +19,6 @@ export default async function PaymentsPage() {
     return (
         <>
             <FinancePageHeader
-                eyebrow={t("title")}
                 title={t("paymentsPage.title")}
                 description={t("paymentsPage.description")}
             />
