@@ -14,7 +14,7 @@ import {DomainError} from "@/core/errors/app-error";
 import {todayIso} from "@/lib/date";
 import {periodKey} from "@/modules/finance/period";
 import {buildPeriods, getDebtConfig, getOutstandingByUnit, getOwnersDebtStatus, type BillingPeriod} from "@/modules/finance/services/debt.service";
-import {moneyToCents} from "@/modules/finance/services/money";
+import {centsToMoney, moneyToCents} from "@/modules/finance/services/money";
 
 export async function getOwnerById(tenantId: string, id: string) {
   const [o] = await db
@@ -289,7 +289,7 @@ export async function getOwnerDetail(tenantId: string, ownerId: string): Promise
   for (const u of ownerUnits) totalArea += Number(u.area);
   const unitsWithMoney = ownerUnits.map((u) => {
     const area = Number(u.area);
-    const monthlyFee = moneyToCents(area * cfg.tariffPerSqm) / 100;
+    const monthlyFee = centsToMoney(moneyToCents(area * cfg.tariffPerSqm));
     const totalDebt = outstandingByUnit.get(u.id) ?? 0;
     grandDebt += totalDebt;
     return {...u, monthlyFee, totalDebt};
@@ -300,7 +300,7 @@ export async function getOwnerDetail(tenantId: string, ownerId: string): Promise
     units: unitsWithMoney,
     grandDebt,
     totalArea,
-    totalMonthlyFee: moneyToCents(totalArea * cfg.tariffPerSqm) / 100,
+    totalMonthlyFee: centsToMoney(moneyToCents(totalArea * cfg.tariffPerSqm)),
     tariffPerSqm: cfg.tariffPerSqm,
     periods,
     paidByUnit: paidMap,

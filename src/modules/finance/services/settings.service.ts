@@ -3,6 +3,7 @@ import {db} from "@/core/db";
 import {BILLING} from "@/core/db/schema/enums";
 import {tenants} from "@/core/db/schema/tenants";
 import {DomainError} from "@/core/errors/app-error";
+import {centsToDecimal, moneyToCents} from "./money";
 
 export type FinancialSettings = {
   tariffPerSqm: number;
@@ -41,7 +42,7 @@ export async function updateFinancialSettings(
   await db
     .update(tenants)
     .set({
-      tariffPerSqm: tariff.toFixed(2),
+      tariffPerSqm: centsToDecimal(moneyToCents(tariff)),
       billingStart: input.billingStart,
       dueDay: input.dueDay,
       updatedAt: new Date(),

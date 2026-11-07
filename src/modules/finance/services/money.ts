@@ -4,3 +4,13 @@ export function moneyToCents(amount: string | number): number {
   if (!Number.isFinite(cents)) throw new Error("Invalid monetary amount");
   return cents;
 }
+
+/** Whole cents as the decimal number that aggregates and screens use. */
+export function centsToMoney(cents: number): number {
+  return cents / 100;
+}
+
+/** Whole cents as a decimal string for a `numeric(12,2)` column. */
+export function centsToDecimal(cents: number): string {
+  return (cents / 100).toFixed(2);
+}

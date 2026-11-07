@@ -7,7 +7,7 @@ import {type ChargeStatus} from "@/core/db/schema/enums";
 import {ADJUSTMENT_KINDS} from "@/core/db/schema/enums";
 import {payments} from "@/core/db/schema/payments";
 import {isoDate} from "@/modules/finance/period";
-import {moneyToCents} from "./money";
+import {centsToDecimal, moneyToCents} from "./money";
 
 const [CREDIT_KIND, DEBIT_KIND] = ADJUSTMENT_KINDS;
 
@@ -174,7 +174,7 @@ export async function allocatePayment(tx: Executor, tenantId: string, paymentId:
         const outstanding = netDue - (allocatedByCharge.get(charge.id) ?? 0);
         if (outstanding <= 0) continue;
         const applied = Math.min(remaining, outstanding);
-        rows.push({tenantId, paymentId, chargeId: charge.id, amount: (applied / 100).toFixed(2)});
+        rows.push({tenantId, paymentId, chargeId: charge.id, amount: centsToDecimal(applied)});
         allocatedByCharge.set(charge.id, (allocatedByCharge.get(charge.id) ?? 0) + applied);
         remaining -= applied;
         affected.add(charge.id);

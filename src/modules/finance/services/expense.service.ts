@@ -4,7 +4,7 @@ import {db} from "@/core/db";
 import {expenses} from "@/core/db/schema/expenses";
 import {payments} from "@/core/db/schema/payments";
 import {DomainError} from "@/core/errors/app-error";
-import {moneyToCents} from "./money";
+import {centsToDecimal, centsToMoney, moneyToCents} from "./money";
 
 export type ExpenseRow = {
   id: string;
@@ -46,7 +46,7 @@ export async function createExpense(
     .insert(expenses)
     .values({
       tenantId,
-      amount: amount.toFixed(2),
+      amount: centsToDecimal(moneyToCents(amount)),
       description: input.description.trim(),
       expenseDate: input.expenseDate,
       createdBy: userId,
@@ -85,5 +85,5 @@ export async function getBuildingBudget(tenantId: string): Promise<BuildingBudge
 
   const incomeCents = moneyToCents(incomeRow?.total ?? 0);
   const spentCents = moneyToCents(expenseRow?.total ?? 0);
-  return {income: incomeCents / 100, expenses: spentCents / 100, balance: (incomeCents - spentCents) / 100};
+  return {income: centsToMoney(incomeCents), expenses: centsToMoney(spentCents), balance: centsToMoney(incomeCents - spentCents)};
 }

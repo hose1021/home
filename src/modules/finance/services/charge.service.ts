@@ -7,7 +7,7 @@ import {owners, ownerships} from "@/core/db/schema/owners";
 import {units} from "@/core/db/schema/units";
 import {DomainError} from "@/core/errors/app-error";
 import {periodKey} from "@/modules/finance/period";
-import {moneyToCents} from "./money";
+import {centsToDecimal, moneyToCents} from "./money";
 import {getFinancialSettings} from "./settings.service";
 
 type GenerateChargesInput = {
@@ -59,7 +59,7 @@ export async function generateMonthlyCharges(tenantId: string, input: GenerateCh
       tenantId,
       unitId: unit.unitId,
       ownerId: unit.ownerId,
-      amount: (moneyToCents(Number(unit.area) * settings.tariffPerSqm) / 100).toFixed(2),
+      amount: centsToDecimal(moneyToCents(Number(unit.area) * settings.tariffPerSqm)),
       periodYear: input.periodYear,
       periodMonth: input.periodMonth,
       dueDate,

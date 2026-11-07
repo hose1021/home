@@ -1,0 +1,374 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>MMMC — feature wiring and knots</title>
+<style>
+  :root {
+    --ink: #1b1c1e;
+    --muted: #6b6f76;
+    --line: #c8ccd2;
+    --panel: #ffffff;
+    --bg: #f6f5f2;
+    --red: #c62f2f;
+    --red-soft: #fbe9e9;
+    --green: #2f7d4f;
+    --green-soft: #e7f3ec;
+    --mono: ui-monospace, "SF Mono", Menlo, monospace;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font: 13px/1.35 system-ui, -apple-system, "Segoe UI", sans-serif;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 24px;
+    padding: 10px 18px 8px;
+    border-bottom: 1px solid var(--line);
+    background: var(--panel);
+    flex: none;
+  }
+  h1 { font-size: 16px; margin: 0; letter-spacing: -0.01em; }
+  h1 span { color: var(--muted); font-weight: 500; }
+  .meta { display: flex; align-items: center; gap: 16px; font-size: 11.5px; color: var(--muted); }
+  .pill { border: 1px solid var(--line); border-radius: 999px; padding: 2px 9px; }
+  .pill.open { border-color: var(--red); color: var(--red); background: var(--red-soft); }
+  .pill.fixed { border-color: var(--green); color: var(--green); background: var(--green-soft); }
+  .legend { display: flex; align-items: center; gap: 12px; font-size: 11px; color: var(--muted); }
+  .legend i { display: inline-block; width: 18px; height: 0; border-top: 2px solid var(--line); vertical-align: middle; margin-right: 5px; }
+  .legend i.red { border-color: var(--red); }
+  main { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) 430px; }
+  #diagram { min-width: 0; min-height: 0; padding: 4px 10px 2px; }
+  svg { width: 100%; height: 100%; display: block; }
+  aside {
+    border-left: 1px solid var(--line);
+    background: var(--panel);
+    overflow: auto;
+    padding: 8px 12px 10px;
+  }
+  aside h2 { font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 0 0 6px; }
+  .knot { border-top: 1px solid var(--line); padding: 6px 0 5px; }
+  .knot:first-of-type { border-top: 0; }
+  .knot-head { display: flex; align-items: baseline; gap: 7px; }
+  .num {
+    flex: none; width: 16px; height: 16px; border-radius: 50%;
+    background: var(--red); color: #fff; font: 700 10px/16px var(--mono); text-align: center;
+  }
+  .after .num { background: var(--green); }
+  .knot h3 { font-size: 12px; margin: 0; line-height: 1.25; }
+  .knot p { margin: 3px 0 0 23px; font-size: 11px; color: var(--muted); }
+  .knot code { font: 10px/1.45 var(--mono); color: var(--ink); word-break: break-word; }
+  .knot b { font-weight: 600; color: var(--ink); }
+  .knot .fix { color: #3d4148; }
+  .foot { margin-top: 8px; padding-top: 7px; border-top: 1px solid var(--line); font-size: 10.5px; color: var(--muted); }
+  .after .knot { opacity: .92; }
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>MMMC Platform — feature wiring <span id="phase">/ before untangling</span></h1>
+  </div>
+  <div class="meta">
+    <span class="legend"><i></i>feature → file<i class="red"></i>wire into a knot</span>
+    <span class="pill" id="status"></span>
+    <span class="pill">branch untangle/knots</span>
+  </div>
+</header>
+<main>
+  <div id="diagram"></div>
+  <aside id="panel"></aside>
+</main>
+
+<script>
+const VIEW = new URLSearchParams(location.search).get("view") === "after" ? "after" : "before";
+
+const FEATURES = [
+  ["f1", "Dashboard / resident home"],
+  ["f2", "Owners & units"],
+  ["f3", "Finance overview"],
+  ["f4", "Charges"],
+  ["f5", "Payments"],
+  ["f6", "Debts & ageing"],
+  ["f7", "Expenses"],
+  ["f8", "Reports"],
+  ["f9", "CSV export"],
+  ["f10", "Tickets"],
+  ["f11", "Work orders & contractors"],
+  ["f12", "Meetings / protocols / voting"],
+  ["f13", "Settings, auth & view-as"],
+  ["f14", "Documents"],
+  ["f15", "Announcements & notifications"],
+];
+
+// col: b = services, c = views, d = core, shared and routes
+const NODES = [
+  ["b1", "dashboard/dashboard.service", "b", [3]],
+  ["b2", "finance/charge.service", "b", [7]],
+  ["b3", "finance/payment.service", "b", []],
+  ["b4", "finance/allocation.service", "b", [1]],
+  ["b5", "finance/debt.service", "b", [1, 6]],
+  ["b6", "finance/finance-analytics", "b", [1]],
+  ["b7", "finance/expense.service", "b", [1]],
+  ["b8", "finance/settings.service", "b", [6]],
+  ["b9", "owner/owner.service", "b", [1, 7]],
+  ["b10", "tickets/ticket.actions", "b", [8]],
+  ["b11", "owner/owner.actions", "b", [8]],
+  ["b12", "reports/report.service", "b", [1]],
+  ["b13", "document/document.service", "b", []],
+  ["b14", "meeting · protocol · voting svc", "b", []],
+  ["b15", "work-order/work-order.service", "b", []],
+  ["b16", "contractor/contractor.service", "b", []],
+  ["b17", "announcement/announcement.service", "b", []],
+  ["b18", "notification/notification.service", "b", []],
+
+  ["c1", "finance/charges-table", "c", [2]],
+  ["c2", "finance/payments-table", "c", [2]],
+  ["c3", "finance/debtors-table", "c", []],
+  ["c4", "finance/finance-period-picker", "c", []],
+  ["c5", "owners/owner-table", "c", [4]],
+  ["c6", "units/units-table", "c", [4]],
+  ["c7", "dashboard/page", "c", []],
+  ["c8", "owners/[ownerId]/page", "c", []],
+  ["c9", "finance/page", "c", []],
+  ["c10", "finance/debts/[ownerId]/page", "c", []],
+  ["c11", "reports/reports-view", "c", []],
+  ["c12", "components/table-filters", "c", [4]],
+  ["c13", "components/finance-status-badge", "c", [9], "before"],
+  ["c14", "documents/documents-board", "c", []],
+  ["c15", "tickets/TicketDetail", "c", []],
+  ["c16", "work-orders/work-orders-board", "c", []],
+  ["c17", "contractors/contractors-board", "c", []],
+  ["c18", "announcements/announcement-board", "c", []],
+  ["c19", "notifications/notifications-board", "c", []],
+  ["c20", "meetings/meeting-table", "c", []],
+  ["c21", "protocols/protocols-board", "c", []],
+  ["c22", "voting/page", "c", []],
+  ["c23", "settings/password-form", "c", []],
+
+  ["d1", "core/actions/action.ts", "d", [8]],
+  ["d2", "core/auth/session.ts", "d", []],
+  ["d3", "core/auth/permissions.ts", "d", []],
+  ["d4", "core/auth/view-as.ts", "d", []],
+  ["d5", "core/auth/auth.ts", "d", []],
+  ["d6", "schema/charges.ts (unique)", "d", [3]],
+  ["d7", "finance/services/money.ts", "d", [1, 7]],
+  ["d8", "finance/period.ts", "d", [5, 6]],
+  ["d9", "lib/date.ts", "d", [5]],
+  ["d10", "lib/search.ts", "d", [4]],
+  ["d11", "components/status-badge.tsx", "d", [9]],
+  ["d12", "api/finance/export/route.ts", "d", [2]],
+  ["d13", "components/read-only-guard", "d", []],
+  ["d14", "components/view-as-switcher", "d", []],
+  ["d15", "finance/ledger-filters.ts", "d", [], "after"],
+];
+
+const EDGES = [
+  ["f1", "b1"], ["f1", "c7"], ["f1", "b9"], ["f1", "b2"], ["f1", "d6"],
+  ["f2", "b9"], ["f2", "b11"], ["f2", "c5"], ["f2", "c6"], ["f2", "c8"],
+  ["f3", "c9"], ["f3", "b6"], ["f3", "b2"], ["f3", "b3"], ["f3", "b7"], ["f3", "d7"], ["f3", "d8"],
+  ["f4", "c1"], ["f4", "b2"], ["f4", "b6"], ["f4", "d7"], ["f4", "d8"], ["f4", "d6"],
+  ["f5", "c2"], ["f5", "b3"], ["f5", "b4"], ["f5", "b6"], ["f5", "d7"],
+  ["f6", "c3"], ["f6", "c10"], ["f6", "b6"], ["f6", "b5"], ["f6", "d7"], ["f6", "d8"],
+  ["f7", "c9"], ["f7", "b7"], ["f7", "d7"],
+  ["f8", "c11"], ["f8", "b12"], ["f8", "d7"], ["f8", "d8"],
+  ["f9", "d12"], ["f9", "b6"], ["f9", "d10"], ["f9", "c1"], ["f9", "c2"],
+  ["f10", "b10"], ["f10", "c15"], ["f10", "d1"],
+  ["f11", "b15"], ["f11", "b16"], ["f11", "c16"], ["f11", "c17"],
+  ["f12", "b14"], ["f12", "c20"], ["f12", "c21"], ["f12", "c22"],
+  ["f13", "d1"], ["f13", "d2"], ["f13", "d3"], ["f13", "d4"], ["f13", "d5"],
+  ["f13", "b8"], ["f13", "c23"], ["f13", "d13"], ["f13", "d14"],
+  ["f14", "b13"], ["f14", "c14"],
+  ["f15", "b17"], ["f15", "b18"], ["f15", "c18"], ["f15", "c19"],
+];
+
+const AFTER_ONLY_EDGES = [
+  ["f4", "d15"], ["f5", "d15"], ["f9", "d15"],
+  ["f13", "d8"], ["f4", "d9"],
+];
+
+const KNOTS = [
+  {
+    n: 1,
+    title: "Money unit conversion zoo",
+    where: "finance/services/money.ts:1 · charge.service.ts:62 · owner.service.ts:292,303 · debt.service.ts:135,144 · expense.service.ts:49,88 · allocation.service.ts:177 · finance-analytics.service.ts:37,88,271,426 · report.service.ts:49,93,104,113,141 · dashboard.service.ts:140",
+    fix: "four idioms for cents ↔ decimal: moneyToCents(x)/100, x/100, .toFixed(2), a private toMoney(). Add centsToMoney / centsToDecimal to money.ts and replace all 20 sites.",
+    after: "money.ts owns conversion; every caller uses centsToMoney / centsToDecimal.",
+  },
+  {
+    n: 2,
+    title: "CSV export filters drift from the screen",
+    where: "app/api/finance/export/route.ts:86-90 vs finance/components/charges-table.tsx:41-44",
+    fix: "the screen filters charges by billing period when a whole month is selected, the export always filters by dueDate. Extract filterChargeViews / filterPaymentViews into finance/services/ledger-filters.ts and use them on both sides.",
+    after: "one filter module feeds the table and the CSV; month semantics match.",
+  },
+  {
+    n: 3,
+    title: "Dashboard keeps a pre-tariff charge merge",
+    where: "modules/dashboard/dashboard.service.ts:131-144 · schema/charges.ts:24-29",
+    fix: "charges are unique per tenant+unit+period, so the group-by-unit+period loop can never merge; it only re-rounds money. Select the 5 latest non-cancelled charges and delete the loop.",
+    after: "query returns 5 rows; grouping and manual cents math deleted.",
+  },
+  {
+    n: 4,
+    title: "Two filter-state implementations",
+    where: "owners/owner-table.tsx:64-97 · units/units-table.tsx:80-95 vs components/table-filters.tsx:92-110",
+    fix: "owner-table rewrites the whole query string (drops unrelated params) and both tables hand-roll .includes search. Allow a bare-key mode in useTableQuery, then migrate both tables to useTableQuery + matchesQuery + FilterSearch.",
+    after: "one URL-state hook and one matcher for every list screen.",
+  },
+  {
+    n: 5,
+    title: "Local ISO day implemented twice",
+    where: "lib/date.ts:1-5 vs modules/finance/period.ts:11-13",
+    fix: "formatLocal and isoDate are the same function under two names. period.ts imports isoDate from lib/date and deletes its copy plus the local pad helper.",
+    after: "lib/date.ts is the only local-date formatter.",
+  },
+  {
+    n: 6,
+    title: "Period-key parser fabricates values",
+    where: "modules/finance/period.ts:21-24 · debt.service.ts:119-121 · settings.service.ts:38",
+    fix: "parsePeriodKey('') returns year 0 / month 1 and consumers re-validate with Number.isFinite (true for 0). Make the parser strict (null on bad shape), add one isPeriodKey, and drop the regex dupe in settings.service.",
+    after: "strict parse + one validator shared by settings and buildPeriods.",
+  },
+  {
+    n: 7,
+    title: "Monthly fee formula copied three times",
+    where: "finance/services/charge.service.ts:62 · owner/owner.service.ts:292,303",
+    fix: "area × tariff with its own rounding appears in the charge writer and twice in the owner read-model. Add monthlyFeeCents(area, tariff) to money.ts and call it from all three.",
+    after: "one fee function; charge and owner screens cannot disagree.",
+  },
+  {
+    n: 8,
+    title: "runAction.authorize bypassed in handlers",
+    where: "tickets/ticket.actions.ts:52,73,87,101,122 · owner/owner.actions.ts:37-41 · core/actions/action.ts:19-22",
+    fix: "the pipeline has an authorize hook, but tickets check hasStaffRole inside handlers and owner.actions re-creates the 'Missing permission' message. Move the row checks into authorize and share one requirePermission helper.",
+    after: "every action authorizes through one hook; one forbidden message.",
+  },
+  {
+    n: 9,
+    title: "Typed status cast to an i18n key",
+    where: "finance/components/finance-status-badge.tsx:4-12 · components/status-badge.tsx:5-14",
+    fix: "the wrapper takes status: string and casts it to Parameters<typeof t>[0]; the tone map merges two disjoint status unions. Type the props, move the labels to the caller, and delete the wrapper.",
+    after: "types carry the status union; the wrapper file is deleted.",
+  },
+];
+
+function el(name, attrs = {}, parent) {
+  const node = document.createElementNS("http://www.w3.org/2000/svg", name);
+  for (const [key, value] of Object.entries(attrs)) node.setAttribute(key, value);
+  if (parent) parent.appendChild(node);
+  return node;
+}
+
+const nodes = NODES
+  .filter(([, , , , only]) => !only || only === VIEW)
+  .map(([id, label, col, knots]) => ({id, label, col, knots: VIEW === "after" ? [] : knots}));
+
+const live = new Set(nodes.map((n) => n.id));
+const edges = EDGES.filter(([, to]) => live.has(to));
+if (VIEW === "after") for (const [from, to] of AFTER_ONLY_EDGES) if (live.has(to)) edges.push([from, to]);
+
+const W = 800;
+const STEP = 34;
+const COLL = {b: {x: 166, w: 200, y: 34}, c: {x: 376, w: 200, y: 34}, d: {x: 586, w: 204, y: 34}};
+const pos = {};
+for (const [col, cfg] of Object.entries(COLL)) {
+  nodes.filter((n) => n.col === col).forEach((node, i) => {
+    pos[node.id] = {x: cfg.x, y: cfg.y + i * STEP, w: cfg.w, h: 20};
+  });
+}
+const FEAT_Y = 40, FEAT_STEP = 46;
+const featPos = {};
+FEATURES.forEach(([id], i) => { featPos[id] = {x: 6, y: FEAT_Y + i * FEAT_STEP, w: 140, h: 24}; });
+
+const height = Math.max(
+  ...Object.values(pos).map((p) => p.y + p.h),
+  ...Object.values(featPos).map((p) => p.y + p.h),
+) + 34;
+
+document.getElementById("diagram").innerHTML = `<svg viewBox="0 0 ${W} ${height}" preserveAspectRatio="xMidYMin meet" role="img" aria-label="Feature to file wiring"></svg>`;
+const svg = document.querySelector("#diagram svg");
+
+const defs = el("defs", {}, svg);
+const marker = el("marker", {id: "arrow", viewBox: "0 0 8 8", refX: "6", refY: "4", markerWidth: "5", markerHeight: "5", orient: "auto"}, defs);
+el("path", {d: "M0,0 L8,4 L0,8 z", fill: "var(--line)"}, marker);
+const markerRed = el("marker", {id: "arrow-red", viewBox: "0 0 8 8", refX: "6", refY: "4", markerWidth: "5", markerHeight: "5", orient: "auto"}, defs);
+el("path", {d: "M0,0 L8,4 L0,8 z", fill: "var(--red)"}, markerRed);
+
+const HEAD = {b: "SERVICES", c: "VIEWS", d: "CORE · SHARED · ROUTES"};
+for (const [col, cfg] of Object.entries(COLL)) {
+  el("text", {x: cfg.x, y: 20, fill: "var(--muted)", "font-size": 8.5, "letter-spacing": "1.2", "font-weight": 700}, svg).textContent = HEAD[col];
+}
+
+// edges first, nodes over them
+edges.forEach(([from, to]) => {
+  const a = featPos[from], b = pos[to];
+  if (!a || !b) return;
+  const x1 = a.x + a.w, y1 = a.y + a.h / 2;
+  const x2 = b.x, y2 = b.y + b.h / 2;
+  const knot = nodes.find((n) => n.id === to)?.knots.length > 0;
+  const c = Math.max(28, (x2 - x1) * 0.45);
+  el("path", {
+    d: `M ${x1} ${y1} C ${x1 + c} ${y1}, ${x2 - c} ${y2}, ${x2 - 4} ${y2}`,
+    fill: "none",
+    stroke: knot ? "var(--red)" : "var(--line)",
+    "stroke-width": knot ? 1.2 : 1,
+    "stroke-opacity": knot ? 0.55 : 0.7,
+    "marker-end": knot ? "url(#arrow-red)" : "url(#arrow)",
+  }, svg);
+});
+
+for (const [id, label] of FEATURES) {
+  const p = featPos[id];
+  el("rect", {x: p.x, y: p.y, width: p.w, height: p.h, rx: 3, fill: "transparent"}, svg);
+  const t = el("text", {x: p.x + p.w - 6, y: p.y + 15, "text-anchor": "end", "font-size": 9.2, fill: "var(--ink)"}, svg);
+  t.textContent = label;
+}
+
+nodes.forEach((node) => {
+  const p = pos[node.id];
+  const hot = node.knots.length > 0;
+  el("rect", {
+    x: p.x, y: p.y, width: p.w, height: p.h, rx: 3,
+    fill: hot ? "var(--red-soft)" : "#fff",
+    stroke: hot ? "var(--red)" : "var(--line)",
+    "stroke-width": hot ? 1.3 : 1,
+  }, svg);
+  const t = el("text", {x: p.x + 7, y: p.y + 13, "font-size": 8.2, "font-family": "var(--mono)", fill: hot ? "#7d1d1d" : "var(--ink)"}, svg);
+  t.textContent = node.label;
+  node.knots.forEach((k, i) => {
+    const cx = p.x + p.w - 9 - i * 15, cy = p.y + 10;
+    el("circle", {cx, cy, r: 6.4, fill: "var(--red)"}, svg);
+    const n = el("text", {x: cx, y: cy + 3.2, "text-anchor": "middle", "font-size": 8, "font-weight": 700, fill: "#fff"}, svg);
+    n.textContent = String(k);
+  });
+});
+
+document.body.classList.toggle("after", VIEW === "after");
+document.getElementById("phase").textContent = VIEW === "after" ? "/ after untangling" : "/ before untangling";
+const status = document.getElementById("status");
+status.textContent = VIEW === "after" ? "9/9 knots untangled" : "9 open knots, worst first";
+status.className = `pill ${VIEW === "after" ? "fixed" : "open"}`;
+
+const panel = document.getElementById("panel");
+panel.innerHTML = `<h2>Knots, worst first</h2>` + KNOTS.map((k) => `
+  <div class="knot">
+    <div class="knot-head"><span class="num">${k.n}</span><h3>${k.title}</h3></div>
+    <p><code>${k.where}</code></p>
+    <p class="fix"><b>${VIEW === "after" ? "Fixed" : "Untangle"}:</b> ${VIEW === "after" ? k.after : k.fix}</p>
+  </div>`).join("") + `
+  <div class="foot">${VIEW === "after"
+    ? "Each knot was followed by bun run test and bun run build; a failing step was reverted."
+    : "Ranked by blast radius: silent wrong money first, duplicated mechanism last. Shared plumbing is drawn once."}</div>`;
+</script>
+</body>
+</html>

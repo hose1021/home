@@ -8,7 +8,7 @@ import {formatAmount} from "@/modules/finance/money-format";
 import {periodKey} from "@/modules/finance/period";
 import {loadChargeBalances, netDueCents, outstandingCents, type ChargeBalance} from "@/modules/finance/services/debt.service";
 import {daysOverdue} from "@/modules/finance/services/finance-analytics.service";
-import {moneyToCents} from "@/modules/finance/services/money";
+import {centsToMoney, moneyToCents} from "@/modules/finance/services/money";
 
 export type DebtByOwnerRow = {
   ownerName: string;
@@ -46,9 +46,9 @@ export function debtRowsByOwner(
     .map(([ownerId, entry]) => ({
       ownerName: entry.ownerName,
       units: [...entry.units].join(", "),
-      charged: formatAmount(entry.chargedCents / 100),
-      paid: formatAmount((confirmedPaidByOwner.get(ownerId) ?? 0) / 100),
-      debt: formatAmount(entry.debtCents / 100),
+      charged: formatAmount(centsToMoney(entry.chargedCents)),
+      paid: formatAmount(centsToMoney(confirmedPaidByOwner.get(ownerId) ?? 0)),
+      debt: formatAmount(centsToMoney(entry.debtCents)),
     }));
 }
 
@@ -90,7 +90,7 @@ export async function getIncomeExpenseReport(tenantId: string) {
   const recentMonths = [...incomeByMonth.entries()]
     .sort((a, b) => a[0].localeCompare(b[0]))
     .slice(-12);
-  const monthlyIncome = recentMonths.map(([month, cents]) => ({ month, amount: formatAmount(cents / 100) }));
+  const monthlyIncome = recentMonths.map(([month, cents]) => ({ month, amount: formatAmount(centsToMoney(cents)) }));
 
   const expenseRows = await db
     .select({ description: expenses.description, amount: expenses.amount, expenseDate: expenses.expenseDate })
@@ -101,7 +101,7 @@ export async function getIncomeExpenseReport(tenantId: string) {
   const expenseList = expenseRows.map((row) => ({
     date: row.expenseDate,
     notes: row.description,
-    amount: formatAmount(moneyToCents(row.amount) / 100),
+    amount: formatAmount(centsToMoney(moneyToCents(row.amount))),
   }));
 
   const totalIncome = recentMonths.reduce((sum, [, cents]) => sum + cents, 0);
@@ -110,9 +110,9 @@ export async function getIncomeExpenseReport(tenantId: string) {
   return {
     monthlyIncome,
     expenses: expenseList,
-    totalIncome: formatAmount(totalIncome / 100),
-    totalExpense: formatAmount(totalExpense / 100),
-    balance: formatAmount((totalIncome - totalExpense) / 100),
+    totalIncome: formatAmount(centsToMoney(totalIncome)),
+    totalExpense: formatAmount(centsToMoney(totalExpense)),
+    balance: formatAmount(centsToMoney(totalIncome - totalExpense)),
   };
 }
 
@@ -138,8 +138,8 @@ export async function getDebtAgingReport(tenantId: string) {
   }
 
   return {
-    buckets: buckets.map((bucket) => ({ key: bucket.key, total: formatAmount(bucket.total / 100), count: bucket.count })),
-    total: formatAmount(buckets.reduce((sum, bucket) => sum + bucket.total, 0) / 100),
+    buckets: buckets.map((bucket) => ({ key: bucket.key, total: formatAmount(centsToMoney(bucket.total)), count: bucket.count })),
+    total: formatAmount(centsToMoney(buckets.reduce((sum, bucket) => sum + bucket.total, 0))),
   };
 }
 

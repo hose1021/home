@@ -7,7 +7,7 @@ import {ADJUSTMENT_KINDS} from "@/core/db/schema/enums";
 import {owners} from "@/core/db/schema/owners";
 import {units} from "@/core/db/schema/units";
 import {parsePeriodKey} from "@/modules/finance/period";
-import {moneyToCents} from "./money";
+import {centsToMoney, moneyToCents} from "./money";
 import {getFinancialSettings} from "./settings.service";
 
 const [CREDIT_KIND, DEBIT_KIND] = ADJUSTMENT_KINDS;
@@ -132,7 +132,7 @@ export function buildPeriods(billingStart: string, now: Date = new Date()): Bill
 export async function getTenantDebtSummary(tenantId: string): Promise<TenantDebtSummary> {
     const balances = await loadChargeBalances(tenantId);
     const totalCents = balances.reduce((sum, balance) => sum + outstandingCents(balance), 0);
-    return {totalDebt: totalCents / 100};
+    return {totalDebt: centsToMoney(totalCents)};
 }
 
 /** Outstanding per unit, charge-based. */
@@ -141,7 +141,7 @@ export async function getOutstandingByUnit(tenantId: string): Promise<Map<string
     for (const balance of await loadChargeBalances(tenantId)) {
         totals.set(balance.unitId, (totals.get(balance.unitId) ?? 0) + outstandingCents(balance));
     }
-    return new Map([...totals].map(([unitId, cents]) => [unitId, cents / 100]));
+    return new Map([...totals].map(([unitId, cents]) => [unitId, centsToMoney(cents)]));
 }
 
 /** Per-owner flags for the registry: debt from charges, paid when every current-period charge is settled. */

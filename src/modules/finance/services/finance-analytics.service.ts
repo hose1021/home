@@ -12,7 +12,7 @@ import {ageBucket, type AgeingBuckets} from "../ageing";
 import {deriveChargeStatusFromBalance, getAdvanceBalance} from "./allocation.service";
 import {loadChargeBalances, netDueCents, outstandingCents, type ChargeBalance} from "./debt.service";
 import {getBuildingBudget, listExpenses} from "./expense.service";
-import {moneyToCents} from "./money";
+import {centsToMoney, moneyToCents} from "./money";
 
 export type FinanceAnalytics = {
     charged: number;
@@ -33,11 +33,6 @@ export type DebtorRow = {
     oldestDueDate: string | null;
     daysOverdue: number;
 };
-
-function toMoney(cents: number): number {
-    return cents / 100;
-}
-
 
 export function daysOverdue(dueDate: string, now: Date): number {
     const due = Date.parse(`${dueDate}T00:00:00`);
@@ -82,19 +77,19 @@ export async function getFinanceAnalytics(tenantId: string, asOf = new Date()): 
     }
 
     return {
-        charged: toMoney(charged),
-        paid: toMoney(paid),
-        outstanding: toMoney(outstanding),
-        advances: moneyToCents(advances) / 100,
+        charged: centsToMoney(charged),
+        paid: centsToMoney(paid),
+        outstanding: centsToMoney(outstanding),
+        advances: centsToMoney(moneyToCents(advances)),
         collectionRate: charged > 0 ? Math.round((paid / charged) * 1000) / 10 : 0,
         chargesCount: balances.length,
         debtorsCount: seenDebtors.size,
         ageing: {
-            notDue: toMoney(ageing.notDue),
-            days1to30: toMoney(ageing.days1to30),
-            days31to60: toMoney(ageing.days31to60),
-            days61to90: toMoney(ageing.days61to90),
-            over90: toMoney(ageing.over90),
+            notDue: centsToMoney(ageing.notDue),
+            days1to30: centsToMoney(ageing.days1to30),
+            days31to60: centsToMoney(ageing.days31to60),
+            days61to90: centsToMoney(ageing.days61to90),
+            over90: centsToMoney(ageing.over90),
         },
     };
 }
@@ -126,7 +121,7 @@ export async function listDebtors(tenantId: string, asOf = new Date()): Promise<
             ownerId,
             ownerName: entry.ownerName,
             unitNumbers: [...entry.units].sort((a, b) => a.localeCompare(b, "ru")),
-            outstanding: toMoney(entry.outstanding),
+            outstanding: centsToMoney(entry.outstanding),
             oldestDueDate: entry.oldest,
             daysOverdue: entry.oldest ? Math.max(0, daysOverdue(entry.oldest, today)) : 0,
         }))
@@ -161,9 +156,9 @@ export async function listChargeViews(tenantId: string, asOf = new Date()): Prom
             dueDate: balance.dueDate,
             periodYear: balance.periodYear,
             periodMonth: balance.periodMonth,
-            amount: toMoney(netDueCents(balance)),
-            paid: toMoney(Math.min(balance.allocatedCents, netDueCents(balance))),
-            outstanding: toMoney(outstanding),
+            amount: centsToMoney(netDueCents(balance)),
+            paid: centsToMoney(Math.min(balance.allocatedCents, netDueCents(balance))),
+            outstanding: centsToMoney(outstanding),
             status: resolveChargeStatus(balance, asOf),
         };
     });
@@ -223,9 +218,9 @@ export async function listPaymentViews(tenantId: string): Promise<PaymentView[]>
             paymentDate: isoDate(new Date(row.paymentDate)),
             periodYear: row.periodYear,
             periodMonth: row.periodMonth,
-            amount: toMoney(amount),
-            allocated: toMoney(applied),
-            unallocated: row.status === "confirmed" ? toMoney(Math.max(0, amount - applied)) : 0,
+            amount: centsToMoney(amount),
+            allocated: centsToMoney(applied),
+            unallocated: row.status === "confirmed" ? centsToMoney(Math.max(0, amount - applied)) : 0,
             method: row.method,
             referenceNo: row.referenceNo,
             status: row.status,
@@ -268,7 +263,7 @@ export async function getOwnerLedger(tenantId: string, ownerId: string): Promise
         payments: paymentRows.filter((row) => row.ownerId === ownerId),
         adjustments: adjustmentRows.map((row) => ({
             ...row,
-            amount: moneyToCents(row.amount) / 100,
+            amount: centsToMoney(moneyToCents(row.amount)),
             createdAt: row.createdAt.toISOString(),
         })),
     };
@@ -331,10 +326,10 @@ export async function getOverviewData(tenantId: string, from: string, to: string
     const months = monthRange(from, to);
     const monthly = months.map((month) => ({
         month: month.key,
-        charged: toMoney(balances
+        charged: centsToMoney(balances
             .filter((balance) => periodKey(balance.periodYear, balance.periodMonth) === month.key)
             .reduce((sum, balance) => sum + netDueCents(balance), 0)),
-        paid: toMoney(paymentRows
+        paid: centsToMoney(paymentRows
             .filter((payment) => payment.status === "confirmed" && payment.paymentDate >= isoDate(month.start) && payment.paymentDate <= isoDate(month.end))
             .reduce((sum, payment) => sum + moneyToCents(payment.amount), 0)),
     }));
@@ -348,7 +343,7 @@ export async function getOverviewData(tenantId: string, from: string, to: string
         const outflow = expenseRows
             .filter((expense) => expense.expenseDate >= fromKey && expense.expenseDate <= toKey)
             .reduce((sum, expense) => sum + moneyToCents(expense.amount), 0);
-        return {month: month.key, inflow: toMoney(inflow), outflow: toMoney(outflow)};
+        return {month: month.key, inflow: centsToMoney(inflow), outflow: centsToMoney(outflow)};
     });
 
     const periodCharged = monthly.reduce((sum, month) => sum + moneyToCents(month.charged), 0);
@@ -397,35 +392,35 @@ export async function getOverviewData(tenantId: string, from: string, to: string
             kind: "charge" as const,
             date: balance.dueDate,
             title: `${balance.ownerName ?? "—"} · ${balance.unitNumber ?? ""}`,
-            amount: toMoney(netDueCents(balance)),
+            amount: centsToMoney(netDueCents(balance)),
             status: resolveChargeStatus(balance, today),
         })),
     ].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 8);
 
     return {
         kpi: {
-            charged: toMoney(periodCharged),
-            paid: toMoney(periodPaid),
-            outstanding: toMoney(outstanding),
-            overdue: toMoney(overdue),
-            cash: toMoney(cash),
+            charged: centsToMoney(periodCharged),
+            paid: centsToMoney(periodPaid),
+            outstanding: centsToMoney(outstanding),
+            overdue: centsToMoney(overdue),
+            cash: centsToMoney(cash),
             collectionRate: periodCharged > 0 ? Math.round((periodPaid / periodCharged) * 1000) / 10 : 0,
         },
         monthly,
         cashflow,
         ageing: {
-            notDue: toMoney(ageing.notDue),
-            days1to30: toMoney(ageing.days1to30),
-            days31to60: toMoney(ageing.days31to60),
-            days61to90: toMoney(ageing.days61to90),
-            over90: toMoney(ageing.over90),
+            notDue: centsToMoney(ageing.notDue),
+            days1to30: centsToMoney(ageing.days1to30),
+            days31to60: centsToMoney(ageing.days31to60),
+            days61to90: centsToMoney(ageing.days61to90),
+            over90: centsToMoney(ageing.over90),
         },
         actions: {
             overdueDebtors: debtorRows.length,
-            overdueAmount: toMoney(overdue),
-            unallocated: moneyToCents(advances) / 100,
+            overdueAmount: centsToMoney(overdue),
+            unallocated: centsToMoney(moneyToCents(advances)),
             upcomingCount,
-            upcomingAmount: toMoney(upcomingAmount),
+            upcomingAmount: centsToMoney(upcomingAmount),
         },
         activity,
     };
