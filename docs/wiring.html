@@ -46,30 +46,30 @@
   .legend { display: flex; align-items: center; gap: 12px; font-size: 11px; color: var(--muted); }
   .legend i { display: inline-block; width: 18px; height: 0; border-top: 2px solid var(--line); vertical-align: middle; margin-right: 5px; }
   .legend i.red { border-color: var(--red); }
-  main { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) 430px; }
+  main { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) 500px; }
   #diagram { min-width: 0; min-height: 0; padding: 4px 10px 2px; }
   svg { width: 100%; height: 100%; display: block; }
   aside {
     border-left: 1px solid var(--line);
     background: var(--panel);
-    overflow: auto;
-    padding: 8px 12px 10px;
+    overflow: hidden;
+    padding: 7px 12px 6px;
   }
-  aside h2 { font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 0 0 6px; }
-  .knot { border-top: 1px solid var(--line); padding: 6px 0 5px; }
-  .knot:first-of-type { border-top: 0; }
-  .knot-head { display: flex; align-items: baseline; gap: 7px; }
+  aside h2 { font-size: 10px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 0 0 4px; }
+  .knot { border-top: 1px solid var(--line); padding: 4px 0 3px; }
+  .knot:first-of-type { border-top: 0; padding-top: 1px; }
+  .knot-head { display: flex; align-items: baseline; gap: 6px; }
   .num {
-    flex: none; width: 16px; height: 16px; border-radius: 50%;
-    background: var(--red); color: #fff; font: 700 10px/16px var(--mono); text-align: center;
+    flex: none; width: 14px; height: 14px; border-radius: 50%;
+    background: var(--red); color: #fff; font: 700 9px/14px var(--mono); text-align: center;
   }
   .after .num { background: var(--green); }
-  .knot h3 { font-size: 12px; margin: 0; line-height: 1.25; }
-  .knot p { margin: 3px 0 0 23px; font-size: 11px; color: var(--muted); }
-  .knot code { font: 10px/1.45 var(--mono); color: var(--ink); word-break: break-word; }
+  .knot h3 { font-size: 11.5px; margin: 0; line-height: 1.2; }
+  .knot p { margin: 2px 0 0 20px; font-size: 10.2px; line-height: 1.28; color: var(--muted); }
+  .knot code { font: 9.4px/1.3 var(--mono); color: var(--ink); word-break: break-word; }
   .knot b { font-weight: 600; color: var(--ink); }
   .knot .fix { color: #3d4148; }
-  .foot { margin-top: 8px; padding-top: 7px; border-top: 1px solid var(--line); font-size: 10.5px; color: var(--muted); }
+  .foot { margin-top: 5px; padding-top: 5px; border-top: 1px solid var(--line); font-size: 9.8px; color: var(--muted); }
   .after .knot { opacity: .92; }
 </style>
 </head>
@@ -176,9 +176,9 @@ const EDGES = [
   ["f1", "b1"], ["f1", "c7"], ["f1", "b9"], ["f1", "b2"], ["f1", "d6"],
   ["f2", "b9"], ["f2", "b11"], ["f2", "c5"], ["f2", "c6"], ["f2", "c8"],
   ["f3", "c9"], ["f3", "b6"], ["f3", "b2"], ["f3", "b3"], ["f3", "b7"], ["f3", "d7"], ["f3", "d8"],
-  ["f4", "c1"], ["f4", "b2"], ["f4", "b6"], ["f4", "d7"], ["f4", "d8"], ["f4", "d6"],
-  ["f5", "c2"], ["f5", "b3"], ["f5", "b4"], ["f5", "b6"], ["f5", "d7"],
-  ["f6", "c3"], ["f6", "c10"], ["f6", "b6"], ["f6", "b5"], ["f6", "d7"], ["f6", "d8"],
+  ["f4", "c1"], ["f4", "b2"], ["f4", "b6"], ["f4", "d7"], ["f4", "d8"], ["f4", "d6"], ["f4", "c12"], ["f4", "c13"],
+  ["f5", "c2"], ["f5", "b3"], ["f5", "b4"], ["f5", "b6"], ["f5", "d7"], ["f5", "c12"], ["f5", "c13"],
+  ["f6", "c3"], ["f6", "c10"], ["f6", "b6"], ["f6", "b5"], ["f6", "d7"], ["f6", "d8"], ["f6", "c13"],
   ["f7", "c9"], ["f7", "b7"], ["f7", "d7"],
   ["f8", "c11"], ["f8", "b12"], ["f8", "d7"], ["f8", "d8"],
   ["f9", "d12"], ["f9", "b6"], ["f9", "d10"], ["f9", "c1"], ["f9", "c2"],
@@ -193,7 +193,7 @@ const EDGES = [
 
 const AFTER_ONLY_EDGES = [
   ["f4", "d15"], ["f5", "d15"], ["f9", "d15"],
-  ["f13", "d8"], ["f4", "d9"],
+  ["f13", "d8"], ["f2", "c12"],
 ];
 
 const KNOTS = [
@@ -236,7 +236,7 @@ const KNOTS = [
     n: 6,
     title: "Period-key parser fabricates values",
     where: "modules/finance/period.ts:21-24 · debt.service.ts:119-121 · settings.service.ts:38",
-    fix: "parsePeriodKey('') returns year 0 / month 1 and consumers re-validate with Number.isFinite (true for 0). Make the parser strict (null on bad shape), add one isPeriodKey, and drop the regex dupe in settings.service.",
+    fix: "parsePeriodKey('') returns year 0 / month 1 and consumers re-validate with Number.isFinite (true for 0). Make the parser strict (null on bad shape), reuse it in settings.service and buildPeriods, and drop the duplicated regex.",
     after: "strict parse + one validator shared by settings and buildPeriods.",
   },
   {
@@ -250,7 +250,7 @@ const KNOTS = [
     n: 8,
     title: "runAction.authorize bypassed in handlers",
     where: "tickets/ticket.actions.ts:52,73,87,101,122 · owner/owner.actions.ts:37-41 · core/actions/action.ts:19-22",
-    fix: "the pipeline has an authorize hook, but tickets check hasStaffRole inside handlers and owner.actions re-creates the 'Missing permission' message. Move the row checks into authorize and share one requirePermission helper.",
+    fix: "the pipeline has an authorize hook, but tickets check hasStaffRole inside handlers and owner.actions re-creates the 'Missing permission' message. Move the row checks into authorize and share one assertPermission guard.",
     after: "every action authorizes through one hook; one forbidden message.",
   },
   {
@@ -281,10 +281,20 @@ const W = 800;
 const STEP = 34;
 const COLL = {b: {x: 166, w: 200, y: 34}, c: {x: 376, w: 200, y: 34}, d: {x: 586, w: 204, y: 34}};
 const pos = {};
+const featureIndex = Object.fromEntries(FEATURES.map(([id], i) => [id, i]));
+const firstFeature = {};
+for (const [from, to] of edges) {
+  const index = featureIndex[from];
+  if (index === undefined) continue;
+  if (firstFeature[to] === undefined || index < firstFeature[to]) firstFeature[to] = index;
+}
 for (const [col, cfg] of Object.entries(COLL)) {
-  nodes.filter((n) => n.col === col).forEach((node, i) => {
-    pos[node.id] = {x: cfg.x, y: cfg.y + i * STEP, w: cfg.w, h: 20};
-  });
+  nodes
+    .filter((n) => n.col === col)
+    .sort((a, b) => (firstFeature[a.id] ?? 99) - (firstFeature[b.id] ?? 99))
+    .forEach((node, i) => {
+      pos[node.id] = {x: cfg.x, y: cfg.y + i * STEP, w: cfg.w, h: 20};
+    });
 }
 const FEAT_Y = 40, FEAT_STEP = 46;
 const featPos = {};
@@ -322,7 +332,7 @@ edges.forEach(([from, to]) => {
     fill: "none",
     stroke: knot ? "var(--red)" : "var(--line)",
     "stroke-width": knot ? 1.2 : 1,
-    "stroke-opacity": knot ? 0.55 : 0.7,
+    "stroke-opacity": knot ? 0.5 : 0.45,
     "marker-end": knot ? "url(#arrow-red)" : "url(#arrow)",
   }, svg);
 });
