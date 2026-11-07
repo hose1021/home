@@ -1,8 +1,7 @@
-import {eq} from "drizzle-orm";
 import {getTranslations} from "next-intl/server";
+import {listAuditLogs} from "@/core/audit/audit.service";
 import {requireTenantPermission} from "@/core/auth/session";
-import {db} from "@/core/db";
-import {auditLogs} from "@/core/db/schema/audit-logs";
+import {AUDIT_ACTIONS, type AuditAction, type AuditEntityType} from "@/core/db/schema/enums";
 
 export default async function AuditPage({
   params,
@@ -13,12 +12,7 @@ export default async function AuditPage({
   const t = await getTranslations();
   const { tenantId } = await requireTenantPermission("audit:read");
 
-  const logs = await db
-    .select()
-    .from(auditLogs)
-    .where(eq(auditLogs.tenantId, tenantId))
-    .orderBy(auditLogs.createdAt)
-    .limit(50);
+  const logs = await listAuditLogs(tenantId);
 
   return (
     <div className="page-shell">
@@ -42,7 +36,7 @@ export default async function AuditPage({
               {logs.map((l) => (
                 <tr key={l.id} className="transition-colors hover:bg-muted/50">
                   <td className="px-4 py-3 text-sm">{actionLabel(t, l.action)}</td>
-                  <td className="px-4 py-3 text-sm text-muted-foreground">{l.entityType}</td>
+                  <td className="px-4 py-3 text-sm text-muted-foreground">{l.entityType as AuditEntityType}</td>
                   <td className="px-4 py-3 text-right text-sm text-muted-foreground/70">
                     {new Date(l.createdAt).toLocaleString(locale)}
                   </td>
@@ -58,16 +52,13 @@ export default async function AuditPage({
   );
 }
 
-const ACTION_KEY_BY_ACTION: Record<string, string> = {
+const ACTION_KEY_BY_ACTION: Record<AuditAction, string> = {
   create: "audit.log.create",
   update: "audit.log.update",
   delete: "audit.log.delete",
-  restore: "audit.log.restore",
-  login: "audit.log.login",
-  export: "audit.log.export",
 };
 
-function actionLabel(t: (key: string) => string, a: string) {
-  const key = ACTION_KEY_BY_ACTION[a];
-  return key ? t(key) : a;
+function actionLabel(t: (key: string) => string, action: string) {
+  const key = (AUDIT_ACTIONS as readonly string[]).includes(action) ? ACTION_KEY_BY_ACTION[action as AuditAction] : undefined;
+  return key ? t(key) : action;
 }

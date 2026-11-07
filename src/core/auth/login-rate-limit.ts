@@ -1,3 +1,5 @@
+import {normalizeUsername} from "./auth";
+
 const WINDOW_MS = 15 * 60 * 1000;
 const MAX_FAILURES = 5;
 const MAX_TRACKED_KEYS = 10_000;
@@ -6,7 +8,7 @@ type Attempt = { count: number; resetAt: number };
 const attempts = new Map<string, Attempt>();
 
 function key(ip: string | undefined, username: string): string {
-  return `${ip ?? "unknown"}:${username}`;
+  return `${ip ?? "unknown"}:${normalizeUsername(username)}`;
 }
 
 export function isLoginRateLimited(ip: string | undefined, username: string, now = Date.now()): boolean {

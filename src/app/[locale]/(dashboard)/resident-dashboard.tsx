@@ -8,17 +8,11 @@ import {
     IconTicket,
     IconUsersGroup,
 } from "@tabler/icons-react";
-import {getTranslations} from "next-intl/server";
+import {getLocale, getTranslations} from "next-intl/server";
 import {ChargeStatusBadge, PaymentStatusBadge} from "@/components/status-badge";
 import {Link} from "@/i18n/navigation";
 import type {ResidentOverview} from "@/modules/dashboard/dashboard.service";
-
-const dateFmt = new Intl.DateTimeFormat("ru", {day: "numeric", month: "long", year: "numeric"});
-const shortDateFmt = new Intl.DateTimeFormat("ru", {day: "numeric", month: "short"});
-
-function money(value: number | string, currency: string) {
-    return `${Number(value).toFixed(2)} ${currency}`;
-}
+import {formatAmount, formatDate, formatNumber} from "@/modules/finance/money-format";
 
 export async function ResidentDashboard({overview, userName, tenantName}: {
     overview: ResidentOverview;
@@ -26,6 +20,7 @@ export async function ResidentDashboard({overview, userName, tenantName}: {
     tenantName: string;
 }) {
     const t = await getTranslations();
+    const locale = await getLocale();
     const currency = t("common.currency");
     const {owner, units, grandDebt, totalMonthlyFee, payments, charges, boardMembers, commandant, announcements} = overview;
     const firstName = userName.split(" ")[0] ?? userName;
@@ -36,7 +31,7 @@ export async function ResidentDashboard({overview, userName, tenantName}: {
             <section className="banner px-6 py-8 md:px-9 md:py-10">
                 <div className="relative flex flex-col gap-8 lg:flex-row lg:items-end lg:justify-between">
                     <div className="max-w-2xl">
-                        <p className="eyebrow">{t("resident.houseOverview")} · {dateFmt.format(new Date())}</p>
+                        <p className="eyebrow">{t("resident.houseOverview")} · {new Date().toLocaleDateString(locale, {day: "numeric", month: "long", year: "numeric"})}</p>
                         <h1 className="mt-2 font-heading text-[1.9rem] font-extrabold leading-[1.1] tracking-[-0.02em] md:text-[2.5rem]">
                             {t("resident.greeting", {name: firstName})}
                         </h1>
@@ -55,10 +50,10 @@ export async function ResidentDashboard({overview, userName, tenantName}: {
                     <div className="shrink-0 rounded-[4px] border border-border bg-white/[0.04] px-5 py-4 backdrop-blur-sm sm:px-7 sm:py-5">
                         <p className="text-xs font-semibold uppercase tracking-[0.6px] text-muted-foreground">{t("resident.debt")}</p>
                         <p className={`amount mt-1 text-[2rem] font-bold leading-none ${grandDebt > 0 ? "text-danger" : "text-success"}`}>
-                            {money(grandDebt, currency)}
+                            {formatAmount(grandDebt, currency)}
                         </p>
                         <p className="mt-2 text-xs text-muted-foreground">
-                            {t("resident.monthlyFee")}: <span className="amount font-semibold text-foreground">{money(totalMonthlyFee, currency)}</span>
+                            {t("resident.monthlyFee")}: <span className="amount font-semibold text-foreground">{formatAmount(totalMonthlyFee, currency)}</span>
                         </p>
                     </div>
                 </div>
@@ -84,8 +79,8 @@ export async function ResidentDashboard({overview, userName, tenantName}: {
                         <p className="micro-label">{t("resident.monthlyFee")}</p>
                         <span className="chip size-8 shrink-0 text-gold"><IconCash className="size-4" /></span>
                     </div>
-                    <p className="amount mt-4 text-[1.65rem] font-bold leading-none">{money(totalMonthlyFee, currency)}</p>
-                    <p className="mt-2 text-xs text-muted-foreground">{t("resident.totalArea", {area: units.reduce((sum, u) => sum + Number(u.area), 0).toFixed(1)})}</p>
+                    <p className="amount mt-4 text-[1.65rem] font-bold leading-none">{formatAmount(totalMonthlyFee, currency)}</p>
+                    <p className="mt-2 text-xs text-muted-foreground">{t("resident.totalArea", {area: formatNumber(units.reduce((sum, u) => sum + Number(u.area), 0))})}</p>
                 </div>
                 <div className="surface-panel p-5">
                     <div className="flex items-start justify-between gap-3">
@@ -109,13 +104,13 @@ export async function ResidentDashboard({overview, userName, tenantName}: {
                                 <div className="min-w-0">
                                     <p className="font-semibold">{t("resident.unit", {unit: unit.unitNumber})}</p>
                                     <p className="mt-0.5 text-xs text-muted-foreground">
-                                        {t("resident.entrance", {entrance: unit.entrance, floor: unit.floor})} · {unit.area} м²
+                                        {t("resident.entrance", {entrance: unit.entrance, floor: unit.floor})} · {unit.area} {t("common.squareMeters")}
                                     </p>
                                 </div>
                                 <div className="text-right">
-                                    <p className="amount text-sm font-semibold">{money(unit.monthlyFee, currency)}</p>
+                                    <p className="amount text-sm font-semibold">{formatAmount(unit.monthlyFee, currency)}</p>
                                     {unit.totalDebt > 0 && (
-                                        <p className="mt-0.5 text-xs font-semibold text-danger">{t("resident.debtShort")}: {money(unit.totalDebt, currency)}</p>
+                                        <p className="mt-0.5 text-xs font-semibold text-danger">{t("resident.debtShort")}: {formatAmount(unit.totalDebt, currency)}</p>
                                     )}
                                 </div>
                             </li>
@@ -136,9 +131,9 @@ export async function ResidentDashboard({overview, userName, tenantName}: {
                             {payments.map((payment) => (
                                 <li key={payment.id} className="flex items-center justify-between gap-4 border-b border-border/70 px-5 py-3 text-sm last:border-0">
                                     <div className="min-w-0">
-                                        <p className="amount font-semibold">{money(payment.amount, currency)}</p>
+                                        <p className="amount font-semibold">{formatAmount(payment.amount, currency)}</p>
                                         <p className="mt-0.5 text-xs text-muted-foreground">
-                                            {t("resident.period", {month: payment.periodMonth, year: payment.periodYear})} · {t(`finance.payments.paymentMethods.${payment.paymentMethod}`)} · {shortDateFmt.format(payment.paymentDate)}
+                                            {t("resident.period", {month: payment.periodMonth, year: payment.periodYear})} · {t(`finance.payments.paymentMethods.${payment.paymentMethod}`)} · {formatDate(payment.paymentDate.toISOString(), locale)}
                                         </p>
                                     </div>
                                     <PaymentStatusBadge status={payment.status} label={t(`finance.payments.status.${payment.status}`)} />
@@ -161,10 +156,10 @@ export async function ResidentDashboard({overview, userName, tenantName}: {
                             {charges.map((charge) => (
                                 <li key={charge.id} className="flex items-center justify-between gap-4 border-b border-border/70 px-5 py-3 text-sm last:border-0">
                                     <div className="min-w-0">
-                                        <p className="amount font-semibold">{money(charge.amount, currency)}</p>
+                                        <p className="amount font-semibold">{formatAmount(charge.amount, currency)}</p>
                                         <p className="mt-0.5 text-xs text-muted-foreground">
                                             {charge.unitNumber ? `${t("resident.unit", {unit: charge.unitNumber})} · ` : ""}
-                                            {t("finance.charges.apartmentCharge")} · {t("resident.dueBy")} {new Date(charge.dueDate).toLocaleDateString("ru")}
+                                            {t("finance.charges.apartmentCharge")} · {t("resident.dueBy")} {formatDate(charge.dueDate, locale)}
                                         </p>
                                     </div>
                                     <ChargeStatusBadge status={charge.status} label={t(`finance.charges.status.${charge.status}`)} />
@@ -190,7 +185,7 @@ export async function ResidentDashboard({overview, userName, tenantName}: {
                                 <li key={announcement.id} className="border-b border-border/70 px-5 py-3 last:border-0">
                                     <div className="flex items-center justify-between gap-3">
                                         <h3 className="truncate text-sm font-semibold">{announcement.title}</h3>
-                                        <span className="shrink-0 text-xs text-muted-foreground">{shortDateFmt.format(announcement.createdAt)}</span>
+                                        <span className="shrink-0 text-xs text-muted-foreground">{formatDate(announcement.createdAt.toISOString(), locale)}</span>
                                     </div>
                                     <p className="mt-1 line-clamp-2 whitespace-pre-wrap text-xs leading-5 text-muted-foreground">{announcement.content}</p>
                                 </li>
@@ -209,7 +204,7 @@ export async function ResidentDashboard({overview, userName, tenantName}: {
                     {boardMembers.length > 0 ? (
                         <ul>
                             {boardMembers.map((member) => (
-                                <li key={member.userId} className="flex items-center justify-between gap-4 border-b border-border/70 px-5 py-3 text-sm last:border-0">
+                                <li key={member.id} className="flex items-center justify-between gap-4 border-b border-border/70 px-5 py-3 text-sm last:border-0">
                                     <div className="flex min-w-0 items-center gap-3">
                                         <span className="chip size-8 shrink-0 font-heading text-xs font-bold">{member.fullName.split(" ").filter(Boolean).slice(0, 2).map((part) => part[0]).join("").toLocaleUpperCase("az")}</span>
                                         <div className="min-w-0">

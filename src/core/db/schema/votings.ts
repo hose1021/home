@@ -11,6 +11,7 @@ import {
     uuid,
     varchar
 } from "drizzle-orm/pg-core";
+import type {VotingStatus, VotingType} from "./enums";
 import {meetings} from "./meetings";
 import {owners} from "./owners";
 import {tenants} from "./tenants";
@@ -23,9 +24,9 @@ export const votings = pgTable("votings", {
   meetingId: uuid("meeting_id").references(() => meetings.id),
   title: varchar("title", { length: 500 }).notNull(),
   description: text("description"),
-  votingType: varchar("voting_type", { length: 20 }).notNull().$type<"in_person" | "absentee" | "mixed">(),
+  votingType: varchar("voting_type", { length: 20 }).notNull().$type<VotingType>(),
   countingMethod: varchar("counting_method", { length: 20 }).notNull().$type<"one_per_owner">(),
-  status: varchar("status", { length: 20 }).notNull().default("draft").$type<"draft" | "active" | "paused" | "counting" | "completed" | "cancelled" | "archived">(),
+  status: varchar("status", { length: 20 }).notNull().default("draft").$type<VotingStatus>(),
   startDate: timestamp("start_date", { withTimezone: true }).notNull(),
   endDate: timestamp("end_date", { withTimezone: true }).notNull(),
   quorumRequired: decimal("quorum_required", { precision: 5, scale: 2 }).notNull(),
@@ -67,17 +68,3 @@ export const votes = pgTable("votes", {
   voteUnique: uniqueIndex("uq_votes_voting_owner").on(table.votingId, table.ownerId),
   unitVoteWeight: check("chk_votes_weight_one", sql`${table.voteWeight} = 1`),
 }));
-
-export const proxies = pgTable("proxies", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  tenantId: uuid("tenant_id").notNull().references(() => tenants.id),
-  principalId: uuid("principal_id").notNull().references(() => owners.id),
-  agentId: uuid("agent_id").notNull().references(() => owners.id),
-  unitId: uuid("unit_id").notNull().references(() => units.id),
-  votingId: uuid("voting_id").references(() => votings.id),
-  scope: varchar("scope", { length: 20 }).$type<"single" | "period" | "unlimited">(),
-  validFrom: timestamp("valid_from", { withTimezone: true }).notNull(),
-  validUntil: timestamp("valid_until", { withTimezone: true }).notNull(),
-  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-  revokedAt: timestamp("revoked_at", { withTimezone: true }),
-});

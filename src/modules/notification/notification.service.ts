@@ -1,8 +1,10 @@
 import {and, desc, eq} from "drizzle-orm";
 import {writeAuditLog} from "@/core/audit/audit.service";
 import {db} from "@/core/db";
+import {type NotificationChannel, type NotificationType} from "@/core/db/schema/enums";
 import {notifications} from "@/core/db/schema/notifications";
 import {users} from "@/core/db/schema/users";
+import {DomainError} from "@/core/errors/app-error";
 
 export async function listRecipientUsers(tenantId: string) {
   return await db
@@ -23,7 +25,7 @@ export async function listNotifications(tenantId: string, userId: string, limit 
 
 export async function createNotification(
   tenantId: string,
-  input: { userId: string; type: string; title: string; body?: string; channel: "push" | "sms" | "in_app" },
+  input: { userId: string; type: NotificationType; title: string; body?: string; channel: NotificationChannel },
   actorId: string,
 ) {
   const [created] = await db.insert(notifications).values({
@@ -34,7 +36,7 @@ export async function createNotification(
     body: input.body?.trim() || null,
     channel: input.channel,
   }).returning();
-  if (!created) throw new Error("Failed to create notification");
+  if (!created) throw new DomainError("notificationNotFound");
 
   await writeAuditLog({
     tenantId, userId: actorId,
@@ -55,5 +57,6 @@ export async function markNotificationRead(tenantId: string, userId: string, id:
     eq(notifications.tenantId, tenantId),
     eq(notifications.userId, userId),
   )).returning();
-  return updated ?? null;
+  if (!updated) throw new DomainError("notificationNotFound");
+  return updated;
 }

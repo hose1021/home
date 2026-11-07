@@ -1,14 +1,15 @@
 "use client";
 
-import {useTranslations} from "next-intl";
+import {useLocale, useTranslations} from "next-intl";
 import {useState} from "react";
 import {toast} from "sonner";
 import {Badge} from "@/components/ui/badge";
 import {Button} from "@/components/ui/button";
 import {Textarea} from "@/components/ui/textarea";
+import type {TicketCategory, TicketPriority, TicketStatus} from "@/core/db/schema/enums";
 import {Link} from "@/i18n/navigation";
 import {addCommentAction, changeTicketStatusAction, deleteTicketAction, rejectTicketAction,} from "../ticket.actions";
-import type {TicketStatus} from "../ticket.service";
+import {TICKET_TONE, TICKET_TRANSITIONS} from "../ticket.constants";
 
 type Comment = {
   id: string;
@@ -16,33 +17,26 @@ type Comment = {
   content: string;
   isInternal: boolean | null;
   createdAt: Date;
-  authorName: string;
+  authorName: string | null;
 };
 
 type TicketDetailData = {
   id: string;
   title: string;
   description: string;
-  category: string;
-  priority: string;
-  status: string;
+  category: TicketCategory;
+  priority: TicketPriority;
+  status: TicketStatus;
   rejectionReason: string | null;
   createdAt: Date;
   updatedAt: Date;
-  createdBy: string;
+  createdByName: string | null;
   assignedToName: string | null;
   unitNumber: string | null;
   entrance: number | null;
   floor: number | null;
   ownerName: string | null;
   ownerPhone: string | null;
-};
-
-const STATUS_COLORS: Record<string, string> = {
-  pending: "bg-primary/12 border-primary/35 text-primary",
-  in_progress: "bg-gold/12 border-gold/35 text-gold",
-  rejected: "bg-danger/12 border-danger/35 text-danger",
-  done: "bg-success/12 border-success/35 text-success",
 };
 
 export function TicketDetail({
@@ -59,6 +53,7 @@ export function TicketDetail({
   canDelete?: boolean;
 }) {
   const t = useTranslations("tickets");
+  const locale = useLocale();
   const tc = useTranslations("common");
   const td = useTranslations("dashboard");
   const tu = useTranslations("units");
@@ -67,11 +62,11 @@ export function TicketDetail({
   const [rejectOpen, setRejectOpen] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
 
-  const currentStatus = ticket.status as TicketStatus;
+  const currentStatus = ticket.status;
 
   function statusLabel(s: TicketStatus) { return t(`status.${s}`); }
-  function categoryLabel(c: string) { return t(`categories.${c}` as Parameters<typeof t>[0]) ?? c; }
-  function priorityLabel(p: string) { return t(`priorities.${p}` as Parameters<typeof t>[0]) ?? p; }
+  function categoryLabel(c: TicketCategory) { return t(`categories.${c}`); }
+  function priorityLabel(p: TicketPriority) { return t(`priorities.${p}`); }
   function statusActionLabel(s: TicketStatus) { return t(`statusActions.${s}`); }
 
   async function handleStatusChange(newStatus: TicketStatus) {
@@ -127,12 +122,11 @@ export function TicketDetail({
     }
   }
 
-  const transitions: { status: TicketStatus; label: string; className: string }[] = ([
-    { status: "in_progress", label: statusActionLabel("in_progress"), className: "border-border hover:border-gold/45 hover:bg-gold/10 hover:text-gold" },
-    { status: "done", label: statusActionLabel("done"), className: "border-border hover:border-success/45 hover:bg-success/10 hover:text-success" },
-    { status: "rejected", label: statusActionLabel("rejected"), className: "border-border hover:border-danger/45 hover:bg-danger/10 hover:text-danger" },
-    { status: "pending", label: statusActionLabel("pending"), className: "border-border hover:border-primary/45 hover:bg-primary/10 hover:text-primary" },
-  ] as const).filter((tr) => tr.status !== currentStatus);
+  const transitions = TICKET_TRANSITIONS[currentStatus].map((status) => ({
+    status,
+    label: statusActionLabel(status),
+    className: TICKET_TONE[status].action,
+  }));
 
   return (
     <div className="page-shell">
@@ -151,7 +145,7 @@ export function TicketDetail({
                 <><span>·</span><span>{t("yardShort")}</span></>
               )}
               <span>·</span>
-              <span>{new Date(ticket.createdAt).toLocaleDateString("ru")}</span>
+              <span>{new Date(ticket.createdAt).toLocaleDateString(locale)}</span>
             </div>
             {ticket.ownerName && (
               <div className="mt-2 flex flex-wrap gap-2 text-xs">
@@ -159,12 +153,12 @@ export function TicketDetail({
                   {t("applicant")}: {ticket.ownerName}{ticket.ownerPhone ? ` · ${ticket.ownerPhone}` : ""}
                 </span>
                 <span className="rounded-full bg-muted px-2 py-0.5 text-muted-foreground">
-                  {t("createdBy")}: {ticket.createdBy}
+                  {t("createdBy")}: {ticket.createdByName ?? "—"}
                 </span>
               </div>
             )}
           </div>
-          <Badge className={`shrink-0 border-0 ${STATUS_COLORS[currentStatus] ?? ""}`}>
+          <Badge className={`shrink-0 border-0 ${TICKET_TONE[currentStatus].badge}`}>
             {statusLabel(currentStatus)}
           </Badge>
         </div>
@@ -241,10 +235,10 @@ export function TicketDetail({
           {comments.map((c) => (
             <div key={c.id} className="rounded-[4px] bg-muted/50 p-3">
               <div className="flex items-center justify-between text-xs text-muted-foreground/70">
-                <span className="font-medium text-muted-foreground dark:text-foreground">{c.authorName}</span>
+                <span className="font-medium text-muted-foreground dark:text-foreground">{c.authorName ?? t("unknownUser")}</span>
                 <div className="flex items-center gap-2">
                   {c.isInternal && <span className="rounded-full bg-warning/12 border-warning/35 text-warning">{t("internalNote")}</span>}
-                  <span>{new Date(c.createdAt).toLocaleDateString("ru", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}</span>
+                  <span>{new Date(c.createdAt).toLocaleDateString(locale, { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}</span>
                 </div>
               </div>
               <p className="mt-1 whitespace-pre-wrap text-sm">{c.content}</p>

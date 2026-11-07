@@ -3,8 +3,8 @@
 import {usePathname, useRouter, useSearchParams} from "next/navigation";
 import {useTranslations} from "next-intl";
 
-import {DateRangePicker, formatIsoDate, type DateRangeSelection} from "@/components/date-range-picker";
-import {resolvePeriod} from "@/modules/finance/period";
+import {isoDate, resolvePeriod} from "@/modules/finance/period";
+import {DateRangePicker, type DateRangeSelection} from "./date-range-picker";
 
 const toDate = (iso: string) => (iso ? new Date(`${iso}T00:00:00`) : undefined);
 
@@ -31,8 +31,8 @@ export function FinancePeriodPicker() {
         if (selection.month) {
             params.set("month", selection.month);
         } else {
-            const from = formatIsoDate(selection.from);
-            const to = formatIsoDate(selection.to);
+            const from = selection.from ? isoDate(selection.from) : "";
+            const to = selection.to ? isoDate(selection.to) : "";
             if (from) params.set("from", from);
             if (to) params.set("to", to);
         }

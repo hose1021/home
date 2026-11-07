@@ -2,7 +2,6 @@
 
 import {IconBuildingCommunity} from "@tabler/icons-react";
 import Image from "next/image";
-import Link from "next/link";
 import {
     Sidebar,
     SidebarContent,
@@ -12,7 +11,8 @@ import {
     SidebarMenuButton,
     SidebarMenuItem,
 } from "@/components/ui/sidebar";
-import type {Permission} from "@/core/auth/permissions";
+import type {Session} from "@/core/auth/session";
+import {Link} from "@/i18n/navigation";
 import {NavMain} from "./nav-main";
 import {NavSecondary} from "./nav-secondary";
 import {NavUser} from "./nav-user";
@@ -20,15 +20,11 @@ import {NavUser} from "./nav-user";
 export function AppSidebar({
   tenantName,
   tenantLogoUrl,
-  userName,
-  userEmail,
-  permissions,
+  session,
 }: {
   tenantName: string;
   tenantLogoUrl?: string | null;
-  userName?: string;
-  userEmail?: string;
-  permissions?: Permission[];
+  session: Session;
 }) {
   return (
     <Sidebar variant="inset" collapsible="icon">
@@ -60,11 +56,11 @@ export function AppSidebar({
         </SidebarMenu>
       </SidebarHeader>
       <SidebarContent className="gap-1 py-1">
-        <NavMain permissions={permissions} />
-        <NavSecondary permissions={permissions} className="mt-auto" />
+        <NavMain session={session} />
+        <NavSecondary className="mt-auto" />
       </SidebarContent>
       <SidebarFooter className="border-t border-sidebar-border px-2 py-2">
-        <NavUser userName={userName ?? "User"} userEmail={userEmail} />
+        <NavUser userName={session.user.fullName} userEmail={session.user.username} />
       </SidebarFooter>
     </Sidebar>
   );

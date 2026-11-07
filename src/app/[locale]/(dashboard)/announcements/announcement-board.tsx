@@ -16,18 +16,20 @@ import {
 import {Badge} from "@/components/ui/badge";
 import {Button} from "@/components/ui/button";
 import {Dialog, DialogContent, DialogHeader, DialogTitle,} from "@/components/ui/dialog";
+import type {AnnouncementPriority} from "@/core/db/schema/enums";
 import {deleteAnnouncementAction} from "@/modules/announcements/announcement.actions";
+import {ANNOUNCEMENT_TONE} from "@/modules/announcements/announcement.constants";
 import {AnnouncementForm} from "@/modules/announcements/components/AnnouncementForm";
 
 type Announcement = {
   id: string;
   title: string;
   content: string;
-  priority: string;
+  priority: AnnouncementPriority;
   isPinned: boolean;
   isDashboard: boolean;
   createdAt: Date;
-  createdBy: string | null;
+  authorName: string | null;
 };
 
 export function AnnouncementBoard({
@@ -48,7 +50,7 @@ export function AnnouncementBoard({
     setDeleting(null);
   }
 
-  function priorityLabel(p: string) { return ta(`priorities.${p}` as Parameters<typeof ta>[0]) ?? p; }
+  function priorityLabel(p: AnnouncementPriority) { return ta(`priorities.${p}`); }
 
   return (
     <>
@@ -63,12 +65,7 @@ export function AnnouncementBoard({
           {announcements.map((a) => (
             <div
               key={a.id}
-              className={`surface-panel p-5 ${
-                  a.priority === "urgent" ? "border-l-danger" :
-                      a.priority === "high" ? "border-l-warning" :
-                          a.priority === "low" ? "border-l-muted-foreground" :
-                              "border-l-primary"
-              } border-l-4`}
+              className={`surface-panel border-l-4 p-5 ${ANNOUNCEMENT_TONE[a.priority].border}`}
             >
               <div className="flex items-start justify-between gap-4">
                 <div className="min-w-0 flex-1">
@@ -76,12 +73,7 @@ export function AnnouncementBoard({
                     {a.isPinned && <IconPin className="size-4 shrink-0 text-muted-foreground/70" />}
                     <h3 className="font-medium">{a.title}</h3>
                     {a.isDashboard && <Badge variant="outline">{ta("showOnDashboard")}</Badge>}
-                    <Badge variant="secondary" className={
-                      a.priority === "urgent" ? "bg-danger/12 border-danger/35 text-danger" :
-                      a.priority === "high" ? "bg-warning/12 border-warning/35 text-warning" :
-                      a.priority === "low" ? "bg-muted text-muted-foreground" :
-                      "bg-primary/12 border-primary/35 text-primary"
-                    }>
+                    <Badge variant="secondary" className={ANNOUNCEMENT_TONE[a.priority].badge}>
                       {priorityLabel(a.priority)}
                     </Badge>
                   </div>
@@ -101,7 +93,7 @@ export function AnnouncementBoard({
               </div>
 
               <div className="mt-3 flex items-center gap-2 text-[11px] text-muted-foreground">
-                <span>{a.createdBy}</span>
+                <span>{a.authorName}</span>
                 <span>·</span>
                 <span>{new Date(a.createdAt).toLocaleDateString("ru-RU", { day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" })}</span>
               </div>

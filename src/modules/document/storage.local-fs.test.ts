@@ -1,4 +1,4 @@
-import {mkdtemp} from "node:fs/promises";
+import {mkdtemp, rm} from "node:fs/promises";
 import {tmpdir} from "node:os";
 import {join} from "node:path";
 import {afterAll, describe, expect, it} from "vitest";
@@ -6,18 +6,15 @@ import {LocalFsStorage} from "./storage";
 
 describe("LocalFsStorage", () => {
   const dirs: string[] = [];
-  const storages: LocalFsStorage[] = [];
 
   afterAll(async () => {
-    await Promise.all(storages.map((s) => s.destroy()));
+    await Promise.all(dirs.map((dir) => rm(dir, {recursive: true, force: true})));
   });
 
   async function make() {
     const dir = await mkdtemp(join(tmpdir(), "documents-"));
     dirs.push(dir);
-    const storage = new LocalFsStorage(dir);
-    storages.push(storage);
-    return storage;
+    return new LocalFsStorage(dir);
   }
 
   it("writes, reads and deletes an object on disk", async () => {

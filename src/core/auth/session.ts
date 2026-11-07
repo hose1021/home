@@ -1,21 +1,18 @@
 import {cookies} from "next/headers";
 import {redirect} from "next/navigation";
-import {ForbiddenError, TenantMismatchError} from "@/core/errors/app-error";
-import {getSessionFromToken} from "./auth";
-import type {Permission, Role} from "./permissions";
-import {hasPermission} from "./permissions";
+import {ForbiddenError} from "@/core/errors/app-error";
+import {getSessionFromToken, getSessionUserById, type SessionUser} from "./auth";
+import {sessionAllows, type Permission} from "./permissions";
+import {canActAs, parseViewAs, VIEW_AS_COOKIE, type ViewAs, applyViewAs} from "./view-as";
 
 const SESSION_COOKIE = "session_token";
 
 export type Session = {
-  user: {
-    id: string;
-    tenantId: string;
-    username: string;
-    fullName: string;
-    roles: Role[];
-    isPlatformAdmin: boolean;
-  };
+  /** Effective identity: the actor, or the identity the actor is viewing as. */
+  user: SessionUser;
+  /** The real signed-in user, always authoritative for switching back. */
+  actor: SessionUser;
+  viewAs: ViewAs | null;
 };
 
 export async function getSession(): Promise<Session | null> {
@@ -23,10 +20,17 @@ export async function getSession(): Promise<Session | null> {
   const token = cookieStore.get(SESSION_COOKIE)?.value;
   if (!token) return null;
 
-  const user = await getSessionFromToken(token);
-  if (!user) return null;
+  const actor = await getSessionFromToken(token);
+  if (!actor) return null;
 
-  return { user };
+  const mode = canActAs(actor) ? parseViewAs(cookieStore.get(VIEW_AS_COOKIE)?.value) : null;
+  if (!mode) return {user: actor, actor, viewAs: null};
+
+  const target = mode.kind === "user" ? await getSessionUserById(mode.userId, actor.tenantId) : null;
+  const effective = applyViewAs(actor, mode, target);
+  if (!effective) return {user: actor, actor, viewAs: null};
+
+  return {user: effective, actor, viewAs: mode};
 }
 
 export async function requireAuth(): Promise<Session> {
@@ -35,39 +39,15 @@ export async function requireAuth(): Promise<Session> {
   return session;
 }
 
-export async function requirePermission(permission: Permission): Promise<Session> {
+export async function requireTenantContext(): Promise<{session: Session; tenantId: string}> {
   const session = await requireAuth();
-  const allowed = session.user.roles.some((role) => hasPermission(role, permission));
-  if (!allowed) throw new ForbiddenError(`Missing permission "${permission}"`);
-  return session;
+  return {session, tenantId: session.user.tenantId};
 }
 
-export async function requirePlatformPermission(permission: Permission): Promise<Session> {
-  const session = await requirePermission(permission);
-  if (!session.user.isPlatformAdmin) throw new ForbiddenError("Platform admin permission required");
-  return session;
-}
-
-export async function requireTenantContext(): Promise<{ session: Session; tenantId: string }> {
-  const session = await requireAuth();
-  return { session, tenantId: session.user.tenantId };
-}
-
-export async function requireTenantPermission(permission: Permission): Promise<{ session: Session; tenantId: string }> {
-  const { session, tenantId } = await requireTenantContext();
-  const allowed = session.user.roles.some((role) => hasPermission(role, permission));
-  if (!allowed) throw new ForbiddenError(`Missing permission "${permission}"`);
-  return { session, tenantId };
-}
-
-export function canMutateTenant(session: Session, tenantId: string): boolean {
-  return session.user.isPlatformAdmin || session.user.tenantId === tenantId;
-}
-
-export async function requireTenantMutation(tenantId: string): Promise<Session> {
-  const session = await requirePermission("tenant:write");
-  if (!canMutateTenant(session, tenantId)) throw new TenantMismatchError();
-  return session;
+export async function requireTenantPermission(permission: Permission): Promise<{session: Session; tenantId: string}> {
+  const ctx = await requireTenantContext();
+  if (!sessionAllows(ctx.session, permission)) throw new ForbiddenError(`Missing permission "${permission}"`);
+  return ctx;
 }
 
 export function getSessionCookieName() {

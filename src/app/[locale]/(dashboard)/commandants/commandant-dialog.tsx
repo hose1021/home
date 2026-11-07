@@ -1,9 +1,11 @@
 "use client";
 
+import {useTranslations} from "next-intl";
 import {useState} from "react";
 import {toast} from "sonner";
 import {Button} from "@/components/ui/button";
 import {Dialog, DialogContent, DialogHeader, DialogTitle} from "@/components/ui/dialog";
+import {todayIso} from "@/lib/date";
 import {createCommandantAction, updateCommandantAction} from "@/modules/commandants/commandant.actions";
 
 export type CommandantRow = {
@@ -25,10 +27,6 @@ export type OwnerOption = {
 const inputClass =
   "mt-1 field";
 
-function today(): string {
-  return new Date().toISOString().slice(0, 10);
-}
-
 type FormState = {
   ownerId: string;
   fullName: string;
@@ -43,7 +41,7 @@ const emptyForm: FormState = {
   fullName: "",
   phone: "",
   isActive: true,
-  startDate: today(),
+  startDate: todayIso(),
   endDate: "",
 };
 
@@ -60,6 +58,8 @@ export function CommandantDialog({
   initial: CommandantRow | null;
   onSaved: () => void;
 }) {
+  const t = useTranslations("commandants");
+  const tc = useTranslations("common");
   const [pending, setPending] = useState(false);
   const [form, setForm] = useState<FormState>(() =>
     initial
@@ -102,10 +102,10 @@ export function CommandantDialog({
     try {
       if (initial) {
         await updateCommandantAction(initial.id, payload);
-        toast.success("Комендант обновлён");
+        toast.success(t("updated"));
       } else {
         await createCommandantAction(payload);
-        toast.success("Комендант добавлен");
+        toast.success(t("created"));
       }
       onOpenChange(false);
       onSaved();
@@ -120,17 +120,17 @@ export function CommandantDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>{initial ? "Изменить коменданта" : "Добавить коменданта"}</DialogTitle>
+          <DialogTitle>{initial ? t("editTitle") : t("createTitle")}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium">Из собственников (необязательно)</label>
+            <label className="block text-sm font-medium">{t("fromOwners")}</label>
             <select
               value={form.ownerId}
               onChange={(e) => onOwnerChange(e.target.value)}
               className={inputClass}
             >
-              <option value="">— вручную —</option>
+              <option value="">{t("manual")}</option>
               {owners.map((owner) => (
                 <option key={owner.id} value={owner.id}>{owner.fullName}</option>
               ))}
@@ -138,23 +138,23 @@ export function CommandantDialog({
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
-              <label className="block text-sm font-medium">Имя Фамилия</label>
+              <label className="block text-sm font-medium">{t("fullName")}</label>
               <input value={form.fullName} onChange={(e) => set("fullName", e.target.value)} required className={inputClass} />
             </div>
             <div>
-              <label className="block text-sm font-medium">Телефон</label>
+              <label className="block text-sm font-medium">{t("phone")}</label>
               <input value={form.phone} onChange={(e) => set("phone", e.target.value)} type="tel" className={inputClass} />
             </div>
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
-              <label className="block text-sm font-medium">Начало периода</label>
+              <label className="block text-sm font-medium">{t("startDate")}</label>
               <input value={form.startDate} onChange={(e) => set("startDate", e.target.value)} type="date" required className={inputClass} />
             </div>
             <div>
-              <label className="block text-sm font-medium">Конец периода</label>
+              <label className="block text-sm font-medium">{t("endDate")}</label>
               <input value={form.endDate} onChange={(e) => set("endDate", e.target.value)} type="date" className={inputClass} />
-              <p className="mt-1 text-xs text-muted-foreground">Пусто = по настоящее время</p>
+              <p className="mt-1 text-xs text-muted-foreground">{t("openEnded")}</p>
             </div>
           </div>
           <label className="flex items-center gap-2 cursor-pointer">
@@ -164,12 +164,12 @@ export function CommandantDialog({
               onChange={(e) => set("isActive", e.target.checked)}
               className="rounded border-border dark:border-border"
             />
-            <span className="text-sm">Активный комендант</span>
+            <span className="text-sm">{t("active")}</span>
           </label>
           <div className="flex justify-end gap-3 pt-2">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Отмена</Button>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>{tc("cancel")}</Button>
             <Button type="submit" disabled={pending}>
-              {pending ? "Сохранение..." : "Сохранить"}
+              {pending ? t("saving") : tc("save")}
             </Button>
           </div>
         </form>

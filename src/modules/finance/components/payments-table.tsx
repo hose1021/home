@@ -8,15 +8,13 @@ import {FilterReset, FilterSearch, FilterSelect, SortableHead, TableFilters, mat
 import {Button} from "@/components/ui/button";
 import {Dialog, DialogContent, DialogHeader, DialogTitle} from "@/components/ui/dialog";
 import {TableBody, TableCell, TableHeader, TableRow} from "@/components/ui/table";
+import {PAYMENT_METHODS, PAYMENT_STATUSES} from "@/core/db/schema/enums";
 import {FinanceStatusBadge} from "@/modules/finance/components/finance-status-badge";
 import {FinanceTable} from "@/modules/finance/components/finance-table";
 import {PaymentDialog} from "@/modules/finance/components/PaymentForm";
 import {formatAmount, formatDate} from "@/modules/finance/money-format";
 import {resolvePeriod} from "@/modules/finance/period";
 import type {PaymentView} from "@/modules/finance/services/finance-analytics.service";
-
-const STATUSES = ["confirmed", "rejected", "refunded"] as const;
-const METHODS = ["cash", "bank_transfer", "card", "e_manat", "pos_terminal", "other"] as const;
 
 type UnitOption = {id: string; unitNumber: string; entrance: number; floor: number; ownerName: string | null; ownerId: string | null};
 
@@ -85,13 +83,13 @@ export function PaymentsTable({rows, units, canWrite}: {
                         label={t("filters.method")}
                         value={method}
                         onChange={(value) => params.update({method: value})}
-                        options={[{value: "", label: t("filters.allMethods")}, ...METHODS.map((item) => ({value: item, label: t(`payments.paymentMethods.${item}`)}))]}
+                        options={[{value: "", label: t("filters.allMethods")}, ...PAYMENT_METHODS.map((item) => ({value: item, label: t(`payments.paymentMethods.${item}`)}))]}
                     />
                     <FilterSelect
                         label={t("filters.status")}
                         value={status}
                         onChange={(value) => params.update({status: value})}
-                        options={[{value: "", label: t("filters.allStatuses")}, ...STATUSES.map((item) => ({value: item, label: t(`payments.status.${item}`)}))]}
+                        options={[{value: "", label: t("filters.allStatuses")}, ...PAYMENT_STATUSES.map((item) => ({value: item, label: t(`payments.status.${item}`)}))]}
                     />
                     <FilterReset active={hasFilters} onReset={() => params.update({q: "", status: "", method: ""})} label={t("filters.reset")} />
                 </TableFilters>

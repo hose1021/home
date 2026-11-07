@@ -2,58 +2,25 @@ import {eq} from "drizzle-orm";
 import {writeAuditLog} from "@/core/audit/audit.service";
 import {db} from "@/core/db";
 import {tenants} from "@/core/db/schema/tenants";
+import {DomainError} from "@/core/errors/app-error";
 import {invalidateTenantCache} from "@/core/multi-tenant";
 
-type CreateTenantInput = {
-  slug: string;
-  name: string;
+export type UpdateTenantInput = {
+  slug?: string;
+  name?: string;
   taxId?: string | null;
   address?: string | null;
   phone?: string | null;
 };
-
-type UpdateTenantInput = Partial<CreateTenantInput> & {
-  status?: "active" | "suspended" | "archived";
-};
-
-export async function createTenant(input: CreateTenantInput, userId: string) {
-  const [tenant] = await db
-    .insert(tenants)
-    .values({
-      slug: input.slug,
-      name: input.name,
-      taxId: input.taxId ?? null,
-      address: input.address ?? null,
-      phone: input.phone ?? null,
-    })
-    .returning();
-  if (!tenant) throw new Error("Failed to create tenant");
-
-  await writeAuditLog({
-    tenantId: tenant.id,
-    userId,
-    action: "create",
-    entityType: "tenant",
-    entityId: tenant.id,
-    newValues: input as unknown as Record<string, unknown>,
-  });
-
-  return tenant;
-}
 
 export async function getTenantById(id: string) {
   const [tenant] = await db.select().from(tenants).where(eq(tenants.id, id)).limit(1);
   return tenant ?? null;
 }
 
-export async function getTenantBySlug(slug: string) {
-  const [tenant] = await db.select().from(tenants).where(eq(tenants.slug, slug)).limit(1);
-  return tenant ?? null;
-}
-
 export async function updateTenant(id: string, input: UpdateTenantInput, userId: string) {
   const old = await getTenantById(id);
-  if (!old) throw new Error("Tenant not found");
+  if (!old) throw new DomainError("tenantNotFound");
 
   const [updated] = await db
     .update(tenants)
@@ -75,12 +42,4 @@ export async function updateTenant(id: string, input: UpdateTenantInput, userId:
   });
 
   return updated;
-}
-
-export async function listTenants() {
-  return await db.select().from(tenants).orderBy(tenants.createdAt);
-}
-
-export async function deactivateTenant(id: string, userId: string) {
-  return updateTenant(id, { status: "suspended" }, userId);
 }

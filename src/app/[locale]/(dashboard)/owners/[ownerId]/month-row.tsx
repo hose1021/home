@@ -7,9 +7,9 @@ import {toast} from "sonner";
 import {Button} from "@/components/ui/button";
 import {Dialog, DialogContent, DialogHeader, DialogTitle} from "@/components/ui/dialog";
 import {Input} from "@/components/ui/input";
+import {PAYMENT_METHODS, type PaymentMethod} from "@/core/db/schema/enums";
 import {registerPaymentAction} from "@/modules/finance/finance.actions";
-
-const METHODS = ["cash", "bank_transfer", "card", "e_manat", "pos_terminal"] as const;
+import {formatAmount, formatNumber} from "@/modules/finance/money-format";
 
 export type MonthPayment = {
   id: string;
@@ -59,7 +59,7 @@ export function MonthRow({
   const [payOpen, setPayOpen] = useState(false);
   const [pending, setPending] = useState(false);
   const [amount, setAmount] = useState("");
-  const [method, setMethod] = useState<(typeof METHODS)[number]>("cash");
+  const [method, setMethod] = useState<PaymentMethod>("cash");
   const [referenceNo, setReferenceNo] = useState("");
 
   const owed = Math.max(0, monthlyFee - alreadyPaid);
@@ -73,7 +73,7 @@ export function MonthRow({
         ownerId, unitId, amount, periodYear: year, periodMonth: month,
         paymentMethod: method,
         referenceNo: referenceNo || undefined,
-        tariffPerSqm: tariff.toFixed(2),
+        tariffPerSqm: String(tariff),
       });
       setPayOpen(false);
       toast.success(tp("paidSuccess"));
@@ -99,20 +99,20 @@ export function MonthRow({
           <span className="text-sm">{monthName(locale, year, month)}</span>
           {isPaid && payment && (
             <span className="ml-2 hidden text-xs text-muted-foreground sm:inline">
-              {Number(payment.tariffPerSqm).toFixed(2)} ₼/м² · {t(`paymentMethods.${payment.paymentMethod}`)}
+              {formatAmount(payment.tariffPerSqm)}/{tc("squareMeters")} · {t(`paymentMethods.${payment.paymentMethod}`)}
               {payment.referenceNo && ` · #${payment.referenceNo}`}
             </span>
           )}
         </div>
 
         <span className={`text-sm font-semibold tabular-nums ${isPaid ? "text-success" : "text-destructive"}`}>
-          {isPaid ? `${alreadyPaid.toFixed(2)} ₼` : `${owed.toFixed(2)} ₼`}
+          {isPaid ? formatAmount(alreadyPaid) : formatAmount(owed)}
         </span>
 
         <div className="ml-3 shrink-0">
           {!isPaid && (
             <Button
-              onClick={() => { setAmount(owed.toFixed(2)); setMethod("cash"); setReferenceNo(""); setPayOpen(true); }}
+              onClick={() => { setAmount(String(owed)); setMethod("cash"); setReferenceNo(""); setPayOpen(true); }}
               size="sm"
             >
               {t("pay")}
@@ -133,18 +133,18 @@ export function MonthRow({
             <div className="space-y-1.5 rounded-[4px] border bg-muted/30 p-4">
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">{tp("amountDue")}</span>
-                <span className="font-medium">{monthlyFee.toFixed(2)} ₼</span>
+                <span className="font-medium">{formatAmount(monthlyFee)}</span>
               </div>
               {alreadyPaid > 0 && (
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground/70">{t("paidThisMonth")}</span>
-                  <span className="text-success">{alreadyPaid.toFixed(2)} ₼</span>
+                  <span className="text-success">{formatAmount(alreadyPaid)}</span>
                 </div>
               )}
               {owed > 0 && (
                 <div className="flex justify-between border-t border-border pt-1.5 dark:border-border">
                   <span className="text-sm font-medium text-danger">{tp("toPay")}</span>
-                  <span className="font-bold text-danger">{owed.toFixed(2)} ₼</span>
+                  <span className="font-bold text-danger">{formatAmount(owed)}</span>
                 </div>
               )}
             </div>
@@ -155,7 +155,7 @@ export function MonthRow({
             <div>
               <label className="block text-sm font-medium mb-1.5">{t("paymentMethod")}</label>
               <div className="grid grid-cols-3 gap-2">
-                {METHODS.map((m) => (
+                {PAYMENT_METHODS.map((m) => (
                   <Button key={m} type="button" size="sm" variant={method === m ? "default" : "outline"} onClick={() => setMethod(m)} className="h-auto min-h-10 whitespace-normal px-2 py-2 text-xs">
                     {t(`paymentMethods.${m}`)}
                   </Button>
@@ -169,7 +169,7 @@ export function MonthRow({
             <div className="flex gap-3 pt-2">
               <Button type="button" variant="outline" onClick={() => setPayOpen(false)} className="flex-1">{tc("cancel")}</Button>
               <Button type="submit" disabled={pending} className="flex-[2] ">
-                {pending ? tp("processing") : tp("payAmount", {amount: Number(amount || 0).toFixed(2)})}
+                {pending ? tp("processing") : tp("payAmount", {amount: formatNumber(amount || 0)})}
               </Button>
             </div>
           </form>

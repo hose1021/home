@@ -1,7 +1,10 @@
 "use client";
 
+import {useTranslations} from "next-intl";
 import {useEffect, useState} from "react";
 import {Button} from "@/components/ui/button";
+import {UNIT_TYPES, type UnitType} from "@/core/db/schema/enums";
+import {formatNumber} from "@/modules/finance/money-format";
 import {assignExistingUnitAction, addNewUnitToOwnerAction, listUnassignedUnitsAction} from "../owner.actions";
 
 type UnassignedUnit = {
@@ -20,6 +23,9 @@ export function OwnerAddUnitForm({
   ownerId: string;
   onDone: () => void;
 }) {
+  const t = useTranslations("owners");
+  const tu = useTranslations("units");
+  const tc = useTranslations("common");
   const [mode, setMode] = useState<"existing" | "new">("existing");
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
@@ -30,9 +36,9 @@ export function OwnerAddUnitForm({
   useEffect(() => {
     listUnassignedUnitsAction(ownerId)
       .then(setUnits)
-      .catch(() => setError("Не удалось загрузить список квартир"))
+      .catch(() => setError(t("loadUnitsFailed")))
       .finally(() => setUnitsLoaded(true));
-  }, [ownerId]);
+  }, [ownerId, t]);
 
   async function handleAssign(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -59,7 +65,7 @@ export function OwnerAddUnitForm({
         unitNumber: fd.get("unitNumber") as string,
         entrance: Number(fd.get("entrance")),
         floor: Number(fd.get("floor")),
-        type: fd.get("type") as "residential" | "commercial" | "parking" | "storage" | "other",
+        type: fd.get("type") as UnitType,
         area: fd.get("area") as string,
       });
       onDone();
@@ -82,7 +88,7 @@ export function OwnerAddUnitForm({
               : "text-muted-foreground hover:text-foreground dark:text-muted-foreground/70 dark:hover:text-foreground"
           }`}
         >
-          Выбрать существующую
+          {t("existingUnitMode")}
         </button>
         <button
           type="button"
@@ -93,16 +99,16 @@ export function OwnerAddUnitForm({
               : "text-muted-foreground hover:text-foreground dark:text-muted-foreground/70 dark:hover:text-foreground"
           }`}
         >
-          Создать новую
+          {t("newUnitMode")}
         </button>
       </div>
 
       {mode === "existing" ? (
         <form onSubmit={handleAssign} className="space-y-4">
           {!unitsLoaded ? (
-            <p className="text-sm text-muted-foreground">Загрузка...</p>
+            <p className="text-sm text-muted-foreground">{tc("loading")}</p>
           ) : units.length === 0 ? (
-            <p className="text-sm text-muted-foreground">Нет доступных квартир. Создайте новую.</p>
+            <p className="text-sm text-muted-foreground">{t("noAvailableUnits")}</p>
           ) : (
             <select
               value={selectedUnitId}
@@ -110,10 +116,10 @@ export function OwnerAddUnitForm({
               required
               className="field"
             >
-              <option value="">— Выберите квартиру —</option>
+              <option value="">{t("chooseUnit")}</option>
               {units.map((u) => (
                 <option key={u.id} value={u.id}>
-                  Кв. {u.unitNumber} — под. {u.entrance}, эт. {u.floor}, {Number(u.area).toFixed(1)} м²
+                  {t("unitOption", {unit: u.unitNumber, entrance: u.entrance, floor: u.floor, area: formatNumber(u.area)})}
                 </option>
               ))}
             </select>
@@ -122,40 +128,39 @@ export function OwnerAddUnitForm({
           {error && <p className="text-sm text-danger">{error}</p>}
 
           <div className="flex justify-end gap-3">
-            <Button type="button" variant="outline" onClick={onDone}>Отмена</Button>
+            <Button type="button" variant="outline" onClick={onDone}>{tc("cancel")}</Button>
             <Button type="submit" disabled={pending || !selectedUnitId}>
-              {pending ? "Привязка..." : "Привязать"}
+              {pending ? t("linking") : t("assign")}
             </Button>
           </div>
         </form>
       ) : (
         <form onSubmit={handleCreate} className="space-y-4">
           <fieldset className="rounded-[4px] border border-border p-3 dark:border-border">
-            <legend className="px-1 text-sm font-medium">Новая квартира</legend>
+            <legend className="px-1 text-sm font-medium">{t("newUnitFieldset")}</legend>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-sm font-medium">№ квартиры</label>
+                <label className="block text-sm font-medium">{tu("unitNumber")}</label>
                 <input name="unitNumber" required className="mt-1 field" />
               </div>
               <div>
-                <label className="block text-sm font-medium">Этаж</label>
+                <label className="block text-sm font-medium">{tu("floor")}</label>
                 <input name="floor" type="number" required className="mt-1 field" />
               </div>
               <div>
-                <label className="block text-sm font-medium">Подъезд</label>
+                <label className="block text-sm font-medium">{tu("entrance")}</label>
                 <input name="entrance" type="number" defaultValue={1} className="mt-1 field" />
               </div>
               <div>
-                <label className="block text-sm font-medium">Тип</label>
+                <label className="block text-sm font-medium">{tu("type")}</label>
                 <select name="type" className="mt-1 field">
-                  <option value="residential">Жилая</option>
-                  <option value="commercial">Коммерческая</option>
-                  <option value="parking">Парковка</option>
-                  <option value="storage">Склад</option>
+                  {UNIT_TYPES.map((type) => (
+                    <option key={type} value={type}>{tu(`types.${type}`)}</option>
+                  ))}
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium">Площадь (м²)</label>
+                <label className="block text-sm font-medium">{tu("area")}</label>
                 <input name="area" type="number" step="0.01" required className="mt-1 field" />
               </div>
             </div>
@@ -164,8 +169,8 @@ export function OwnerAddUnitForm({
           {error && <p className="text-sm text-danger">{error}</p>}
 
           <div className="flex justify-end gap-3">
-            <Button type="button" variant="outline" onClick={onDone}>Отмена</Button>
-            <Button type="submit" disabled={pending}>{pending ? "Создание..." : "Создать"}</Button>
+            <Button type="button" variant="outline" onClick={onDone}>{tc("cancel")}</Button>
+            <Button type="submit" disabled={pending}>{pending ? t("creating") : tc("create")}</Button>
           </div>
         </form>
       )}

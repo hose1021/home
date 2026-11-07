@@ -63,7 +63,8 @@
     "confirmDeleteTitle": "Qeydi sil",
     "auth": {
       "login": "Login"
-    }
+    },
+    "toggleTheme": "Rəng temasını dəyiş"
   },
   "auth": {
     "login": "Login",
@@ -146,7 +147,9 @@
     "dueBy": "qədər",
     "noCharges": "Hələ hesablama yoxdur",
     "openFinance": "Maliyyəni aç",
-    "block": "Blok"
+    "block": "Blok",
+    "present": "hazırda",
+    "ownerProfile": "Mülkiyyətçinin profili"
   },
   "owners": {
     "registry": "Sakin reyestri",
@@ -200,8 +203,28 @@
     "monthlyTariff": "Aylıq tarif",
     "unitNumber": "Mənzil {unit}",
     "blockFloor": "Blok {entrance}, mərtəbə {floor}",
-    "feeFormula": "{area} м² × {tariff} ₼ = {fee} ₼/ay",
-    "unitDebt": "Mənzil üzrə borc"
+    "feeFormula": "{area} m² × {tariff} ₼ = {fee} ₼/ay",
+    "unitDebt": "Mənzil üzrə borc",
+    "roles": "Rollar",
+    "changePassword": "Şifrəni dəyiş",
+    "passwordHint": "Ən azı {min} simvol. İstifadəçinin bütün sessiyaları sıfırlanacaq.",
+    "newPassword": "Yeni şifrə",
+    "setPassword": "Təyin et",
+    "saving": "Yadda saxlanılır...",
+    "passwordTooShort": "Şifrə ən azı {min} simvol olmalıdır",
+    "passwordUpdated": "Şifrə yeniləndi. İstifadəçinin sessiyası sıfırlandı.",
+    "ownerFieldset": "Sahib",
+    "unitFieldset": "Mənzil",
+    "newUnitFieldset": "Yeni mənzil",
+    "creating": "Yaradılır...",
+    "loadUnitsFailed": "Mənzil siyahısı yüklənmədi",
+    "existingUnitMode": "Mövcud seç",
+    "newUnitMode": "Yeni yarat",
+    "noAvailableUnits": "Mövcud mənzil yoxdur. Yenisini yaradın.",
+    "chooseUnit": "— Mənzil seçin —",
+    "unitOption": "Mənzil {unit} — giriş {entrance}, mərtəbə {floor}, {area} m²",
+    "linking": "Bağlanır...",
+    "assign": "Bağla"
   },
   "units": {
     "title": "Mənzillər",
@@ -220,7 +243,39 @@
       "other": "Digər"
     },
     "registry": "Otaqlar reyestri",
-    "description": "Bütün mənzillər və qeyri-yaşayış otaqları · {count} ədəd"
+    "description": "Bütün mənzillər və qeyri-yaşayış otaqları · {count} ədəd",
+    "updated": "Mənzil yeniləndi",
+    "detached": "Mənzil ayrıldı",
+    "detach": "Ayır",
+    "detachTitle": "Mənzili ayır",
+    "detachDescription": "№{unit} mənzil sahibdən ayrılacaq. Mənzilin özü silinmir.",
+    "detaching": "Bağlantı silinir...",
+    "addUnit": "Mənzil əlavə et",
+    "searchPlaceholder": "Nömrə və ya sahibə görə axtarış...",
+    "allTypes": "Bütün növlər",
+    "ownerFilters": {
+      "all": "Hamısı",
+      "assigned": "Sahibi var",
+      "unassigned": "Sahibi yoxdur"
+    },
+    "owners": "Sahiblər",
+    "owner": "Sahib",
+    "created": "Mənzil yaradıldı",
+    "deleted": "Mənzil silindi",
+    "assignedSuccess": "Mənzil bağlandı",
+    "unassignedSuccess": "Mənzilin bağlantısı silindi",
+    "assign": "Bağla",
+    "assignTitle": "Mənzili sahibə bağla",
+    "detachConfirm": "Mənzil {unit}, giriş {entrance}, mərtəbə {floor} — sahib {owner} ayrılacaq.",
+    "deleteTitle": "Mənzili sil",
+    "deleteConfirm": "Mənzil silinmiş kimi işarələnəcək.",
+    "none": "Mənzil yoxdur",
+    "showing": "Göstərilir: {total} içindən {shown}",
+    "chooseOwner": "— Seçin —",
+    "unitSummary": "Mənzil {unit}, giriş {entrance}, mərtəbə {floor}",
+    "creating": "Yaradılır...",
+    "saving": "Yadda saxlanılır...",
+    "assigning": "Bağlanır..."
   },
   "finance": {
     "title": "Maliyyə",
@@ -621,7 +676,9 @@
     "noMeetings": "Hələ iclas yoxdur",
     "types": {
       "annual": "İllik",
-      "extraordinary": "Növbədənkənar"
+      "extraordinary": "Növbədənkənar",
+      "board": "İdarə heyəti",
+      "audit": "Audit"
     },
     "statuses": {
       "planned": "Planlaşdırılıb",
@@ -644,9 +701,9 @@
     "noAnnouncements": "Hələ elan yoxdur",
     "priorities": {
       "low": "Adi",
-      "medium": "Vacib",
       "high": "Təcili",
-      "urgent": "Kritik"
+      "urgent": "Kritik",
+      "normal": "Adi"
     },
     "errors": {
       "announcement_not_found": "Elan tapılmadı",
@@ -667,22 +724,46 @@
     "phone": "Telefon"
   },
   "errors": {
-    "unauthorized": "Avtorizasiya tələb olunur",
     "forbidden": "Kifayət qədər hüquq yoxdur",
-    "notFound": "Tapılmadı",
-    "serverError": "Server xətası",
-    "validationError": "Doğrulama xətası",
     "ticketNotFound": "Müraciət tapılmadı",
-    "invalidTransition": "Yolverilməz status keçidi: {from} → {to}",
+    "invalidTransition": "Status keçidi icazəli deyil",
     "unitNotFound": "Mənzil tapılmadı",
     "tenantNotFound": "Təşkilat tapılmadı",
     "ownerNotFound": "Sahib tapılmadı",
-    "paymentNotFound": "Ödəniş tapılmadı",
     "paymentAmountPositive": "Ödəniş məbləği müsbət olmalıdır",
     "invalidPaymentYear": "Yanlış ödəniş ili",
     "invalidPaymentMonth": "Yanlış ödəniş ayı",
     "invalidPaymentMethod": "Yanlış ödəniş üsulu",
-    "invalidTariff": "Yanlış tarif"
+    "invalidTariff": "Yanlış tarif",
+    "invalidChargeYear": "Hesablama ili yanlışdır",
+    "invalidChargeMonth": "Hesablama ayı yanlışdır",
+    "chargeNotFound": "Hesablama tapılmadı",
+    "chargeNotPayable": "Hesablama ödəniş üçün əlçatan deyil",
+    "ownerUnitMismatch": "Sahib bu mənzilə sahib deyil",
+    "expenseAmountPositive": "Xərc məbləği müsbət olmalıdır",
+    "expenseDescriptionRequired": "Xərc təsviri tələb olunur",
+    "invalidExpenseDate": "Xərc tarixi yanlışdır",
+    "invalidBillingStart": "Hesablamaların başlama tarixi yanlışdır",
+    "invalidDueDay": "Ödəniş günü 1-28 arasında olmalıdır",
+    "buildingNotFound": "Bina tapılmadı",
+    "unitCreateFailed": "Mənzil yaradıla bilmədi",
+    "residentNotFound": "Sakin tapılmadı",
+    "residentCreateFailed": "Sakin yaradıla bilmədi",
+    "managementMemberNotFound": "İdarəetmə üzvü tapılmadı",
+    "managementMemberCreateFailed": "İdarəetmə üzvü yaradıla bilmədi",
+    "contractorNotFound": "Podratçı tapılmadı",
+    "contractorCreateFailed": "Podratçı yaradıla bilmədi",
+    "rejectionReasonRequired": "İmtina səbəbini qeyd edin",
+    "commentRequired": "Şərh boş ola bilməz",
+    "workOrderNotFound": "Tapşırıq tapılmadı",
+    "meetingNotFound": "Yığıncaq tapılmadı",
+    "protocolNotFound": "Protokol tapılmadı",
+    "protocolArchived": "Arxiv protokolu imzalana bilməz",
+    "notificationNotFound": "Bildiriş tapılmadı",
+    "votingNotFound": "Səsvermə tapılmadı",
+    "invalidDateRange": "Bitmə tarixi başlama tarixindən əvvəldir",
+    "protocolSigned": "Protokol artıq imzalanıb",
+    "readOnlyView": "Baxış rejimində dəyişiklik qadağandır"
   },
   "voting": {
     "eyebrow": "Qərar qəbulu",
@@ -705,7 +786,17 @@
       "completed": "Tamamlanıb",
       "cancelled": "Ləğv edilib",
       "archived": "Arxiv"
-    }
+    },
+    "createTitle": "Yeni səsvermə",
+    "titleLabel": "Ad",
+    "typeLabel": "Növ",
+    "startDate": "Başlama",
+    "endDate": "Bitmə",
+    "quorum": "Kvorum, %",
+    "options": "Cavab variantları",
+    "optionsHint": "Hər sətirdə bir variant",
+    "optionsRequired": "Ən azı iki variant lazımdır",
+    "created": "Səsvermə yaradıldı"
   },
   "audit": {
     "eyebrow": "Təhlükəsizlik və nəzarət",
@@ -737,6 +828,47 @@
       "fundsFlow": "Fondlar üzrə vəsait hərəkəti",
       "receivables": "Debitor borclarının təhlili",
       "audit": "Dəyişikliklərin auditi"
+    },
+    "tabs": {
+      "debt": "Borc",
+      "income": "Gəlir və xərclər",
+      "aging": "Yaşlı borc",
+      "audit": "Audit"
+    },
+    "debt": {
+      "owner": "Sahib",
+      "units": "Mənzillər",
+      "charged": "Hesablanıb",
+      "paid": "Ödənilib",
+      "debt": "Borc",
+      "empty": "Borc yoxdur"
+    },
+    "income": {
+      "totalIncome": "Gəlir (ödənilib)",
+      "totalExpense": "Xərclər (fakt)",
+      "balance": "Faktiki balans",
+      "month": "Ay",
+      "amount": "Gəlir",
+      "date": "Tarix",
+      "item": "Maddə",
+      "sum": "Məbləğ"
+    },
+    "aging": {
+      "bucket": "Gecikmə dövrü",
+      "count": "Hesablamalar",
+      "amount": "Məbləğ",
+      "total": "Cəmi",
+      "notDue": "Vaxtı keçməyib",
+      "days1to30": "1–30 gün",
+      "days31to90": "31–90 gün",
+      "over90": "90 gündən çox"
+    },
+    "audit": {
+      "action": "Əməliyyat",
+      "entity": "Obyekt",
+      "user": "İstifadəçi",
+      "date": "Tarix",
+      "empty": "Hələ audit hadisəsi yoxdur"
     }
   },
   "contractors": {
@@ -810,7 +942,8 @@
     "created": "Sifariş yaradıldı",
     "updated": "Sifariş yeniləndi",
     "saving": "Saxlanılır...",
-    "emptyDescription": "Siyahı boşdur. İlk sifarişi yaradın."
+    "emptyDescription": "Siyahı boşdur. İlk sifarişi yaradın.",
+    "titleRequired": "Adı qeyd edin"
   },
   "residents": {
     "eyebrow": "Evdə yaşayanlar",
@@ -877,7 +1010,14 @@
     "required": "Alıcı və başlığı qeyd edin",
     "created": "Bildiriş göndərildi",
     "saving": "Göndərilir...",
-    "emptyDescription": "Bildiriş yoxdur"
+    "emptyDescription": "Bildiriş yoxdur",
+    "types": {
+      "info": "Məlumat",
+      "warning": "Xəbərdarlıq",
+      "payment": "Ödəniş",
+      "meeting": "Yığıncaq",
+      "ticket": "Müraciət"
+    }
   },
   "budget": {
     "eyebrow": "Maliyyə planlaşdırması",
@@ -926,19 +1066,79 @@
       "unit_already_assigned": "Mənzil artıq bu sahibə bağlanıb",
       "unit_assigned_elsewhere": "Mənzil artıq başqa sahibə bağlanıb",
       "ownership_not_found": "Əlaqə tapılmadı",
-      "weak_password": "Şifrə ən azı 12 simvol olmalıdır"
+      "weak_password": "Şifrə ən azı 12 simvol olmalıdır",
+      "owner_create_failed": "Sahib yaradıla bilmədi",
+      "ownership_create_failed": "Mənzil bağlana bilmədi"
     }
   },
   "commandants": {
     "errors": {
-      "commandant_not_found": "Komendant tapılmadı"
-    }
+      "commandant_not_found": "Komendant tapılmadı",
+      "commandant_create_failed": "Komendant yaradıla bilmədi"
+    },
+    "eyebrow": "Ev idarəetməsi",
+    "title": "Komendantlar",
+    "description": "Evin hazırkı və keçmiş komendantları",
+    "add": "Komendant əlavə et",
+    "createTitle": "Komendant əlavə et",
+    "editTitle": "Komendantı dəyiş",
+    "fromOwners": "Sahiblərdən (istəyə bağlı)",
+    "manual": "— əl ilə —",
+    "fullName": "Ad Soyad",
+    "phone": "Telefon",
+    "startDate": "Dövrün başlanğıcı",
+    "endDate": "Dövrün sonu",
+    "openEnded": "Boş = indiyədək",
+    "active": "Aktiv komendant",
+    "created": "Komendant əlavə edildi",
+    "updated": "Komendant yeniləndi",
+    "saving": "Yadda saxlanılır...",
+    "none": "Komendant təyin edilməyib",
+    "noPhone": "Telefon yoxdur",
+    "ownerBadge": "Sahiblərdən",
+    "edit": "Dəyiş",
+    "endTenure": "Dövrü bitir",
+    "tenureEnded": "Dövr bitdi",
+    "activated": "Komendant aktivləşdirildi",
+    "history": "Tarixçə",
+    "historyDescription": "Sahiblər daxil olmaqla keçmiş komendantlar",
+    "name": "Ad",
+    "owner": "sahib",
+    "untilNow": "indiyədək",
+    "ended": "Bitmişdir",
+    "activate": "Aktivləşdir"
   },
   "settings": {
     "errors": {
       "user_not_found": "İstifadəçi tapılmadı",
       "wrong_current_password": "Cari şifrə səhvdir"
-    }
+    },
+    "eyebrow": "Ev idarəçiliyi",
+    "title": "Ayarlar",
+    "description": "Şəxsi profil və təşkilat ayarları",
+    "profileTitle": "Şəxsi profil",
+    "profileHint": "Ad və telefon qonşular və idarə heyəti üçün görünür",
+    "fullName": "Ad, soyad",
+    "phone": "Telefon",
+    "profileSaved": "Profil yeniləndi",
+    "passwordTitle": "Şifrə",
+    "passwordHint": "Şifrə dəyişdirildikdə digər sessiyalar bağlanacaq",
+    "currentPassword": "Cari şifrə",
+    "newPassword": "Yeni şifrə",
+    "confirmPassword": "Şifrəni təkrarlayın",
+    "passwordHintMin": "Ən azı {min} simvol",
+    "passwordTooShort": "Şifrə ən azı {min} simvol olmalıdır",
+    "passwordMismatch": "Şifrələr uyğun gəlmir",
+    "passwordSaved": "Şifrə dəyişdirildi. Digər sessiyalar bağlandı.",
+    "organizationTitle": "Təşkilat",
+    "organizationHint": "Yalnız administratorlara görünür",
+    "organizationName": "Təşkilatın adı",
+    "organizationSlug": "Slug",
+    "organizationSlugHint": "URL-də istifadə olunur, dəyişdirmək mümkün deyil",
+    "taxId": "VÖEN",
+    "address": "Ünvan",
+    "saved": "Ayarlar saxlanıldı",
+    "saving": "Saxlanılır..."
   },
   "documents": {
     "eyebrow": "CBS arxivi",
@@ -1040,5 +1240,13 @@
     "news": "Ev xəbərləri",
     "noNews": "Hələ elan yoxdur",
     "board": "İdarə heyəti və komendant"
+  },
+  "viewAs": {
+    "label": "Baxış rejimi",
+    "off": "Real görünüş",
+    "viewingAs": "Baxış: {name}",
+    "readOnly": "Dəyişikliklər söndürülüb",
+    "changed": "Baxış rejimi dəyişdirildi",
+    "failed": "Baxış rejimini dəyişmək alınmadı"
   }
 }

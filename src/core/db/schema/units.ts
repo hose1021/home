@@ -1,5 +1,6 @@
 import {decimal, integer, pgTable, timestamp, unique, uuid, varchar} from "drizzle-orm/pg-core";
 import {buildings} from "./buildings";
+import type {UnitStatus, UnitType} from "./enums";
 import {tenants} from "./tenants";
 
 export const units = pgTable("units", {
@@ -9,10 +10,10 @@ export const units = pgTable("units", {
   unitNumber: varchar("unit_number", { length: 50 }).notNull(),
   entrance: integer("entrance").notNull(),
   floor: integer("floor").notNull(),
-  type: varchar("type", { length: 20 }).notNull().$type<"residential" | "commercial" | "parking" | "storage" | "other">(),
+  type: varchar("type", { length: 20 }).notNull().$type<UnitType>(),
   area: decimal("area", { precision: 10, scale: 2 }).notNull(),
   cadastreNumber: varchar("cadastre_number", { length: 50 }),
-  status: varchar("status", { length: 20 }).default("active"),
+  status: varchar("status", { length: 20 }).default("active").$type<UnitStatus>(),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 }, (table) => ({

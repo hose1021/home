@@ -1,20 +1,21 @@
-import {and, desc, eq, inArray} from "drizzle-orm";
+import {and, eq} from "drizzle-orm";
 import {writeAuditLog} from "@/core/audit/audit.service";
 import {hasStaffRole} from "@/core/auth/permissions";
 import {db} from "@/core/db";
 import {charges} from "@/core/db/schema/charges";
+import {BILLING, PAYMENT_METHODS, type PaymentMethod} from "@/core/db/schema/enums";
 import {owners, ownerships} from "@/core/db/schema/owners";
 import {payments} from "@/core/db/schema/payments";
 import {tenants} from "@/core/db/schema/tenants";
 import {units} from "@/core/db/schema/units";
-import {AppError, ForbiddenError} from "@/core/errors/app-error";
-import {allocatePayment, releasePaymentAllocations, syncChargeStatus} from "./allocation.service";
+import {DomainError, ForbiddenError} from "@/core/errors/app-error";
+import {allocatePayment, releasePaymentAllocations} from "./allocation.service";
 
 
 /** Domain error with a machine code; server actions translate codes via next-intl (ADR 0001). */
-export class PaymentError extends AppError {
+export class PaymentError extends DomainError {
   constructor(code: "not_found" | "immutable_status", message: string = code) {
-    super(message, code === "not_found" ? 404 : 409, code);
+    super(code, message, code === "not_found" ? 404 : 409);
     this.name = "PaymentError";
   }
 }
@@ -26,53 +27,11 @@ type RegisterPaymentInput = {
   amount: string;
   periodYear: number;
   periodMonth: number;
-  paymentMethod: "cash" | "bank_transfer" | "card" | "e_manat" | "pos_terminal";
+  paymentMethod: PaymentMethod;
   referenceNo?: string;
   notes?: string;
   tariffPerSqm?: string;
 };
-
-export async function getOwnerPaymentFlags(
-  tenantId: string,
-  ownerIds: string[],
-  previousPeriod: {year: number; month: number},
-  currentPeriod: {year: number; month: number},
-): Promise<Map<string, {hasDebt: boolean; hasPaid: boolean}>> {
-  const flags = new Map(ownerIds.map((ownerId) => [ownerId, {hasDebt: false, hasPaid: false}]));
-  if (ownerIds.length === 0) return flags;
-
-  const [previousCharges, currentCharges] = await Promise.all([
-    db
-      .select({ownerId: charges.ownerId, status: charges.status})
-      .from(charges)
-      .where(and(
-        eq(charges.tenantId, tenantId),
-        eq(charges.periodYear, previousPeriod.year),
-        eq(charges.periodMonth, previousPeriod.month),
-        inArray(charges.ownerId, ownerIds),
-      )),
-    db
-      .select({ownerId: charges.ownerId, status: charges.status})
-      .from(charges)
-      .where(and(
-        eq(charges.tenantId, tenantId),
-        eq(charges.periodYear, currentPeriod.year),
-        eq(charges.periodMonth, currentPeriod.month),
-        inArray(charges.ownerId, ownerIds),
-      )),
-  ]);
-
-  for (const charge of previousCharges) {
-    if (charge.status === "paid") continue;
-    flags.set(charge.ownerId, {...(flags.get(charge.ownerId) ?? {hasDebt: false, hasPaid: false}), hasDebt: true});
-  }
-  for (const charge of currentCharges) {
-    if (charge.status !== "paid") continue;
-    flags.set(charge.ownerId, {...(flags.get(charge.ownerId) ?? {hasDebt: false, hasPaid: false}), hasPaid: true});
-  }
-
-  return flags;
-}
 
 export async function registerPayment(tenantId: string, input: RegisterPaymentInput, userId: string) {
   validatePaymentValues(input);
@@ -85,7 +44,7 @@ export async function registerPayment(tenantId: string, input: RegisterPaymentIn
         .from(charges)
         .where(and(eq(charges.id, input.chargeId), eq(charges.tenantId, tenantId)))
         .limit(1);
-      if (!charge || charge.status === "cancelled") throw new Error("Charge is not payable");
+      if (!charge || charge.status === "cancelled") throw new DomainError("chargeNotPayable");
     }
 
     const [created] = await tx
@@ -126,7 +85,7 @@ export async function registerPayment(tenantId: string, input: RegisterPaymentIn
   return payment;
 }
 
-export async function ownerBelongsToUser(tenantId: string, ownerId: string, userId: string): Promise<boolean> {
+async function ownerBelongsToUser(tenantId: string, ownerId: string, userId: string): Promise<boolean> {
   const [owner] = await db
     .select({id: owners.id})
     .from(owners)
@@ -144,23 +103,23 @@ export function validatePaymentValues(input: {
   amount: string;
   periodYear: number;
   periodMonth: number;
-  paymentMethod: string;
+  paymentMethod: PaymentMethod;
   tariffPerSqm?: string;
 }): void {
   const amount = Number(input.amount);
-  if (!Number.isFinite(amount) || amount <= 0) throw new Error("Payment amount must be positive");
-  if (!Number.isInteger(input.periodYear) || input.periodYear < 2000 || input.periodYear > 2200) {
-    throw new Error("Invalid payment year");
+  if (!Number.isFinite(amount) || amount <= 0) throw new DomainError("paymentAmountPositive");
+  if (!Number.isInteger(input.periodYear) || input.periodYear < BILLING.minYear || input.periodYear > BILLING.maxYear) {
+    throw new DomainError("invalidPaymentYear");
   }
-  if (!Number.isInteger(input.periodMonth) || input.periodMonth < 1 || input.periodMonth > 12) {
-    throw new Error("Invalid payment month");
+  if (!Number.isInteger(input.periodMonth) || input.periodMonth < BILLING.minMonth || input.periodMonth > BILLING.maxMonth) {
+    throw new DomainError("invalidPaymentMonth");
   }
-  if (!["cash", "bank_transfer", "card", "e_manat", "pos_terminal", "other"].includes(input.paymentMethod)) {
-    throw new Error("Invalid payment method");
+  if (!PAYMENT_METHODS.includes(input.paymentMethod)) {
+    throw new DomainError("invalidPaymentMethod");
   }
   if (input.tariffPerSqm !== undefined) {
     const tariff = Number(input.tariffPerSqm);
-    if (!Number.isFinite(tariff) || tariff < 0) throw new Error("Invalid tariff");
+    if (!Number.isFinite(tariff) || tariff < 0) throw new DomainError("invalidTariff");
   }
 }
 
@@ -191,48 +150,10 @@ async function validatePaymentRelations(tenantId: string, input: RegisterPayment
       : Promise.resolve([{id: "not-applicable"}]),
   ]);
 
-  if (!unitRows[0]) throw new Error("Unit not found");
-  if (!ownerRows[0]) throw new Error("Owner not found");
-  if (!ownershipRows[0]) throw new Error("Owner does not own this unit");
-  if (!chargeRows[0]) throw new Error("Charge not found");
-}
-
-export async function confirmPayment(tenantId: string, paymentId: string, userId: string) {
-  return db.transaction(async (tx) => {
-    const executor = tx as unknown as typeof db;
-    const [existing] = await tx
-      .select()
-      .from(payments)
-      .where(and(eq(payments.id, paymentId), eq(payments.tenantId, tenantId)))
-      .limit(1);
-    if (!existing) return null;
-
-    if (existing.status !== "confirmed") {
-      await tx
-        .update(payments)
-        .set({ status: "confirmed", confirmedBy: userId, updatedAt: new Date() })
-        .where(and(eq(payments.id, paymentId), eq(payments.tenantId, tenantId)));
-
-      await writeAuditLog({
-        tenantId,
-        userId,
-        action: "update",
-        entityType: "payment",
-        entityId: paymentId,
-        oldValues: { status: existing.status } as Record<string, unknown>,
-        newValues: { status: "confirmed" } as Record<string, unknown>,
-      }, executor);
-    }
-
-    await allocatePayment(executor, tenantId, paymentId);
-
-    const [payment] = await tx
-      .select()
-      .from(payments)
-      .where(and(eq(payments.id, paymentId), eq(payments.tenantId, tenantId)))
-      .limit(1);
-    return payment ?? null;
-  });
+  if (!unitRows[0]) throw new DomainError("unitNotFound");
+  if (!ownerRows[0]) throw new DomainError("ownerNotFound");
+  if (!ownershipRows[0]) throw new DomainError("ownerUnitMismatch");
+  if (!chargeRows[0]) throw new DomainError("chargeNotFound");
 }
 
 export async function refundPayment(tenantId: string, paymentId: string, userId: string) {
@@ -266,81 +187,6 @@ export async function refundPayment(tenantId: string, paymentId: string, userId:
     return updated;
   });
   return payment;
-}
-
-export async function markChargePaidIfSettled(tenantId: string, chargeId: string, userId: string) {
-  return db.transaction(async (tx) => {
-    const executor = tx as unknown as typeof db;
-    const [existing] = await tx
-      .select()
-      .from(charges)
-      .where(and(eq(charges.id, chargeId), eq(charges.tenantId, tenantId)))
-      .limit(1);
-    if (!existing) throw new Error("Charge not found");
-    if (existing.status === "cancelled") throw new Error("Charge is not payable");
-
-    const status = await syncChargeStatus(executor, tenantId, chargeId);
-    if (status !== "paid") {
-      throw new Error("A charge can only be marked paid after the full amount is registered");
-    }
-    if (existing.status === "paid") return existing;
-
-    await writeAuditLog({
-      tenantId,
-      userId,
-      action: "update",
-      entityType: "charge",
-      entityId: chargeId,
-      oldValues: { status: existing.status } as Record<string, unknown>,
-      newValues: { status: "paid" } as Record<string, unknown>,
-    }, executor);
-
-    const [updated] = await tx
-      .select()
-      .from(charges)
-      .where(and(eq(charges.id, chargeId), eq(charges.tenantId, tenantId)))
-      .limit(1);
-    return updated ?? existing;
-  });
-}
-
-export async function listPayments(tenantId: string, unitId?: string) {
-  const conditions = [eq(payments.tenantId, tenantId)];
-
-  if (unitId) conditions.push(eq(payments.unitId, unitId));
-
-  return await db
-    .select()
-    .from(payments)
-    .where(and(...conditions))
-    .orderBy(payments.paymentDate)
-    .limit(500);
-}
-
-export async function listPaymentsWithDetails(tenantId: string, limit?: number) {
-  const query = db
-    .select({
-      id: payments.id,
-      amount: payments.amount,
-      periodYear: payments.periodYear,
-      periodMonth: payments.periodMonth,
-      paymentDate: payments.paymentDate,
-      paymentMethod: payments.paymentMethod,
-      referenceNo: payments.referenceNo,
-      status: payments.status,
-      notes: payments.notes,
-      unitNumber: units.unitNumber,
-      entrance: units.entrance,
-      floor: units.floor,
-      ownerName: owners.fullName,
-    })
-    .from(payments)
-    .leftJoin(units, and(eq(units.id, payments.unitId), eq(units.tenantId, tenantId)))
-    .leftJoin(owners, and(eq(owners.id, payments.ownerId), eq(owners.tenantId, tenantId)))
-    .where(eq(payments.tenantId, tenantId))
-    .orderBy(desc(payments.paymentDate));
-
-  return await query.limit(Math.min(limit ?? 500, 500));
 }
 
 export type PaymentReceipt = {

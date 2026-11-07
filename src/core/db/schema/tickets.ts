@@ -1,4 +1,5 @@
 import {boolean, pgTable, text, timestamp, unique, uuid, varchar} from "drizzle-orm/pg-core";
+import type {TicketCategory, TicketPriority, TicketStatus} from "./enums";
 import {tenants} from "./tenants";
 import {units} from "./units";
 import {users} from "./users";
@@ -9,9 +10,9 @@ export const tickets = pgTable("tickets", {
   unitId: uuid("unit_id").references(() => units.id),
   createdBy: uuid("created_by").notNull().references(() => users.id),
   assignedTo: uuid("assigned_to").references(() => users.id),
-  category: varchar("category", { length: 50 }).notNull().$type<"plumbing" | "electrical" | "cleaning" | "structural" | "elevator" | "pest_control" | "yard" | "security" | "other">(),
-  priority: varchar("priority", { length: 20 }).notNull().default("medium").$type<"low" | "medium" | "high" | "urgent">(),
-  status: varchar("status", { length: 20 }).notNull().default("pending").$type<"pending" | "in_progress" | "rejected" | "done">(),
+  category: varchar("category", { length: 50 }).notNull().$type<TicketCategory>(),
+  priority: varchar("priority", { length: 20 }).notNull().default("medium").$type<TicketPriority>(),
+  status: varchar("status", { length: 20 }).notNull().default("pending").$type<TicketStatus>(),
   title: varchar("title", { length: 500 }).notNull(),
   description: text("description").notNull(),
   rejectionReason: text("rejection_reason"),

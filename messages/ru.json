@@ -63,7 +63,8 @@
     "confirmDeleteTitle": "Удалить запись",
     "auth": {
       "login": "Логин"
-    }
+    },
+    "toggleTheme": "Переключить цветовую тему"
   },
   "auth": {
     "login": "Логин",
@@ -146,7 +147,9 @@
     "dueBy": "до",
     "noCharges": "Начислений пока нет",
     "openFinance": "Открыть финансы",
-    "block": "Блок"
+    "block": "Блок",
+    "present": "по настоящее время",
+    "ownerProfile": "Профиль собственника"
   },
   "owners": {
     "registry": "Реестр жильцов",
@@ -201,7 +204,27 @@
     "unitNumber": "Кв. {unit}",
     "blockFloor": "Блок {entrance}, эт. {floor}",
     "feeFormula": "{area} м² × {tariff} ₼ = {fee} ₼/мес",
-    "unitDebt": "Долг по квартире"
+    "unitDebt": "Долг по квартире",
+    "roles": "Роли",
+    "changePassword": "Сменить пароль",
+    "passwordHint": "Минимум {min} символов. Все сессии пользователя будут сброшены.",
+    "newPassword": "Новый пароль",
+    "setPassword": "Задать",
+    "saving": "Сохранение...",
+    "passwordTooShort": "Пароль должен быть не менее {min} символов",
+    "passwordUpdated": "Пароль обновлён. Сессия пользователя сброшена.",
+    "ownerFieldset": "Собственник",
+    "unitFieldset": "Квартира",
+    "newUnitFieldset": "Новая квартира",
+    "creating": "Создание...",
+    "loadUnitsFailed": "Не удалось загрузить список квартир",
+    "existingUnitMode": "Выбрать существующую",
+    "newUnitMode": "Создать новую",
+    "noAvailableUnits": "Нет доступных квартир. Создайте новую.",
+    "chooseUnit": "— Выберите квартиру —",
+    "unitOption": "Кв. {unit} — под. {entrance}, эт. {floor}, {area} м²",
+    "linking": "Привязка...",
+    "assign": "Привязать"
   },
   "units": {
     "title": "Квартиры",
@@ -220,7 +243,39 @@
       "other": "Другое"
     },
     "registry": "Реестр помещений",
-    "description": "Все квартиры и нежилые помещения · {count} шт."
+    "description": "Все квартиры и нежилые помещения · {count} шт.",
+    "updated": "Квартира обновлена",
+    "detached": "Квартира отвязана",
+    "detach": "Отвязать",
+    "detachTitle": "Отвязать квартиру",
+    "detachDescription": "Квартира №{unit} будет отвязана от собственника. Сама квартира не удаляется.",
+    "detaching": "Отвязка...",
+    "addUnit": "Добавить квартиру",
+    "searchPlaceholder": "Поиск по номеру или собственнику...",
+    "allTypes": "Все типы",
+    "ownerFilters": {
+      "all": "Все",
+      "assigned": "С собственником",
+      "unassigned": "Без собственника"
+    },
+    "owners": "Собственники",
+    "owner": "Собственник",
+    "created": "Квартира создана",
+    "deleted": "Квартира удалена",
+    "assignedSuccess": "Квартира привязана",
+    "unassignedSuccess": "Квартира отвязана",
+    "assign": "Привязать",
+    "assignTitle": "Привязать квартиру к собственнику",
+    "detachConfirm": "Кв. {unit}, под. {entrance}, эт. {floor} — собственник {owner} будет отвязан.",
+    "deleteTitle": "Удалить квартиру",
+    "deleteConfirm": "Квартира будет помечена как удалённая.",
+    "none": "Нет квартир",
+    "showing": "Показано: {shown} из {total}",
+    "chooseOwner": "— Выберите —",
+    "unitSummary": "Кв. {unit}, под. {entrance}, эт. {floor}",
+    "creating": "Создание...",
+    "saving": "Сохранение...",
+    "assigning": "Привязка..."
   },
   "finance": {
     "title": "Финансы",
@@ -621,7 +676,9 @@
     "noMeetings": "Собраний пока нет",
     "types": {
       "annual": "Годовое",
-      "extraordinary": "Внеочередное"
+      "extraordinary": "Внеочередное",
+      "board": "Правление",
+      "audit": "Аудиторское"
     },
     "statuses": {
       "planned": "Запланировано",
@@ -644,9 +701,9 @@
     "noAnnouncements": "Объявлений пока нет",
     "priorities": {
       "low": "Обычное",
-      "medium": "Важное",
       "high": "Срочное",
-      "urgent": "Критическое"
+      "urgent": "Критическое",
+      "normal": "Обычное"
     },
     "errors": {
       "announcement_not_found": "Объявление не найдено",
@@ -667,22 +724,46 @@
     "phone": "Телефон"
   },
   "errors": {
-    "unauthorized": "Необходима авторизация",
     "forbidden": "Недостаточно прав",
-    "notFound": "Не найдено",
-    "serverError": "Ошибка сервера",
-    "validationError": "Ошибка валидации",
     "ticketNotFound": "Заявка не найдена",
-    "invalidTransition": "Недопустимый переход статуса: {from} → {to}",
+    "invalidTransition": "Недопустимый переход статуса",
     "unitNotFound": "Квартира не найдена",
     "tenantNotFound": "Организация не найдена",
     "ownerNotFound": "Собственник не найден",
-    "paymentNotFound": "Платёж не найден",
     "paymentAmountPositive": "Сумма платежа должна быть положительной",
     "invalidPaymentYear": "Некорректный год платежа",
     "invalidPaymentMonth": "Некорректный месяц платежа",
     "invalidPaymentMethod": "Некорректный способ оплаты",
-    "invalidTariff": "Некорректный тариф"
+    "invalidTariff": "Некорректный тариф",
+    "invalidChargeYear": "Некорректный год начисления",
+    "invalidChargeMonth": "Некорректный месяц начисления",
+    "chargeNotFound": "Начисление не найдено",
+    "chargeNotPayable": "Начисление недоступно для оплаты",
+    "ownerUnitMismatch": "Собственник не владеет этой квартирой",
+    "expenseAmountPositive": "Сумма расхода должна быть положительной",
+    "expenseDescriptionRequired": "Требуется описание расхода",
+    "invalidExpenseDate": "Некорректная дата расхода",
+    "invalidBillingStart": "Некорректная дата начала начислений",
+    "invalidDueDay": "День оплаты должен быть от 1 до 28",
+    "buildingNotFound": "Здание не найдено",
+    "unitCreateFailed": "Не удалось создать квартиру",
+    "residentNotFound": "Житель не найден",
+    "residentCreateFailed": "Не удалось создать жителя",
+    "managementMemberNotFound": "Член правления не найден",
+    "managementMemberCreateFailed": "Не удалось создать члена правления",
+    "contractorNotFound": "Подрядчик не найден",
+    "contractorCreateFailed": "Не удалось создать подрядчика",
+    "rejectionReasonRequired": "Укажите причину отказа",
+    "commentRequired": "Комментарий не может быть пустым",
+    "workOrderNotFound": "Наряд не найден",
+    "meetingNotFound": "Собрание не найдено",
+    "protocolNotFound": "Протокол не найден",
+    "protocolArchived": "Архивный протокол нельзя подписать",
+    "notificationNotFound": "Уведомление не найдено",
+    "votingNotFound": "Голосование не найдено",
+    "invalidDateRange": "Дата окончания раньше даты начала",
+    "protocolSigned": "Протокол уже подписан",
+    "readOnlyView": "В режиме просмотра изменения запрещены"
   },
   "voting": {
     "eyebrow": "Принятие решений",
@@ -705,7 +786,17 @@
       "completed": "Завершено",
       "cancelled": "Отменено",
       "archived": "Архив"
-    }
+    },
+    "createTitle": "Новое голосование",
+    "titleLabel": "Название",
+    "typeLabel": "Тип",
+    "startDate": "Начало",
+    "endDate": "Окончание",
+    "quorum": "Кворум, %",
+    "options": "Варианты ответа",
+    "optionsHint": "По одному варианту в строке",
+    "optionsRequired": "Нужно минимум два варианта",
+    "created": "Голосование создано"
   },
   "audit": {
     "eyebrow": "Безопасность и контроль",
@@ -737,6 +828,47 @@
       "fundsFlow": "Движение средств по фондам",
       "receivables": "Анализ дебиторской задолженности",
       "audit": "Аудит изменений"
+    },
+    "tabs": {
+      "debt": "Задолженность",
+      "income": "Доходы и расходы",
+      "aging": "Деб. задолженность",
+      "audit": "Аудит"
+    },
+    "debt": {
+      "owner": "Собственник",
+      "units": "Квартиры",
+      "charged": "Начислено",
+      "paid": "Оплачено",
+      "debt": "Долг",
+      "empty": "Задолженности нет"
+    },
+    "income": {
+      "totalIncome": "Доходы (оплачено)",
+      "totalExpense": "Расходы (факт)",
+      "balance": "Фактический баланс",
+      "month": "Месяц",
+      "amount": "Доход",
+      "date": "Дата",
+      "item": "Статья",
+      "sum": "Сумма"
+    },
+    "aging": {
+      "bucket": "Период просрочки",
+      "count": "Начислений",
+      "amount": "Сумма",
+      "total": "Итого",
+      "notDue": "Не просрочено",
+      "days1to30": "1–30 дней",
+      "days31to90": "31–90 дней",
+      "over90": "Более 90 дней"
+    },
+    "audit": {
+      "action": "Действие",
+      "entity": "Сущность",
+      "user": "Пользователь",
+      "date": "Дата",
+      "empty": "Событий аудита пока нет"
     }
   },
   "contractors": {
@@ -810,7 +942,8 @@
     "created": "Наряд создан",
     "updated": "Наряд обновлён",
     "saving": "Сохранение...",
-    "emptyDescription": "Список пуст. Создайте первый наряд."
+    "emptyDescription": "Список пуст. Создайте первый наряд.",
+    "titleRequired": "Укажите название"
   },
   "residents": {
     "eyebrow": "Люди в доме",
@@ -910,7 +1043,14 @@
     "required": "Укажите получателя и заголовок",
     "created": "Уведомление отправлено",
     "saving": "Отправка...",
-    "emptyDescription": "Уведомлений нет"
+    "emptyDescription": "Уведомлений нет",
+    "types": {
+      "info": "Информация",
+      "warning": "Предупреждение",
+      "payment": "Платёж",
+      "meeting": "Собрание",
+      "ticket": "Заявка"
+    }
   },
   "budget": {
     "eyebrow": "Финансовое планирование",
@@ -959,19 +1099,79 @@
       "unit_already_assigned": "Квартира уже привязана к этому собственнику",
       "unit_assigned_elsewhere": "Квартира уже привязана к другому собственнику",
       "ownership_not_found": "Связь не найдена",
-      "weak_password": "Пароль должен быть не короче 12 символов"
+      "weak_password": "Пароль должен быть не короче 12 символов",
+      "owner_create_failed": "Не удалось создать собственника",
+      "ownership_create_failed": "Не удалось привязать квартиру"
     }
   },
   "commandants": {
     "errors": {
-      "commandant_not_found": "Комендант не найден"
-    }
+      "commandant_not_found": "Комендант не найден",
+      "commandant_create_failed": "Не удалось создать коменданта"
+    },
+    "eyebrow": "Управление домом",
+    "title": "Коменданты",
+    "description": "Действующие и прошлые коменданты дома",
+    "add": "Добавить коменданта",
+    "createTitle": "Добавить коменданта",
+    "editTitle": "Изменить коменданта",
+    "fromOwners": "Из собственников (необязательно)",
+    "manual": "— вручную —",
+    "fullName": "Имя Фамилия",
+    "phone": "Телефон",
+    "startDate": "Начало периода",
+    "endDate": "Конец периода",
+    "openEnded": "Пусто = по настоящее время",
+    "active": "Активный комендант",
+    "created": "Комендант добавлен",
+    "updated": "Комендант обновлён",
+    "saving": "Сохранение...",
+    "none": "Комендант не назначен",
+    "noPhone": "Нет телефона",
+    "ownerBadge": "Из собственников",
+    "edit": "Изменить",
+    "endTenure": "Завершить период",
+    "tenureEnded": "Период завершён",
+    "activated": "Комендант активирован",
+    "history": "История",
+    "historyDescription": "Прошлые коменданты, включая собственников",
+    "name": "Имя",
+    "owner": "собственник",
+    "untilNow": "по настоящее время",
+    "ended": "Завершён",
+    "activate": "Активировать"
   },
   "settings": {
     "errors": {
       "user_not_found": "Пользователь не найден",
       "wrong_current_password": "Текущий пароль неверный"
-    }
+    },
+    "eyebrow": "Управление домом",
+    "title": "Настройки",
+    "description": "Личный профиль и настройки организации",
+    "profileTitle": "Личный профиль",
+    "profileHint": "Имя и телефон отображаются для соседей и правления",
+    "fullName": "ФИО",
+    "phone": "Телефон",
+    "profileSaved": "Профиль обновлён",
+    "passwordTitle": "Пароль",
+    "passwordHint": "При смене пароля остальные сессии будут завершены",
+    "currentPassword": "Текущий пароль",
+    "newPassword": "Новый пароль",
+    "confirmPassword": "Повторите пароль",
+    "passwordHintMin": "Минимум {min} символов",
+    "passwordTooShort": "Пароль должен быть не менее {min} символов",
+    "passwordMismatch": "Пароли не совпадают",
+    "passwordSaved": "Пароль изменён. Остальные сессии сброшены.",
+    "organizationTitle": "Организация",
+    "organizationHint": "Видно только администраторам",
+    "organizationName": "Название организации",
+    "organizationSlug": "Slug",
+    "organizationSlugHint": "Используется в URL, изменить нельзя",
+    "taxId": "VOEN / ИНН",
+    "address": "Адрес",
+    "saved": "Настройки сохранены",
+    "saving": "Сохранение..."
   },
   "help": {
     "title": "Помощь",
@@ -1040,5 +1240,13 @@
     "news": "Новости дома",
     "noNews": "Объявлений пока нет",
     "board": "Правление и комендант"
+  },
+  "viewAs": {
+    "label": "Просмотр как",
+    "off": "Реальный вид",
+    "viewingAs": "Просмотр как: {name}",
+    "readOnly": "Изменения отключены",
+    "changed": "Режим просмотра изменён",
+    "failed": "Не удалось переключить просмотр"
   }
 }

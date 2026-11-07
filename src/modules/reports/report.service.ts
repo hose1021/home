@@ -1,16 +1,14 @@
-import {and, desc, eq, inArray, sql} from "drizzle-orm";
+import {and, desc, eq} from "drizzle-orm";
+import {listAuditLogs} from "@/core/audit/audit.service";
 import {db} from "@/core/db";
-import {auditLogs} from "@/core/db/schema/audit-logs";
-import {charges} from "@/core/db/schema/charges";
 import {expenses} from "@/core/db/schema/expenses";
-import {owners, ownerships} from "@/core/db/schema/owners";
 import {payments} from "@/core/db/schema/payments";
-import {units} from "@/core/db/schema/units";
-import {users} from "@/core/db/schema/users";
-import {buildPeriods, getDebtConfig, unitDebt, type DebtConfig} from "@/modules/finance/services/debt.service";
-import {formatMoney, moneyToCents} from "@/modules/finance/services/money";
-
-const DEBT_STATUSES = ["pending", "partially_paid", "overdue"] as const;
+import {ageBucket} from "@/modules/finance/ageing";
+import {formatAmount} from "@/modules/finance/money-format";
+import {periodKey} from "@/modules/finance/period";
+import {loadChargeBalances, netDueCents, outstandingCents, type ChargeBalance} from "@/modules/finance/services/debt.service";
+import {daysOverdue} from "@/modules/finance/services/finance-analytics.service";
+import {moneyToCents} from "@/modules/finance/services/money";
 
 export type DebtByOwnerRow = {
   ownerName: string;
@@ -20,106 +18,47 @@ export type DebtByOwnerRow = {
   debt: string;
 };
 
-type DebtUnitRow = {
-  ownerId: string;
-  ownerName: string;
-  unitId: string;
-  unitNumber: string | null;
-  area: string;
-};
-
-/** Confirmed paid per unit per period (unitId → "YYYY-M" → manat float), same shape debt.service builds. */
-type PaidByUnitPeriod = ReadonlyMap<string, ReadonlyMap<string, number>>;
-
 /**
- * Pure per-owner debt aggregation over the canonical tariff × area accrual.
- * Monetary accumulations stay in manat floats (matching unitDebt) and are converted to cents only for display.
+ * Pure per-owner aggregation over the canonical charge balances. Amounts are summed in whole cents
+ * and only formatted for display. Sorted by outstanding debt, largest first.
  */
-export function computeDebtByOwner(
-  unitRows: DebtUnitRow[],
-  paidByUnitPeriod: PaidByUnitPeriod,
+export function debtRowsByOwner(
+  balances: ChargeBalance[],
   confirmedPaidByOwner: ReadonlyMap<string, number>,
-  cfg: DebtConfig,
-  now: Date = new Date(),
 ): DebtByOwnerRow[] {
-  const periods = buildPeriods(cfg.billingStart, now);
-  const byOwner = new Map<string, { ownerName: string; units: Set<string>; charged: number; paid: number; debt: number }>();
+  const byOwner = new Map<string, { ownerName: string; units: Set<string>; chargedCents: number; debtCents: number }>();
 
-  for (const row of unitRows) {
-    const entry = byOwner.get(row.ownerId) ?? {
-      ownerName: row.ownerName,
+  for (const balance of balances) {
+    const entry = byOwner.get(balance.ownerId) ?? {
+      ownerName: balance.ownerName ?? "—",
       units: new Set<string>(),
-      charged: 0,
-      paid: 0,
-      debt: 0,
+      chargedCents: 0,
+      debtCents: 0,
     };
-    entry.units.add(row.unitNumber ?? "—");
-    const monthlyFee = Number(row.area) * cfg.tariffPerSqm;
-    entry.charged += monthlyFee * periods.length;
-    entry.debt += unitDebt(monthlyFee, periods, (p) => paidByUnitPeriod.get(row.unitId)?.get(`${p.year}-${p.month}`) ?? 0);
-    entry.paid = confirmedPaidByOwner.get(row.ownerId) ?? 0;
-    byOwner.set(row.ownerId, entry);
+    entry.units.add(balance.unitNumber ?? "—");
+    entry.chargedCents += netDueCents(balance);
+    entry.debtCents += outstandingCents(balance);
+    byOwner.set(balance.ownerId, entry);
   }
 
-  return [...byOwner.values()]
-    .map((entry) => ({
+  return [...byOwner.entries()]
+    .sort(([, a], [, b]) => b.debtCents - a.debtCents)
+    .map(([ownerId, entry]) => ({
       ownerName: entry.ownerName,
       units: [...entry.units].join(", "),
-      charged: formatMoney(moneyToCents(entry.charged)),
-      paid: formatMoney(moneyToCents(entry.paid)),
-      debt: formatMoney(moneyToCents(entry.debt)),
-    }))
-    .sort((a, b) => Number(b.debt) - Number(a.debt));
+      charged: formatAmount(entry.chargedCents / 100),
+      paid: formatAmount((confirmedPaidByOwner.get(ownerId) ?? 0) / 100),
+      debt: formatAmount(entry.debtCents / 100),
+    }));
 }
 
-/** Per-owner debt on canonical semantics: Σ over billing periods of max(0, tariff × area − confirmed paid). */
+/** Per-owner debt on canonical charge balances: net due and outstanding per owner. */
 export async function getDebtByOwnerReport(tenantId: string): Promise<DebtByOwnerRow[]> {
-  const cfg = await getDebtConfig(tenantId);
-
-  const unitRows = await db
-    .select({
-      ownerId: ownerships.ownerId,
-      ownerName: owners.fullName,
-      unitId: units.id,
-      unitNumber: units.unitNumber,
-      area: units.area,
-    })
-    .from(ownerships)
-    .innerJoin(units, and(eq(units.id, ownerships.unitId), eq(units.tenantId, tenantId)))
-    .innerJoin(owners, and(eq(owners.id, ownerships.ownerId), eq(owners.tenantId, tenantId)))
-    .where(and(eq(ownerships.tenantId, tenantId), eq(units.status, "active")));
-
-  const [paidByUnitPeriod, confirmedPaidByOwner] = await Promise.all([
-    confirmedPaidByUnitPeriod(tenantId, unitRows.map((r) => r.unitId)),
+  const [balances, confirmedPaidByOwner] = await Promise.all([
+    loadChargeBalances(tenantId),
     confirmedPaymentsByOwner(tenantId),
   ]);
-
-  return computeDebtByOwner(unitRows, paidByUnitPeriod, confirmedPaidByOwner, cfg);
-}
-
-async function confirmedPaidByUnitPeriod(tenantId: string, unitIds: string[]): Promise<PaidByUnitPeriod> {
-  const rows = unitIds.length === 0 ? [] : await db
-    .select({
-      unitId: payments.unitId,
-      periodYear: payments.periodYear,
-      periodMonth: payments.periodMonth,
-      paid: sql<string>`coalesce(sum(${payments.amount}::numeric), 0)`,
-    })
-    .from(payments)
-    .where(and(
-      eq(payments.tenantId, tenantId),
-      eq(payments.status, "confirmed"),
-      inArray(payments.unitId, unitIds),
-    ))
-    .groupBy(payments.unitId, payments.periodYear, payments.periodMonth);
-
-  const map = new Map<string, Map<string, number>>();
-  for (const r of rows) {
-    const inner = map.get(r.unitId) ?? new Map<string, number>();
-    inner.set(`${r.periodYear}-${r.periodMonth}`, Number(r.paid));
-    map.set(r.unitId, inner);
-  }
-  return map;
+  return debtRowsByOwner(balances, confirmedPaidByOwner);
 }
 
 async function confirmedPaymentsByOwner(tenantId: string): Promise<Map<string, number>> {
@@ -130,7 +69,7 @@ async function confirmedPaymentsByOwner(tenantId: string): Promise<Map<string, n
 
   const paid = new Map<string, number>();
   for (const payment of rows) {
-    paid.set(payment.ownerId, (paid.get(payment.ownerId) ?? 0) + Number(payment.amount));
+    paid.set(payment.ownerId, (paid.get(payment.ownerId) ?? 0) + moneyToCents(payment.amount));
   }
   return paid;
 }
@@ -143,14 +82,15 @@ export async function getIncomeExpenseReport(tenantId: string) {
 
   const incomeByMonth = new Map<string, number>();
   for (const payment of confirmedPayments) {
-    const month = payment.paymentDate.toISOString().slice(0, 7);
+    const date = new Date(payment.paymentDate);
+    const month = periodKey(date.getFullYear(), date.getMonth() + 1);
     incomeByMonth.set(month, (incomeByMonth.get(month) ?? 0) + moneyToCents(payment.amount));
   }
 
-  const monthlyIncome = [...incomeByMonth.entries()]
+  const recentMonths = [...incomeByMonth.entries()]
     .sort((a, b) => a[0].localeCompare(b[0]))
-    .slice(-12)
-    .map(([month, cents]) => ({ month, amount: formatMoney(cents) }));
+    .slice(-12);
+  const monthlyIncome = recentMonths.map(([month, cents]) => ({ month, amount: formatAmount(cents / 100) }));
 
   const expenseRows = await db
     .select({ description: expenses.description, amount: expenses.amount, expenseDate: expenses.expenseDate })
@@ -159,70 +99,51 @@ export async function getIncomeExpenseReport(tenantId: string) {
     .orderBy(desc(expenses.expenseDate));
 
   const expenseList = expenseRows.map((row) => ({
-    accountCode: row.expenseDate,
+    date: row.expenseDate,
     notes: row.description,
-    amount: formatMoney(moneyToCents(row.amount)),
+    amount: formatAmount(moneyToCents(row.amount) / 100),
   }));
 
-  const totalIncome = monthlyIncome.reduce((sum, row) => sum + moneyToCents(row.amount), 0);
-  const totalExpense = expenseList.reduce((sum, row) => sum + moneyToCents(row.amount), 0);
+  const totalIncome = recentMonths.reduce((sum, [, cents]) => sum + cents, 0);
+  const totalExpense = expenseRows.reduce((sum, row) => sum + moneyToCents(row.amount), 0);
 
   return {
     monthlyIncome,
     expenses: expenseList,
-    totalIncome: formatMoney(totalIncome),
-    totalExpense: formatMoney(totalExpense),
-    balance: formatMoney(totalIncome - totalExpense),
+    totalIncome: formatAmount(totalIncome / 100),
+    totalExpense: formatAmount(totalExpense / 100),
+    balance: formatAmount((totalIncome - totalExpense) / 100),
   };
 }
 
 export async function getDebtAgingReport(tenantId: string) {
-  const rows = await db
-    .select({ amount: charges.amount, dueDate: charges.dueDate })
-    .from(charges)
-    .where(and(
-      eq(charges.tenantId, tenantId),
-      inArray(charges.status, DEBT_STATUSES),
-    ));
-
-  const now = Date.now();
-  const dayMs = 24 * 60 * 60 * 1000;
-  const buckets = [
-    { key: "current", label: "Не просрочено", total: 0, count: 0 },
-    { key: "d30", label: "1–30 дней", total: 0, count: 0 },
-    { key: "d90", label: "31–90 дней", total: 0, count: 0 },
-    { key: "d90plus", label: "Более 90 дней", total: 0, count: 0 },
+  const balances = await loadChargeBalances(tenantId);
+  const now = new Date();
+  const buckets: {key: "notDue" | "days1to30" | "days31to90" | "over90"; total: number; count: number}[] = [
+    { key: "notDue", total: 0, count: 0 },
+    { key: "days1to30", total: 0, count: 0 },
+    { key: "days31to90", total: 0, count: 0 },
+    { key: "over90", total: 0, count: 0 },
   ];
 
-  for (const row of rows) {
-    const due = new Date(`${row.dueDate}T00:00:00`).getTime();
-    const days = Math.floor((now - due) / dayMs);
-    const cents = moneyToCents(row.amount);
-    const bucket = days <= 0 ? buckets[0]! : days <= 30 ? buckets[1]! : days <= 90 ? buckets[2]! : buckets[3]!;
-    bucket.total += cents;
+  for (const balance of balances) {
+    const due = outstandingCents(balance);
+    if (due <= 0) continue;
+    const key = ageBucket(daysOverdue(balance.dueDate, now));
+    const bucket = buckets.find((candidate) =>
+      key === "days31to60" || key === "days61to90" ? candidate.key === "days31to90" : candidate.key === key,
+    ) ?? buckets[0]!;
+    bucket.total += due;
     bucket.count += 1;
   }
 
   return {
-    buckets: buckets.map((bucket) => ({ label: bucket.label, total: formatMoney(bucket.total), count: bucket.count })),
-    total: formatMoney(buckets.reduce((sum, bucket) => sum + bucket.total, 0)),
+    buckets: buckets.map((bucket) => ({ key: bucket.key, total: formatAmount(bucket.total / 100), count: bucket.count })),
+    total: formatAmount(buckets.reduce((sum, bucket) => sum + bucket.total, 0) / 100),
   };
 }
 
 export async function getAuditReport(tenantId: string) {
-  const logs = await db
-    .select({
-      id: auditLogs.id,
-      action: auditLogs.action,
-      entityType: auditLogs.entityType,
-      createdAt: auditLogs.createdAt,
-      userName: users.fullName,
-    })
-    .from(auditLogs)
-    .leftJoin(users, eq(users.id, auditLogs.userId))
-    .where(eq(auditLogs.tenantId, tenantId))
-    .orderBy(desc(auditLogs.createdAt))
-    .limit(50);
-
-  return logs.map((log) => ({ ...log, createdAt: log.createdAt.toISOString() }));
+  const logs = await listAuditLogs(tenantId);
+  return logs.map((log) => ({...log, createdAt: log.createdAt.toISOString()}));
 }

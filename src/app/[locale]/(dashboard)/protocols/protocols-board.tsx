@@ -9,22 +9,17 @@ import {Dialog, DialogContent, DialogHeader, DialogTitle} from "@/components/ui/
 import {Input} from "@/components/ui/input";
 import {Label} from "@/components/ui/label";
 import {Textarea} from "@/components/ui/textarea";
+import type {ProtocolStatus} from "@/core/db/schema/enums";
 import {createProtocolAction, signProtocolAction} from "@/modules/protocol/protocol.actions";
+import {PROTOCOL_TONE} from "@/modules/protocol/protocol.constants";
 
 type Protocol = {
   id: string;
   protocolNumber: string;
-  status: "draft" | "pending_signature" | "signed" | "archived" | null;
+  status: ProtocolStatus | null;
   content: string;
   meetingTitle: string | null;
   signatureCount: number;
-};
-
-const STATUS_VARIANTS: Record<string, "default" | "secondary" | "outline" | "destructive"> = {
-  draft: "secondary",
-  pending_signature: "outline",
-  signed: "default",
-  archived: "destructive",
 };
 
 export function ProtocolsBoard({ protocols, meetings, canManage, canSign }: {
@@ -69,7 +64,7 @@ export function ProtocolsBoard({ protocols, meetings, canManage, canSign }: {
                 <p className="mt-1 line-clamp-3 whitespace-pre-wrap text-sm text-muted-foreground">{p.content}</p>
               </div>
               <div className="flex shrink-0 items-center gap-2">
-                <Badge variant={STATUS_VARIANTS[p.status ?? "draft"] ?? "secondary"}>{t(`statuses.${p.status ?? "draft"}`)}</Badge>
+                <Badge variant={PROTOCOL_TONE[p.status ?? "draft"]}>{t(`statuses.${p.status ?? "draft"}`)}</Badge>
                 {canSign && p.status !== "signed" && p.status !== "archived" && (
                   <Button size="sm" variant="outline" onClick={() => sign(p.id)}>{t("sign")}</Button>
                 )}

@@ -1,39 +1,40 @@
 "use server";
 
-import {revalidatePath} from "next/cache";
 import {z} from "zod";
-import {hasStaffRole} from "@/core/auth/permissions";
-import {requireTenantPermission} from "@/core/auth/session";
-import {ForbiddenError} from "@/core/errors/app-error";
-import {moneySchema, paymentInputSchema, uuidSchema} from "@/core/validation/action-schemas";
+import {runAction} from "@/core/actions/action";
+import type {PaymentMethod} from "@/core/db/schema/enums";
+import {BILLING} from "@/core/db/schema/enums";
+import {dateSchema, moneySchema, monthSchema, paymentInputSchema, periodSchema} from "@/core/validation/action-schemas";
 import {generateMonthlyCharges} from "./services/charge.service";
 import {createExpense} from "./services/expense.service";
-import {markChargePaidIfSettled, ownerBelongsToUser, registerPayment} from "./services/payment.service";
+import {registerPayment, requireOwnerPaymentAccess} from "./services/payment.service";
 import {updateFinancialSettings} from "./services/settings.service";
-
-const chargeInputSchema = z.object({
-  periodYear: z.number().int().min(2000).max(2200),
-  periodMonth: z.number().int().min(1).max(12),
-});
 
 const expenseInputSchema = z.object({
   amount: moneySchema,
   description: z.string().trim().min(1).max(500),
-  expenseDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  expenseDate: dateSchema,
 });
 
 const settingsInputSchema = z.object({
   tariffPerSqm: moneySchema,
-  billingStart: z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/),
-  dueDay: z.number().int().min(1).max(28),
+  billingStart: monthSchema,
+  dueDay: z.number().int().min(1).max(BILLING.maxDueDay),
 });
 
+const chargeRevalidate = ["/finance", "/finance/charges", "/finance/debts", "/owners"];
+
 export async function generateChargesAction(input: {periodYear: number; periodMonth: number}) {
-  input = chargeInputSchema.parse(input);
-  const {session, tenantId} = await requireTenantPermission("charge:write");
-  const created = await generateMonthlyCharges(tenantId, input, session.user.id);
-  revalidatePath("/finance");
-  return {success: true, count: created.length};
+  return runAction({
+    permission: "charge:write",
+    schema: periodSchema,
+    errors: "errors",
+    revalidate: chargeRevalidate,
+    handler: async ({tenantId, session}, data) => {
+      const created = await generateMonthlyCharges(tenantId, data, session.user.id);
+      return {success: true, count: created.length};
+    },
+  }, input);
 }
 
 export async function registerPaymentAction(input: {
@@ -43,46 +44,47 @@ export async function registerPaymentAction(input: {
   amount: string;
   periodYear: number;
   periodMonth: number;
-  paymentMethod: "cash" | "bank_transfer" | "card" | "e_manat" | "pos_terminal";
+  paymentMethod: PaymentMethod;
   tariffPerSqm?: string;
   referenceNo?: string;
   notes?: string;
 }) {
-  input = paymentInputSchema.parse(input);
-  const {session, tenantId} = await requireTenantPermission("payment:write");
-  if (!hasStaffRole(session.user.roles)) {
-    const isOwnPayment = await ownerBelongsToUser(tenantId, input.ownerId, session.user.id);
-    if (!isOwnPayment) throw new ForbiddenError("You can only register your own payment");
-  }
-  await registerPayment(tenantId, input, session.user.id);
-  revalidatePath("/finance");
-  revalidatePath(`/owners/${input.ownerId}`);
-  return {success: true};
-}
-
-export async function markChargePaidAction(chargeId: string) {
-  chargeId = uuidSchema.parse(chargeId);
-  const {session, tenantId} = await requireTenantPermission("charge:write");
-  await markChargePaidIfSettled(tenantId, chargeId, session.user.id);
-
-  revalidatePath("/finance");
-  return {success: true};
+  return runAction({
+    permission: "payment:write",
+    schema: paymentInputSchema,
+    errors: "errors",
+    authorize: ({tenantId, session}, data) =>
+      requireOwnerPaymentAccess(tenantId, data.ownerId, session.user.id, session.user.roles),
+    revalidate: (data) => ["/finance", "/finance/payments", "/finance/debts", "/owners", `/owners/${data.ownerId}`],
+    handler: async ({tenantId, session}, data) => {
+      await registerPayment(tenantId, data, session.user.id);
+      return {success: true};
+    },
+  }, input);
 }
 
 export async function createExpenseAction(input: {amount: string; description: string; expenseDate: string}) {
-  input = expenseInputSchema.parse(input);
-  const {session, tenantId} = await requireTenantPermission("budget:write");
-  await createExpense(tenantId, input, session.user.id);
-  revalidatePath("/finance/expenses");
-  revalidatePath("/finance");
-  return {success: true};
+  return runAction({
+    permission: "budget:write",
+    schema: expenseInputSchema,
+    errors: "errors",
+    revalidate: ["/finance", "/finance/expenses"],
+    handler: async ({tenantId, session}, data) => {
+      await createExpense(tenantId, data, session.user.id);
+      return {success: true};
+    },
+  }, input);
 }
 
 export async function updateFinancialSettingsAction(input: {tariffPerSqm: string; billingStart: string; dueDay: number}) {
-  input = settingsInputSchema.parse(input);
-  const {tenantId} = await requireTenantPermission("settings:write");
-  await updateFinancialSettings(tenantId, input);
-  revalidatePath("/finance/settings");
-  revalidatePath("/finance");
-  return {success: true};
+  return runAction({
+    permission: "settings:write",
+    schema: settingsInputSchema,
+    errors: "errors",
+    revalidate: ["/finance", "/finance/settings"],
+    handler: async ({tenantId}, data) => {
+      await updateFinancialSettings(tenantId, data);
+      return {success: true};
+    },
+  }, input);
 }

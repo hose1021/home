@@ -3,8 +3,7 @@ import {writeAuditLog} from "@/core/audit/audit.service";
 import {db} from "@/core/db";
 import {meetings} from "@/core/db/schema/meetings";
 import {protocols, protocolSignatures} from "@/core/db/schema/protocols";
-
-export type ProtocolStatus = "draft" | "pending_signature" | "signed" | "archived";
+import {DomainError} from "@/core/errors/app-error";
 
 export async function listProtocols(tenantId: string) {
   return await db
@@ -38,7 +37,7 @@ export async function createProtocol(
     status: "draft",
     createdBy: userId,
   }).returning();
-  if (!created) throw new Error("Failed to create protocol");
+  if (!created) throw new DomainError("protocolNotFound");
 
   await writeAuditLog({
     tenantId, userId,
@@ -57,22 +56,23 @@ export async function signProtocol(tenantId: string, id: string, userId: string)
       .from(protocols)
       .where(and(eq(protocols.id, id), eq(protocols.tenantId, tenantId)))
       .limit(1);
-    if (!existing) throw new Error("Протокол не найден");
-    if (existing.status === "archived") throw new Error("Архивный протокол нельзя подписать");
+    if (!existing) throw new DomainError("protocolNotFound");
+    if (existing.status === "archived") throw new DomainError("protocolArchived");
+    if (existing.status !== "draft") throw new DomainError("protocolSigned");
 
     const [signature] = await tx.insert(protocolSignatures).values({
       protocolId: id,
       userId,
       signature: `signed-${Date.now()}`,
     }).returning();
-    if (!signature) throw new Error("Failed to sign protocol");
+    if (!signature) throw new DomainError("protocolNotFound");
 
     const [updated] = await tx.update(protocols).set({
       status: "signed",
       signedAt: new Date(),
       updatedAt: new Date(),
     }).where(and(eq(protocols.id, id), eq(protocols.tenantId, tenantId))).returning();
-    if (!updated) throw new Error("Протокол не найден");
+    if (!updated) throw new DomainError("protocolNotFound");
 
     await writeAuditLog({
       tenantId, userId,

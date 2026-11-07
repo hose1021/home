@@ -9,6 +9,7 @@ import {Dialog, DialogContent, DialogHeader, DialogTitle} from "@/components/ui/
 import {Input} from "@/components/ui/input";
 import {Label} from "@/components/ui/label";
 import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from "@/components/ui/select";
+import {BILLING} from "@/core/db/schema/enums";
 import {generateChargesAction} from "@/modules/finance/finance.actions";
 
 export function ChargeGenerateForm({onDone}: {onDone: () => void}) {
@@ -43,7 +44,7 @@ export function ChargeGenerateForm({onDone}: {onDone: () => void}) {
       <div className="grid grid-cols-2 gap-4">
         <div>
           <Label>{tc("year")}</Label>
-          <Input value={year} onChange={(e) => setYear(e.target.value)} type="number" min={2024} max={2030} className="mt-1" />
+          <Input value={year} onChange={(e) => setYear(e.target.value)} type="number" min={BILLING.minYear} max={BILLING.maxYear} className="mt-1" />
         </div>
         <div>
           <Label htmlFor="charge-month">{tc("month")}</Label>

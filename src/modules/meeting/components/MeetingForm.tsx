@@ -3,7 +3,9 @@
 import {useTranslations} from "next-intl";
 import {useState} from "react";
 import {Button} from "@/components/ui/button";
+import {MEETING_TYPES, type MeetingFormat, type MeetingType} from "@/core/db/schema/enums";
 import {createMeetingAction, updateMeetingAction} from "../meeting.actions";
+import {MEETING_FORMAT_KEYS} from "../meeting.constants";
 
 type MeetingData = {
   id: string;
@@ -39,8 +41,8 @@ export function MeetingForm({
     try {
       const data = {
         title: fd.get("title") as string,
-        meetingType: fd.get("meetingType") as "annual" | "extraordinary" | "board" | "audit",
-        meetingFormat: fd.get("meetingFormat") as "in_person" | "online" | "mixed",
+        meetingType: fd.get("meetingType") as MeetingType,
+        meetingFormat: fd.get("meetingFormat") as MeetingFormat,
         proposedDate: fd.get("proposedDate") as string,
         location: (fd.get("location") as string) || undefined,
         agendas: agendas.filter(Boolean).map((title, i) => ({ title, sortOrder: i + 1 })),
@@ -70,16 +72,17 @@ export function MeetingForm({
         <div>
           <label className="block text-sm font-medium">{tm("type")}</label>
           <select name="meetingType" defaultValue={meeting?.meetingType ?? "annual"} className="mt-1 field">
-            <option value="annual">{tm("types.annual")}</option>
-            <option value="extraordinary">{tm("types.extraordinary")}</option>
+            {MEETING_TYPES.map((type) => (
+              <option key={type} value={type}>{tm(`types.${type}`)}</option>
+            ))}
           </select>
         </div>
         <div>
           <label className="block text-sm font-medium">{tc("format")}</label>
           <select name="meetingFormat" defaultValue={meeting?.meetingFormat ?? "in_person"} className="mt-1 field">
-            <option value="in_person">{tc("formatInPerson")}</option>
-            <option value="online">{tc("formatOnline")}</option>
-            <option value="mixed">{tc("formatMixed")}</option>
+            {Object.entries(MEETING_FORMAT_KEYS).map(([format, key]) => (
+              <option key={format} value={format}>{tc(key)}</option>
+            ))}
           </select>
         </div>
         <div>

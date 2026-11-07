@@ -1,5 +1,6 @@
 "use client";
 
+import {useTranslations} from "next-intl";
 import {useState} from "react";
 import {toast} from "sonner";
 import {
@@ -14,6 +15,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import {Button} from "@/components/ui/button";
 import {Dialog, DialogContent, DialogHeader, DialogTitle} from "@/components/ui/dialog";
+import {UNIT_TYPES, type UnitType} from "@/core/db/schema/enums";
 import {removeUnitFromOwnerAction} from "@/modules/owner/owner.actions";
 import {updateUnitAction} from "@/modules/unit/unit.actions";
 
@@ -40,6 +42,9 @@ export function OwnerUnitCard({
   const [editOpen, setEditOpen] = useState(false);
   const [removeOpen, setRemoveOpen] = useState(false);
   const [pending, setPending] = useState(false);
+  const t = useTranslations("units");
+  const tc = useTranslations("common");
+  const to = useTranslations("owners");
 
   async function handleEdit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -50,11 +55,11 @@ export function OwnerUnitCard({
         unitNumber: fd.get("unitNumber") as string,
         entrance: Number(fd.get("entrance")),
         floor: Number(fd.get("floor")),
-        type: fd.get("type") as "residential" | "commercial" | "parking" | "storage" | "other",
+        type: fd.get("type") as UnitType,
         area: fd.get("area") as string,
       });
       setEditOpen(false);
-      toast.success("Квартира обновлена");
+      toast.success(t("updated"));
     } catch (err) {
       toast.error((err as Error).message);
     } finally {
@@ -67,7 +72,7 @@ export function OwnerUnitCard({
     try {
       await removeUnitFromOwnerAction(ownerId, unit.id);
       setRemoveOpen(false);
-      toast.success("Квартира отвязана");
+      toast.success(t("detached"));
     } catch (err) {
       toast.error((err as Error).message);
     } finally {
@@ -82,48 +87,47 @@ export function OwnerUnitCard({
       {canManage && (
         <div className="flex items-center gap-2 border-t px-5 py-2 sm:px-6">
           <Button variant="ghost" size="sm" onClick={() => setEditOpen(true)}>
-            Ред.
+            {tc("edit")}
           </Button>
           <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive" onClick={() => setRemoveOpen(true)}>
-            Отвязать
+            {t("detach")}
           </Button>
         </div>
       )}
 
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
         <DialogContent>
-          <DialogHeader><DialogTitle>Редактировать квартиру</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{t("editUnit")}</DialogTitle></DialogHeader>
           <form onSubmit={handleEdit} className="space-y-4">
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-sm font-medium">№ квартиры</label>
+                <label className="block text-sm font-medium">{t("unitNumber")}</label>
                 <input name="unitNumber" defaultValue={unit.unitNumber} required className="mt-1 field" />
               </div>
               <div>
-                <label className="block text-sm font-medium">Этаж</label>
+                <label className="block text-sm font-medium">{t("floor")}</label>
                 <input name="floor" type="number" defaultValue={unit.floor} required className="mt-1 field" />
               </div>
               <div>
-                <label className="block text-sm font-medium">Подъезд</label>
+                <label className="block text-sm font-medium">{t("entrance")}</label>
                 <input name="entrance" type="number" defaultValue={unit.entrance} className="mt-1 field" />
               </div>
               <div>
-                <label className="block text-sm font-medium">Тип</label>
+                <label className="block text-sm font-medium">{t("type")}</label>
                 <select name="type" defaultValue={unit.type} className="mt-1 field">
-                  <option value="residential">Жилая</option>
-                  <option value="commercial">Коммерческая</option>
-                  <option value="parking">Парковка</option>
-                  <option value="storage">Склад</option>
+                  {UNIT_TYPES.map((type) => (
+                    <option key={type} value={type}>{t(`types.${type}`)}</option>
+                  ))}
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium">Площадь (м²)</label>
+                <label className="block text-sm font-medium">{t("area")}</label>
                 <input name="area" type="number" step="0.01" defaultValue={unit.area} required className="mt-1 field" />
               </div>
             </div>
             <div className="flex justify-end gap-3">
-              <Button type="button" variant="outline" onClick={() => setEditOpen(false)}>Отмена</Button>
-              <Button type="submit" disabled={pending}>{pending ? "Сохранение..." : "Сохранить"}</Button>
+              <Button type="button" variant="outline" onClick={() => setEditOpen(false)}>{tc("cancel")}</Button>
+              <Button type="submit" disabled={pending}>{pending ? to("saving") : tc("save")}</Button>
             </div>
           </form>
         </DialogContent>
@@ -132,15 +136,15 @@ export function OwnerUnitCard({
       <AlertDialog open={removeOpen} onOpenChange={setRemoveOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Отвязать квартиру</AlertDialogTitle>
+            <AlertDialogTitle>{t("detachTitle")}</AlertDialogTitle>
             <AlertDialogDescription>
-              Квартира №{unit.unitNumber} будет отвязана от собственника. Сама квартира не удаляется.
+              {t("detachDescription", {unit: unit.unitNumber})}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Отмена</AlertDialogCancel>
+            <AlertDialogCancel>{tc("cancel")}</AlertDialogCancel>
             <AlertDialogAction onClick={handleRemove} disabled={pending}>
-              {pending ? "Удаление..." : "Отвязать"}
+              {pending ? t("detaching") : t("detach")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

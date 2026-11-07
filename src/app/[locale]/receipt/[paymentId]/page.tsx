@@ -1,7 +1,7 @@
 import {notFound} from "next/navigation";
 import {getTranslations} from "next-intl/server";
-import {hasStaffRole} from "@/core/auth/permissions";
 import {requireTenantPermission} from "@/core/auth/session";
+import {formatAmount, formatNumber} from "@/modules/finance/money-format";
 import {getPaymentReceipt, requireOwnerPaymentAccess} from "@/modules/finance/services/payment.service";
 import {PrintButton} from "./print-button";
 import "./receipt.css";
@@ -14,14 +14,13 @@ export default async function ReceiptPage({
   const { locale, paymentId } = await params;
   const t = await getTranslations("finance.payments");
   const tr = await getTranslations("finance.payments.receipt");
+  const tc = await getTranslations("common");
   const { session, tenantId } = await requireTenantPermission("payment:read");
 
   const receipt = await getPaymentReceipt(tenantId, paymentId);
   if (!receipt) notFound();
 
-  if (!hasStaffRole(session.user.roles)) {
-    await requireOwnerPaymentAccess(tenantId, receipt.ownerId, session.user.id, session.user.roles);
-  }
+  await requireOwnerPaymentAccess(tenantId, receipt.ownerId, session.user.id, session.user.roles);
 
   const period = new Date(receipt.periodYear, receipt.periodMonth - 1, 1).toLocaleDateString(locale, {
     month: "long",
@@ -57,7 +56,7 @@ export default async function ReceiptPage({
             <dt>{tr("unit")}</dt>
             <dd>
               {receipt.unitNumber} · {tr("entrance")} {receipt.entrance} · {tr("floor")} {receipt.floor} ·{" "}
-              {tr("area")} {Number(receipt.area).toFixed(2)} м²
+              {tr("area")} {formatNumber(receipt.area)} {tc("squareMeters")}
             </dd>
           </div>
           <div className="receipt__row">
@@ -66,7 +65,7 @@ export default async function ReceiptPage({
           </div>
           <div className="receipt__row">
             <dt>{tr("tariff")}</dt>
-            <dd>{Number(receipt.tariffPerSqm).toFixed(2)} ₼/м²</dd>
+            <dd>{formatAmount(receipt.tariffPerSqm)}/{tc("squareMeters")}</dd>
           </div>
           <div className="receipt__row">
             <dt>{tr("date")}</dt>
@@ -80,7 +79,7 @@ export default async function ReceiptPage({
 
         <div className="receipt__amount">
           <span>{tr("amount")}</span>
-          <strong>{Number(receipt.amount).toFixed(2)} ₼</strong>
+          <strong>{formatAmount(receipt.amount)}</strong>
         </div>
 
         {receipt.status === "refunded" && <p className="receipt__refunded">{tr("refunded")}</p>}

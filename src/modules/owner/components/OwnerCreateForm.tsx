@@ -1,7 +1,10 @@
 "use client";
 
+import {useTranslations} from "next-intl";
 import {useState} from "react";
 import {Button} from "@/components/ui/button";
+import {PASSWORD_MIN_LENGTH, USERNAME_PATTERN} from "@/core/auth/constants";
+import {UNIT_TYPES, type UnitType} from "@/core/db/schema/enums";
 import {createOwnerAction} from "../owner.actions";
 
 export function OwnerCreateForm({
@@ -9,6 +12,10 @@ export function OwnerCreateForm({
 }: {
   onDone: () => void;
 }) {
+  const t = useTranslations("owners");
+  const tu = useTranslations("units");
+  const ta = useTranslations("auth");
+  const tc = useTranslations("common");
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
 
@@ -26,7 +33,7 @@ export function OwnerCreateForm({
         unitNumber: fd.get("unitNumber") as string,
         entrance: Number(fd.get("entrance")),
         floor: Number(fd.get("floor")),
-        type: fd.get("type") as "residential" | "commercial" | "parking" | "storage" | "other",
+        type: fd.get("type") as UnitType,
         area: fd.get("area") as string,
       });
       onDone();
@@ -40,55 +47,54 @@ export function OwnerCreateForm({
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <fieldset className="rounded-[4px] border border-border p-3 dark:border-border">
-        <legend className="px-1 text-sm font-medium">Собственник</legend>
+        <legend className="px-1 text-sm font-medium">{t("ownerFieldset")}</legend>
         <div className="space-y-3">
           <div>
-            <label className="block text-sm font-medium">ФИО</label>
+            <label className="block text-sm font-medium">{t("fullName")}</label>
             <input name="fullName" required className="mt-1 field" />
           </div>
           <div>
-            <label className="block text-sm font-medium">Телефон</label>
+            <label className="block text-sm font-medium">{t("phone")}</label>
             <input name="phone" className="mt-1 field" />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-sm font-medium">Логин</label>
-              <input name="username" placeholder="имя.фамилия" pattern="[\p{L}]+\.[\p{L}]+" required className="mt-1 field" />
+              <label className="block text-sm font-medium">{ta("login")}</label>
+              <input name="username" placeholder={ta("loginPlaceholder")} pattern={USERNAME_PATTERN.source} required className="mt-1 field" />
             </div>
             <div>
-              <label className="block text-sm font-medium">Пароль</label>
-              <input name="password" type="password" minLength={12} required className="mt-1 field" />
+              <label className="block text-sm font-medium">{ta("password")}</label>
+              <input name="password" type="password" minLength={PASSWORD_MIN_LENGTH} required className="mt-1 field" />
             </div>
           </div>
         </div>
       </fieldset>
 
       <fieldset className="rounded-[4px] border border-border p-3 dark:border-border">
-        <legend className="px-1 text-sm font-medium">Квартира</legend>
+        <legend className="px-1 text-sm font-medium">{t("unitFieldset")}</legend>
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="block text-sm font-medium">№ квартиры</label>
+            <label className="block text-sm font-medium">{tu("unitNumber")}</label>
             <input name="unitNumber" required className="mt-1 field" />
           </div>
           <div>
-            <label className="block text-sm font-medium">Этаж</label>
+            <label className="block text-sm font-medium">{tu("floor")}</label>
             <input name="floor" type="number" required className="mt-1 field" />
           </div>
           <div>
-            <label className="block text-sm font-medium">Подъезд</label>
+            <label className="block text-sm font-medium">{tu("entrance")}</label>
             <input name="entrance" type="number" defaultValue={1} className="mt-1 field" />
           </div>
           <div>
-            <label className="block text-sm font-medium">Тип</label>
+            <label className="block text-sm font-medium">{tu("type")}</label>
             <select name="type" className="mt-1 field">
-              <option value="residential">Жилая</option>
-              <option value="commercial">Коммерческая</option>
-              <option value="parking">Парковка</option>
-              <option value="storage">Склад</option>
+              {UNIT_TYPES.map((type) => (
+                <option key={type} value={type}>{tu(`types.${type}`)}</option>
+              ))}
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium">Площадь (м²)</label>
+            <label className="block text-sm font-medium">{tu("area")}</label>
             <input name="area" type="number" step="0.01" required className="mt-1 field" />
           </div>
         </div>
@@ -97,8 +103,8 @@ export function OwnerCreateForm({
       {error && <p className="text-sm text-danger">{error}</p>}
 
       <div className="flex justify-end gap-3">
-        <Button type="button" variant="outline" onClick={onDone}>Отмена</Button>
-        <Button type="submit" disabled={pending}>{pending ? "Создание..." : "Создать"}</Button>
+        <Button type="button" variant="outline" onClick={onDone}>{tc("cancel")}</Button>
+        <Button type="submit" disabled={pending}>{pending ? t("creating") : tc("create")}</Button>
       </div>
     </form>
   );

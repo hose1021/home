@@ -3,10 +3,14 @@ import {db} from "@/core/db";
 import {adjustments} from "@/core/db/schema/adjustments";
 import {paymentAllocations} from "@/core/db/schema/allocations";
 import {charges} from "@/core/db/schema/charges";
+import {type ChargeStatus} from "@/core/db/schema/enums";
+import {ADJUSTMENT_KINDS} from "@/core/db/schema/enums";
 import {payments} from "@/core/db/schema/payments";
-import {formatMoney, moneyToCents} from "./money";
+import {isoDate} from "@/modules/finance/period";
+import {moneyToCents} from "./money";
 
-export type ChargeStatus = "pending" | "paid" | "partially_paid" | "overdue" | "cancelled";
+const [CREDIT_KIND, DEBIT_KIND] = ADJUSTMENT_KINDS;
+
 type Executor = typeof db;
 
 /** Canonical charge status: cancelled stays; otherwise paid by allocation, then partial, overdue, pending. Pure. */
@@ -23,7 +27,7 @@ export function deriveChargeStatusFromBalance(input: {
     const netDue = input.amountCents + input.debitCents - input.creditCents;
     if (input.allocatedCents >= netDue) return "paid";
     if (input.allocatedCents > 0) return "partially_paid";
-    const today = `${input.today.getFullYear()}-${String(input.today.getMonth() + 1).padStart(2, "0")}-${String(input.today.getDate()).padStart(2, "0")}`;
+    const today = isoDate(input.today);
     return input.dueDate && input.dueDate < today ? "overdue" : "pending";
 }
 
@@ -42,8 +46,8 @@ async function balanceForCharge(tx: Executor, tenantId: string, chargeId: string
 
     const [adjusted] = await tx
         .select({
-            credit: sql<string>`coalesce(sum(case when ${adjustments.kind} = 'credit' then ${adjustments.amount}::numeric else 0 end), 0)`,
-            debit: sql<string>`coalesce(sum(case when ${adjustments.kind} = 'debit' then ${adjustments.amount}::numeric else 0 end), 0)`,
+            credit: sql<string>`coalesce(sum(case when ${adjustments.kind} = ${CREDIT_KIND} then ${adjustments.amount}::numeric else 0 end), 0)`,
+            debit: sql<string>`coalesce(sum(case when ${adjustments.kind} = ${DEBIT_KIND} then ${adjustments.amount}::numeric else 0 end), 0)`,
         })
         .from(adjustments)
         .where(and(eq(adjustments.tenantId, tenantId), eq(adjustments.chargeId, chargeId)));
@@ -59,7 +63,7 @@ async function balanceForCharge(tx: Executor, tenantId: string, chargeId: string
 }
 
 /** Recompute one charge status from allocations and adjustments. */
-export async function syncChargeStatus(tx: Executor, tenantId: string, chargeId: string): Promise<ChargeStatus | null> {
+async function syncChargeStatus(tx: Executor, tenantId: string, chargeId: string): Promise<ChargeStatus | null> {
     const balance = await balanceForCharge(tx, tenantId, chargeId);
     if (!balance) return null;
 
@@ -81,7 +85,7 @@ export async function syncChargeStatus(tx: Executor, tenantId: string, chargeId:
     return next;
 }
 
-export async function syncChargeStatuses(tx: Executor, tenantId: string, chargeIds: Iterable<string>): Promise<void> {
+async function syncChargeStatuses(tx: Executor, tenantId: string, chargeIds: Iterable<string>): Promise<void> {
     for (const chargeId of new Set(chargeIds)) {
         await syncChargeStatus(tx, tenantId, chargeId);
     }
@@ -150,8 +154,8 @@ export async function allocatePayment(tx: Executor, tenantId: string, paymentId:
     const adjustmentRows = await tx
         .select({
             chargeId: adjustments.chargeId,
-            credit: sql<string>`coalesce(sum(case when ${adjustments.kind} = 'credit' then ${adjustments.amount}::numeric else 0 end), 0)`,
-            debit: sql<string>`coalesce(sum(case when ${adjustments.kind} = 'debit' then ${adjustments.amount}::numeric else 0 end), 0)`,
+            credit: sql<string>`coalesce(sum(case when ${adjustments.kind} = ${CREDIT_KIND} then ${adjustments.amount}::numeric else 0 end), 0)`,
+            debit: sql<string>`coalesce(sum(case when ${adjustments.kind} = ${DEBIT_KIND} then ${adjustments.amount}::numeric else 0 end), 0)`,
         })
         .from(adjustments)
         .where(and(eq(adjustments.tenantId, tenantId), inArray(adjustments.chargeId, chargeIds)))
@@ -170,7 +174,7 @@ export async function allocatePayment(tx: Executor, tenantId: string, paymentId:
         const outstanding = netDue - (allocatedByCharge.get(charge.id) ?? 0);
         if (outstanding <= 0) continue;
         const applied = Math.min(remaining, outstanding);
-        rows.push({tenantId, paymentId, chargeId: charge.id, amount: formatMoney(applied)});
+        rows.push({tenantId, paymentId, chargeId: charge.id, amount: (applied / 100).toFixed(2)});
         allocatedByCharge.set(charge.id, (allocatedByCharge.get(charge.id) ?? 0) + applied);
         remaining -= applied;
         affected.add(charge.id);

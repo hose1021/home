@@ -1,6 +1,6 @@
 import {sql} from "drizzle-orm";
 import {boolean, check, pgTable, text, timestamp, unique, uuid, varchar} from "drizzle-orm/pg-core";
-import type {Role} from "@/core/auth/permissions";
+import {ROLES, type Role} from "./enums";
 import {tenants} from "./tenants";
 
 export const users = pgTable("users", {
@@ -45,6 +45,6 @@ export const userRoles = pgTable("user_roles", {
   userRoleUnique: unique("uq_user_roles").on(table.userId, table.role, table.scopeTenantId, table.scopeUnitId),
   roleAllowed: check(
     "chk_user_roles_allowed",
-    sql`${table.role} in ('admin', 'management_member', 'commandant', 'owner')`,
+    sql`${table.role} in (${sql.join(ROLES.map((role) => sql`${role}`), sql`, `)})`,
   ),
 }));

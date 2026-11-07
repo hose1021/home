@@ -1,5 +1,5 @@
 import {getTranslations} from "next-intl/server";
-import {getPermissionsForRoles, type Permission} from "@/core/auth/permissions";
+import {sessionAllows} from "@/core/auth/permissions";
 import {requireTenantPermission} from "@/core/auth/session";
 import {listContractors} from "@/modules/contractor/contractor.service";
 import {ContractorsBoard} from "./contractors-board";
@@ -7,8 +7,7 @@ import {ContractorsBoard} from "./contractors-board";
 export default async function ContractorsPage() {
   const { session, tenantId } = await requireTenantPermission("contractor:read");
   const t = await getTranslations("contractors");
-  const permissions: Permission[] = getPermissionsForRoles(session.user.roles);
-  const canManage = permissions.includes("contractor:write");
+  const canManage = sessionAllows(session, "contractor:write");
   const contractors = await listContractors(tenantId);
 
   return (

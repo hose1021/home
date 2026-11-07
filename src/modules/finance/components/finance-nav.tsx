@@ -7,16 +7,13 @@ import {cn} from "@/lib/utils";
 import {FinancePeriodPicker} from "@/modules/finance/components/finance-period-picker";
 
 const items = [
-    {key: "overview", href: "/finance"},
-    {key: "charges", href: "/finance/charges"},
-    {key: "payments", href: "/finance/payments"},
-    {key: "debts", href: "/finance/debts"},
-    {key: "expenses", href: "/finance/expenses"},
-    {key: "settings", href: "/finance/settings"},
+    {key: "overview", href: "/finance", period: true},
+    {key: "charges", href: "/finance/charges", period: true},
+    {key: "payments", href: "/finance/payments", period: true},
+    {key: "debts", href: "/finance/debts", period: true},
+    {key: "expenses", href: "/finance/expenses", period: true},
+    {key: "settings", href: "/finance/settings", period: false},
 ] as const;
-
-/** Pages whose data is filtered by the shared period. */
-const PERIOD_PATHS = ["/finance", "/finance/charges", "/finance/payments", "/finance/debts", "/finance/expenses"];
 
 /** Shallow, persistent navigation across the finance module. */
 export function FinanceNav() {
@@ -29,13 +26,13 @@ export function FinanceNav() {
         if (item) period.set(key, item);
     }
     const suffix = period.size > 0 ? `?${period}` : "";
+    const activeItem = items.find((item) =>
+        item.href === "/finance" ? pathname === "/finance" : pathname.startsWith(item.href));
 
     return (
         <nav aria-label={t("label")} className="flex flex-wrap items-center gap-1 border-b border-border">
             {items.map((item) => {
-                const active = item.href === "/finance"
-                    ? pathname === "/finance"
-                    : pathname.startsWith(item.href);
+                const active = item === activeItem;
                 return (
                     <Link
                         key={item.key}
@@ -52,7 +49,7 @@ export function FinanceNav() {
                     </Link>
                 );
             })}
-            {PERIOD_PATHS.includes(pathname) && (
+            {activeItem?.period && (
                 <div className="ml-auto flex shrink-0 items-center gap-1 pb-1">
                     <FinancePeriodPicker />
                 </div>

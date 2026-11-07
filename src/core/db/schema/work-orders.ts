@@ -1,5 +1,6 @@
 import {decimal, foreignKey, pgTable, text, timestamp, uuid, varchar} from "drizzle-orm/pg-core";
 import {contractors} from "./contractors";
+import type {WorkOrderStatus} from "./enums";
 import {tenants} from "./tenants";
 import {tickets} from "./tickets";
 import {users} from "./users";
@@ -11,7 +12,7 @@ export const workOrders = pgTable("work_orders", {
   contractorId: uuid("contractor_id").references(() => contractors.id),
   title: varchar("title", { length: 500 }).notNull(),
   description: text("description"),
-  status: varchar("status", { length: 20 }).notNull().default("pending").$type<"pending" | "approved" | "in_progress" | "completed" | "cancelled">(),
+  status: varchar("status", { length: 20 }).notNull().default("pending").$type<WorkOrderStatus>(),
   estimatedCost: decimal("estimated_cost", { precision: 12, scale: 2 }),
   actualCost: decimal("actual_cost", { precision: 12, scale: 2 }),
   scheduledDate: timestamp("scheduled_date", { withTimezone: true }),

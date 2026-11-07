@@ -1,30 +1,26 @@
-import {and, eq, ne} from "drizzle-orm";
+import {getTranslations} from "next-intl/server";
 import {requireTenantPermission} from "@/core/auth/session";
-import {db} from "@/core/db";
-import {owners} from "@/core/db/schema/owners";
 import {listCommandants} from "@/modules/commandants/commandant.service";
+import {listOwnerOptions} from "@/modules/owner/owner.service";
 import {CommandantAddButton} from "./commandant-add-button";
 import {CommandantsBoard} from "./commandants-board";
 
 export default async function CommandantsPage() {
   const {tenantId} = await requireTenantPermission("settings:read");
+  const t = await getTranslations("commandants");
 
   const [commandants, ownerOptions] = await Promise.all([
     listCommandants(tenantId),
-    db
-      .select({ id: owners.id, fullName: owners.fullName, phone: owners.phone })
-      .from(owners)
-      .where(and(eq(owners.tenantId, tenantId), ne(owners.status, "deleted")))
-      .orderBy(owners.fullName),
+    listOwnerOptions(tenantId),
   ]);
 
   return (
     <div className="page-shell">
       <div className="flex items-end justify-between gap-4">
         <div>
-          <p className="text-sm text-muted-foreground">Управление домом</p>
-          <h1 className="page-heading mt-1">Коменданты</h1>
-          <p className="page-description">Действующие и прошлые коменданты дома</p>
+          <p className="text-sm text-muted-foreground">{t("eyebrow")}</p>
+          <h1 className="page-heading mt-1">{t("title")}</h1>
+          <p className="page-description">{t("description")}</p>
         </div>
         <CommandantAddButton owners={ownerOptions} />
       </div>

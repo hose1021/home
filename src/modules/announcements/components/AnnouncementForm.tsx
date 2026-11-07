@@ -3,13 +3,14 @@
 import {useTranslations} from "next-intl";
 import {useState} from "react";
 import {Button} from "@/components/ui/button";
+import {ANNOUNCEMENT_PRIORITIES, type AnnouncementPriority} from "@/core/db/schema/enums";
 import {createAnnouncementAction, updateAnnouncementAction} from "../announcement.actions";
 
 type AnnouncementData = {
   id: string;
   title: string;
   content: string;
-  priority: string;
+  priority: AnnouncementPriority;
   isPinned: boolean;
   isDashboard: boolean;
 };
@@ -36,7 +37,7 @@ export function AnnouncementForm({
       const data = {
         title: fd.get("title") as string,
         content: fd.get("content") as string,
-        priority: (fd.get("priority") || "normal") as "low" | "normal" | "high" | "urgent",
+        priority: fd.get("priority") as AnnouncementPriority,
         isPinned: fd.get("isPinned") === "on",
         isDashboard: fd.get("isDashboard") === "on",
       };
@@ -70,10 +71,9 @@ export function AnnouncementForm({
         <div className="flex-1">
           <label className="block text-sm font-medium">{ta("priority")}</label>
           <select name="priority" defaultValue={announcement?.priority ?? "normal"} className="mt-1 field">
-            <option value="low">{ta("priorities.low")}</option>
-            <option value="normal">{ta("priorities.medium")}</option>
-            <option value="high">{ta("priorities.high")}</option>
-            <option value="urgent">{ta("priorities.urgent")}</option>
+            {ANNOUNCEMENT_PRIORITIES.map((priority) => (
+              <option key={priority} value={priority}>{ta(`priorities.${priority}`)}</option>
+            ))}
           </select>
         </div>
         <div className="flex items-end gap-4 pb-1">

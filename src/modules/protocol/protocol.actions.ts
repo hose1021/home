@@ -1,8 +1,7 @@
 "use server";
 
-import {revalidatePath} from "next/cache";
 import {z} from "zod";
-import {requireTenantPermission} from "@/core/auth/session";
+import {runAction} from "@/core/actions/action";
 import {uuidSchema} from "@/core/validation/action-schemas";
 import {createProtocol, signProtocol} from "./protocol.service";
 
@@ -12,18 +11,30 @@ const protocolSchema = z.object({
   content: z.string().trim().min(1).max(20000),
 });
 
-export async function createProtocolAction(input: z.infer<typeof protocolSchema>) {
-  input = protocolSchema.parse(input);
-  const { session, tenantId } = await requireTenantPermission("protocol:write");
-  await createProtocol(tenantId, input, session.user.id);
-  revalidatePath("/protocols");
-  return { success: true };
+const protocolIdSchema = z.object({id: uuidSchema});
+
+export async function createProtocolAction(input: z.input<typeof protocolSchema>) {
+  return runAction({
+    permission: "protocol:write",
+    schema: protocolSchema,
+    errors: "errors",
+    revalidate: ["/protocols"],
+    handler: async ({session, tenantId}, data) => {
+      await createProtocol(tenantId, data, session.user.id);
+      return {success: true};
+    },
+  }, input);
 }
 
 export async function signProtocolAction(id: string) {
-  id = uuidSchema.parse(id);
-  const { session, tenantId } = await requireTenantPermission("protocol:sign");
-  await signProtocol(tenantId, id, session.user.id);
-  revalidatePath("/protocols");
-  return { success: true };
+  return runAction({
+    permission: "protocol:sign",
+    schema: protocolIdSchema,
+    errors: "errors",
+    revalidate: ["/protocols"],
+    handler: async ({session, tenantId}, data) => {
+      await signProtocol(tenantId, data.id, session.user.id);
+      return {success: true};
+    },
+  }, {id});
 }

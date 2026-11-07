@@ -7,7 +7,7 @@ import {Input} from "@/components/ui/input";
 import {TableHead} from "@/components/ui/table";
 import {cn} from "@/lib/utils";
 
-export type FilterOption = {value: string; label: string};
+type FilterOption = {value: string; label: string};
 export type SortDirection = "asc" | "desc";
 
 export function TableFilters({children, className}: {children: React.ReactNode; className?: string}) {
@@ -77,19 +77,14 @@ export function FilterReset({active, onReset, label}: {active: boolean; onReset:
     );
 }
 
-/** Case-insensitive match of a query against any of the given fields. */
-export function matchesQuery(query: string, fields: (string | null | undefined)[]): boolean {
-    const needle = query.trim().toLowerCase();
-    if (!needle) return true;
-    return fields.some((field) => field?.toLowerCase().includes(needle));
-}
+export {matchesQuery} from "@/lib/search";
 
 /**
  * Table state is stored in the URL under a namespace: filters, sorting and the active
  * tab survive reloads and can be copied as a link. history.replaceState keeps it local,
  * with no server round-trip.
  */
-export type TableQuery = {
+type TableQuery = {
     value: (key: string) => string;
     update: (patch: Record<string, string>) => void;
 };

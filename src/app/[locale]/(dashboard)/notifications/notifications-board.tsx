@@ -8,6 +8,7 @@ import {Dialog, DialogContent, DialogHeader, DialogTitle} from "@/components/ui/
 import {Input} from "@/components/ui/input";
 import {Label} from "@/components/ui/label";
 import {Textarea} from "@/components/ui/textarea";
+import {NOTIFICATION_TYPES, type NotificationType} from "@/core/db/schema/enums";
 import {createNotificationAction, markNotificationReadAction} from "@/modules/notification/notification.actions";
 
 type Notification = {
@@ -26,6 +27,12 @@ export function NotificationsBoard({ notifications, users, canSend }: {
 }) {
   const t = useTranslations("notifications");
   const [open, setOpen] = useState(false);
+
+  function typeLabel(value: string) {
+    return NOTIFICATION_TYPES.some((type) => type === value)
+      ? t(`types.${value as NotificationType}`)
+      : value;
+  }
 
   async function markRead(id: string) {
     try {
@@ -54,7 +61,7 @@ export function NotificationsBoard({ notifications, users, canSend }: {
               <p className="text-sm font-medium">{n.title}</p>
               {n.body && <p className="mt-0.5 text-sm text-muted-foreground">{n.body}</p>}
               <p className="mt-1 text-xs text-muted-foreground">
-                {n.type} · {new Date(n.sentAt).toLocaleString()}
+                {typeLabel(n.type)} · {new Date(n.sentAt).toLocaleString()}
               </p>
             </div>
             {!n.isRead && (
@@ -77,7 +84,7 @@ function NotificationDialog({ users, onClose }: {
   const tc = useTranslations("common");
   const [pending, setPending] = useState(false);
   const [userId, setUserId] = useState("");
-  const [type, setType] = useState("announcement");
+  const [type, setType] = useState<NotificationType>("info");
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
 
@@ -88,7 +95,7 @@ function NotificationDialog({ users, onClose }: {
     try {
       await createNotificationAction({
         userId,
-        type: type.trim(),
+        type,
         title: title.trim(),
         body: body.trim() || undefined,
         channel: "in_app",
@@ -116,7 +123,11 @@ function NotificationDialog({ users, onClose }: {
           </div>
           <div>
             <Label htmlFor="n-type">{t("type")}</Label>
-            <Input id="n-type" value={type} onChange={(e) => setType(e.target.value)} className="mt-1" required />
+            <select id="n-type" value={type} onChange={(e) => setType(e.target.value as NotificationType)} className="mt-1 field">
+              {NOTIFICATION_TYPES.map((value) => (
+                <option key={value} value={value}>{t(`types.${value}`)}</option>
+              ))}
+            </select>
           </div>
           <div>
             <Label htmlFor="n-title">{t("title")}</Label>

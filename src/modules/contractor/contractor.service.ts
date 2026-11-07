@@ -2,8 +2,17 @@ import {and, eq} from "drizzle-orm";
 import {writeAuditLog} from "@/core/audit/audit.service";
 import {db} from "@/core/db";
 import {contractors} from "@/core/db/schema/contractors";
+import type {ContractorStatus} from "@/core/db/schema/enums";
+import {DomainError} from "@/core/errors/app-error";
 
-export type ContractorStatus = "invited" | "active" | "suspended" | "terminated";
+export type ContractorInput = {
+  name: string;
+  contactPerson?: string;
+  phone?: string;
+  taxId?: string;
+  specialties?: string[];
+  status: ContractorStatus;
+};
 
 export async function listContractors(tenantId: string) {
   return await db
@@ -13,18 +22,7 @@ export async function listContractors(tenantId: string) {
     .orderBy(contractors.name);
 }
 
-export async function createContractor(
-  tenantId: string,
-  input: {
-    name: string;
-    contactPerson?: string;
-    phone?: string;
-    taxId?: string;
-    specialties?: string[];
-    status: ContractorStatus;
-  },
-  userId: string,
-) {
+export async function createContractor(tenantId: string, input: ContractorInput, userId: string) {
   const [created] = await db.insert(contractors).values({
     tenantId,
     name: input.name.trim(),
@@ -34,7 +32,7 @@ export async function createContractor(
     specialties: input.specialties?.length ? input.specialties : null,
     status: input.status,
   }).returning();
-  if (!created) throw new Error("Failed to create contractor");
+  if (!created) throw new DomainError("contractorCreateFailed");
 
   await writeAuditLog({
     tenantId, userId,
@@ -64,7 +62,7 @@ export async function updateContractor(
     .from(contractors)
     .where(and(eq(contractors.id, id), eq(contractors.tenantId, tenantId)))
     .limit(1);
-  if (!existing) throw new Error("Подрядчик не найден");
+  if (!existing) throw new DomainError("contractorNotFound");
 
   const [updated] = await db.update(contractors).set({
     name: input.name?.trim() ?? existing.name,
@@ -74,7 +72,7 @@ export async function updateContractor(
     specialties: input.specialties !== undefined ? (input.specialties.length ? input.specialties : null) : existing.specialties,
     status: input.status ?? existing.status,
   }).where(and(eq(contractors.id, id), eq(contractors.tenantId, tenantId))).returning();
-  if (!updated) throw new Error("Подрядчик не найден");
+  if (!updated) throw new DomainError("contractorNotFound");
 
   await writeAuditLog({
     tenantId, userId,

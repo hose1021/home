@@ -1,14 +1,13 @@
 import {getTranslations} from "next-intl/server";
-import {getPermissionsForRoles, type Permission} from "@/core/auth/permissions";
-import {requireTenantPermission} from "@/core/auth/session";
+import {sessionAllows} from "@/core/auth/permissions";
+import {requireTenantContext} from "@/core/auth/session";
 import {listNotifications, listRecipientUsers} from "@/modules/notification/notification.service";
 import {NotificationsBoard} from "./notifications-board";
 
 export default async function NotificationsPage() {
-  const { session, tenantId } = await requireTenantPermission("owner:read");
+  const { session, tenantId } = await requireTenantContext();
   const t = await getTranslations("notifications");
-  const permissions: Permission[] = getPermissionsForRoles(session.user.roles);
-  const canSend = permissions.includes("notification:send");
+  const canSend = sessionAllows(session, "notification:send");
   const notifications = await listNotifications(tenantId, session.user.id);
   const users = canSend ? await listRecipientUsers(tenantId) : [];
 

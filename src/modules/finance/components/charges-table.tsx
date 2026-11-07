@@ -8,14 +8,13 @@ import {FilterReset, FilterSearch, FilterSelect, SortableHead, TableFilters, mat
 import {Button} from "@/components/ui/button";
 import {Dialog, DialogContent, DialogHeader, DialogTitle} from "@/components/ui/dialog";
 import {TableBody, TableCell, TableHeader, TableRow} from "@/components/ui/table";
+import {CHARGE_STATUSES} from "@/core/db/schema/enums";
 import {ChargeGenerateDialog} from "@/modules/finance/components/ChargeGenerateForm";
 import {FinanceStatusBadge} from "@/modules/finance/components/finance-status-badge";
 import {FinanceTable} from "@/modules/finance/components/finance-table";
 import {formatAmount, formatDate} from "@/modules/finance/money-format";
 import {isWholeMonth, resolvePeriod} from "@/modules/finance/period";
 import type {ChargeView} from "@/modules/finance/services/finance-analytics.service";
-
-const STATUSES = ["pending", "partially_paid", "paid", "overdue", "cancelled"] as const;
 
 export function ChargesTable({rows, canWrite}: {
     rows: ChargeView[];
@@ -82,7 +81,7 @@ export function ChargesTable({rows, canWrite}: {
                         label={t("filters.status")}
                         value={status}
                         onChange={(value) => params.update({status: value})}
-                        options={[{value: "", label: t("filters.allStatuses")}, ...STATUSES.map((item) => ({value: item, label: t(`charges.status.${item}`)}))]}
+                        options={[{value: "", label: t("filters.allStatuses")}, ...CHARGE_STATUSES.map((item) => ({value: item, label: t(`charges.status.${item}`)}))]}
                     />
                     <FilterReset active={hasFilters} onReset={() => params.update({q: "", status: ""})} label={t("filters.reset")} />
                 </TableFilters>

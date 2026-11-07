@@ -1,5 +1,6 @@
 "use client";
 
+import {useTranslations} from "next-intl";
 import {useState} from "react";
 import {toast} from "sonner";
 import {Button} from "@/components/ui/button";
@@ -14,6 +15,8 @@ const inputClass =
   "mt-1 field";
 
 export function ProfileForm({ profile }: { profile: ProfileData }) {
+  const t = useTranslations("settings");
+  const tc = useTranslations("common");
   const [pending, setPending] = useState(false);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -25,7 +28,7 @@ export function ProfileForm({ profile }: { profile: ProfileData }) {
         fullName: (fd.get("fullName") as string).trim(),
         phone: (fd.get("phone") as string)?.trim() || null,
       });
-      toast.success("Профиль обновлён");
+      toast.success(t("profileSaved"));
     } catch (err) {
       toast.error((err as Error).message);
     } finally {
@@ -36,16 +39,16 @@ export function ProfileForm({ profile }: { profile: ProfileData }) {
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div>
-        <label htmlFor="profile-fullname" className="block text-sm font-medium">ФИО</label>
+        <label htmlFor="profile-fullname" className="block text-sm font-medium">{t("fullName")}</label>
         <input id="profile-fullname" name="fullName" defaultValue={profile.fullName} required className={inputClass} />
       </div>
       <div>
-        <label htmlFor="profile-phone" className="block text-sm font-medium">Телефон</label>
+        <label htmlFor="profile-phone" className="block text-sm font-medium">{t("phone")}</label>
         <input id="profile-phone" name="phone" type="tel" defaultValue={profile.phone ?? ""} className={inputClass} />
       </div>
       <div className="flex justify-end pt-2">
         <Button type="submit" disabled={pending}>
-          {pending ? "Сохранение..." : "Сохранить"}
+          {pending ? t("saving") : tc("save")}
         </Button>
       </div>
     </form>

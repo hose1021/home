@@ -1,5 +1,5 @@
 import {getTranslations} from "next-intl/server";
-import {getPermissionsForRoles, type Permission} from "@/core/auth/permissions";
+import {sessionAllows} from "@/core/auth/permissions";
 import {requireTenantPermission} from "@/core/auth/session";
 import {listDocuments} from "@/modules/document/document.service";
 import {DocumentsBoard} from "./documents-board";
@@ -7,8 +7,7 @@ import {DocumentsBoard} from "./documents-board";
 export default async function DocumentsPage() {
   const {session, tenantId} = await requireTenantPermission("document:read");
   const t = await getTranslations("documents");
-  const permissions: Permission[] = getPermissionsForRoles(session.user.roles);
-  const canManage = permissions.includes("document:write");
+  const canManage = sessionAllows(session, "document:write");
   const documents = await listDocuments(tenantId);
 
   return (

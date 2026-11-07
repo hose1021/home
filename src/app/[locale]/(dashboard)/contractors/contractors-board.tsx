@@ -9,6 +9,7 @@ import {Dialog, DialogContent, DialogHeader, DialogTitle} from "@/components/ui/
 import {Input} from "@/components/ui/input";
 import {Label} from "@/components/ui/label";
 import {Table, TableBody, TableCell, TableHead, TableHeader, TableRow} from "@/components/ui/table";
+import {CONTRACTOR_STATUSES, type ContractorStatus} from "@/core/db/schema/enums";
 import {createContractorAction, updateContractorAction} from "@/modules/contractor/contractor.actions";
 
 type Contractor = {
@@ -18,10 +19,10 @@ type Contractor = {
   phone: string | null;
   taxId: string | null;
   specialties: string[] | null;
-  status: "invited" | "active" | "suspended" | "terminated";
+  status: ContractorStatus;
 };
 
-const STATUS_VARIANTS: Record<string, "default" | "secondary" | "outline" | "destructive"> = {
+const STATUS_VARIANTS: Record<ContractorStatus, "default" | "secondary" | "outline" | "destructive"> = {
   invited: "secondary",
   active: "default",
   suspended: "outline",
@@ -159,7 +160,7 @@ function ContractorDialog({ contractor, onClose }: {
           <div>
             <Label htmlFor="c-status">{t("status")}</Label>
             <select id="c-status" value={status} onChange={(e) => setStatus(e.target.value as typeof status)} className="mt-1 field">
-              {(["invited", "active", "suspended", "terminated"] as const).map((s) => (
+              {CONTRACTOR_STATUSES.map((s) => (
                 <option key={s} value={s}>{t(`statuses.${s}`)}</option>
               ))}
             </select>

@@ -10,7 +10,7 @@ import {Input} from "@/components/ui/input";
 import {Label} from "@/components/ui/label";
 import {Textarea} from "@/components/ui/textarea";
 import {uploadDocumentAction} from "@/modules/document/document.actions";
-import {DOCUMENT_CATEGORIES, MAX_DOCUMENT_BYTES} from "@/modules/document/document.constants";
+import {ACCEPTED_FILE_EXTENSIONS, DOCUMENT_CATEGORIES, MAX_DOCUMENT_BYTES} from "@/modules/document/document.constants";
 
 type DocumentItem = {
   id: string;
@@ -20,7 +20,6 @@ type DocumentItem = {
   originalFileName: string;
   mimeType: string;
   sizeBytes: number;
-  status: "active" | "archived" | null;
   createdAt: Date | string;
   uploadedByName: string | null;
 };
@@ -70,7 +69,6 @@ export function DocumentsBoard({documents, canManage}: {
               </div>
               <div className="flex shrink-0 items-center gap-2">
                 <Badge variant="outline">{t(`categories.${d.category}`)}</Badge>
-                {d.status === "archived" && <Badge variant="secondary">{t("statuses.archived")}</Badge>}
               </div>
             </div>
           </div>
@@ -146,7 +144,7 @@ function UploadDialog({onClose}: {onClose: () => void}) {
             <Input
               id="d-file"
               type="file"
-              accept=".pdf,.png,.jpg,.jpeg,.webp,.doc,.docx,.xls,.xlsx,.odt,.ods"
+              accept={ACCEPTED_FILE_EXTENSIONS.join(",")}
               onChange={(e) => setFile(e.target.files?.[0] ?? null)}
               className="mt-1"
               required

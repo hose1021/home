@@ -36,7 +36,7 @@ describe("assertValidUsername", () => {
     expect(() => assertValidUsername("ali123.mammadov")).toThrow();
   });
 
-  it("rejects with spaces", () => {
+  it("rejects trailing digits", () => {
     expect(() => assertValidUsername("ali.mammadov2")).toThrow();
   });
 });

@@ -1,4 +1,5 @@
 import {foreignKey, pgTable, text, timestamp, unique, uuid, varchar} from "drizzle-orm/pg-core";
+import type {ProtocolStatus} from "./enums";
 import {meetings} from "./meetings";
 import {tenants} from "./tenants";
 import {users} from "./users";
@@ -8,7 +9,7 @@ export const protocols = pgTable("protocols", {
   tenantId: uuid("tenant_id").notNull().references(() => tenants.id),
   meetingId: uuid("meeting_id").notNull().references(() => meetings.id),
   protocolNumber: varchar("protocol_number", { length: 50 }).notNull(),
-  status: varchar("status", { length: 20 }).default("draft").$type<"draft" | "pending_signature" | "signed" | "archived">(),
+  status: varchar("status", { length: 20 }).default("draft").$type<ProtocolStatus>(),
   content: text("content").notNull(),
   documentUrl: text("document_url"),
   ipfsHash: varchar("ipfs_hash", { length: 64 }),

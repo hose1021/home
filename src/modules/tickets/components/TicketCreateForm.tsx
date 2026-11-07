@@ -4,8 +4,8 @@ import {useTranslations} from "next-intl";
 import {useState} from "react";
 import {toast} from "sonner";
 import {Button} from "@/components/ui/button";
+import {TICKET_CATEGORIES, TICKET_PRIORITIES, type TicketCategory, type TicketPriority} from "@/core/db/schema/enums";
 import {createTicketAction} from "../ticket.actions";
-import type {TicketCategory, TicketPriority} from "../ticket.service";
 
 export function TicketCreateForm({
   units,
@@ -24,8 +24,8 @@ export function TicketCreateForm({
   function categoryLabel(c: TicketCategory) { return t(`categories.${c}`); }
   function priorityLabel(p: TicketPriority) { return t(`priorities.${p}`); }
 
-  const categories: TicketCategory[] = ["plumbing", "electrical", "cleaning", "structural", "elevator", "pest_control", "yard", "security", "other"];
-  const priorities: TicketPriority[] = ["low", "medium", "high", "urgent"];
+  const categories = TICKET_CATEGORIES;
+  const priorities = TICKET_PRIORITIES;
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();

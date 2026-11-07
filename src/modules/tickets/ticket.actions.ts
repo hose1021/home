@@ -1,138 +1,129 @@
 "use server";
 
-import {revalidatePath} from "next/cache";
 import {z} from "zod";
+import {runAction} from "@/core/actions/action";
 import {hasStaffRole} from "@/core/auth/permissions";
-import {requireTenantPermission} from "@/core/auth/session";
-import {ForbiddenError} from "@/core/errors/app-error";
+import {TICKET_CATEGORIES, TICKET_PRIORITIES, TICKET_STATUSES} from "@/core/db/schema/enums";
+import {DomainError, ForbiddenError} from "@/core/errors/app-error";
 import {uuidSchema} from "@/core/validation/action-schemas";
 import {
-    addComment,
-    assignTicket,
-    createTicket,
-    deleteTicket,
-    getTicketById,
-    type TicketCategory,
-    type TicketPriority,
-    type TicketStatus,
-    updateTicket,
-    updateTicketStatus,
-    userOwnsUnit,
+  addComment,
+  createTicket,
+  deleteTicket,
+  getTicketById,
+  updateTicketStatus,
+  userOwnsUnit,
 } from "./ticket.service";
 
 const ticketCreateSchema = z.object({
   unitId: uuidSchema.nullable().optional(),
-  category: z.enum(["plumbing", "electrical", "cleaning", "structural", "elevator", "pest_control", "yard", "security", "other"]),
-  priority: z.enum(["low", "medium", "high", "urgent"]).optional(),
+  category: z.enum(TICKET_CATEGORIES),
+  priority: z.enum(TICKET_PRIORITIES).optional(),
   title: z.string().trim().min(1).max(255),
   description: z.string().trim().min(1).max(20000),
 });
 
-const ticketUpdateSchema = ticketCreateSchema.omit({ unitId: true }).partial();
+const ticketIdSchema = z.object({id: uuidSchema});
 
-export async function createTicketAction(input: {
-  unitId?: string | null;
-  category: TicketCategory;
-  priority?: TicketPriority;
-  title: string;
-  description: string;
-}) {
-  input = ticketCreateSchema.parse(input);
-  const { session, tenantId } = await requireTenantPermission("ticket:write");
-  if (!hasStaffRole(session.user.roles) && input.unitId) {
-    const ownsUnit = await userOwnsUnit(tenantId, session.user.id, input.unitId);
-    if (!ownsUnit) throw new ForbiddenError("A ticket can only be created for your own unit");
-  }
-  await createTicket(tenantId, session.user.id, input);
-  revalidatePath("/tickets");
-  return { success: true };
+const ticketStatusSchema = z.object({
+  id: uuidSchema,
+  status: z.enum(TICKET_STATUSES),
+  rejectionReason: z.string().trim().max(2000).optional(),
+});
+
+const rejectSchema = z.object({
+  id: uuidSchema,
+  rejectionReason: z.string().trim().min(1).max(2000),
+});
+
+const commentSchema = z.object({
+  ticketId: uuidSchema,
+  content: z.string().trim().min(1).max(10000),
+  isInternal: z.boolean().default(false),
+});
+
+export async function createTicketAction(input: z.input<typeof ticketCreateSchema>) {
+  return runAction({
+    permission: "ticket:write",
+    schema: ticketCreateSchema,
+    errors: "errors",
+    revalidate: ["/tickets"],
+    handler: async ({session, tenantId}, data) => {
+      if (data.unitId && !hasStaffRole(session.user.roles)
+        && !(await userOwnsUnit(tenantId, session.user.id, data.unitId))) {
+        throw new ForbiddenError();
+      }
+      await createTicket(tenantId, session.user.id, data);
+      return {success: true};
+    },
+  }, input);
 }
 
-export async function updateTicketAction(id: string, input: {
-  title?: string;
-  description?: string;
-  category?: TicketCategory;
-  priority?: TicketPriority;
-}) {
-  id = uuidSchema.parse(id);
-  input = ticketUpdateSchema.parse(input);
-  const { session, tenantId } = await requireTenantPermission("ticket:write");
-  requireTicketStaff(session.user.roles);
-  await updateTicket(tenantId, id, input, session.user.id);
-  revalidatePath("/tickets");
-  revalidatePath(`/tickets/${id}`);
-  return { success: true };
-}
-
-export async function changeTicketStatusAction(id: string, newStatus: TicketStatus, rejectionReason?: string) {
-  id = uuidSchema.parse(id);
-  newStatus = z.enum(["pending", "in_progress", "done", "rejected"]).parse(newStatus);
-  rejectionReason = rejectionReason === undefined ? undefined : z.string().trim().max(2000).parse(rejectionReason);
-  const { session, tenantId } = await requireTenantPermission("ticket:write");
-  requireTicketStaff(session.user.roles);
-  await updateTicketStatus(tenantId, id, newStatus, session.user.id, rejectionReason);
-  revalidatePath("/tickets");
-  revalidatePath(`/tickets/${id}`);
-  return { success: true };
+export async function changeTicketStatusAction(
+  id: string,
+  newStatus: (typeof TICKET_STATUSES)[number],
+  rejectionReason?: string,
+) {
+  return runAction({
+    permission: "ticket:write",
+    schema: ticketStatusSchema,
+    errors: "errors",
+    revalidate: (data) => ["/tickets", `/tickets/${data.id}`],
+    handler: async ({session, tenantId}, data) => {
+      if (!hasStaffRole(session.user.roles)) throw new ForbiddenError();
+      await updateTicketStatus(tenantId, data.id, data.status, session.user.id, data.rejectionReason);
+      return {success: true};
+    },
+  }, {id, status: newStatus, rejectionReason});
 }
 
 export async function rejectTicketAction(id: string, rejectionReason: string) {
-  id = uuidSchema.parse(id);
-  rejectionReason = z.string().trim().min(1).max(2000).parse(rejectionReason);
-  const { session, tenantId } = await requireTenantPermission("ticket:write");
-  requireTicketStaff(session.user.roles);
-  await updateTicketStatus(tenantId, id, "rejected", session.user.id, rejectionReason);
-  revalidatePath("/tickets");
-  revalidatePath(`/tickets/${id}`);
-  return { success: true };
-}
-
-export async function assignTicketAction(id: string, assignedTo: string) {
-  id = uuidSchema.parse(id);
-  assignedTo = uuidSchema.parse(assignedTo);
-  const { session, tenantId } = await requireTenantPermission("ticket:write");
-  requireTicketStaff(session.user.roles);
-  await assignTicket(tenantId, id, assignedTo, session.user.id);
-  revalidatePath("/tickets");
-  revalidatePath(`/tickets/${id}`);
-  return { success: true };
+  return runAction({
+    permission: "ticket:write",
+    schema: rejectSchema,
+    errors: "errors",
+    revalidate: (data) => ["/tickets", `/tickets/${data.id}`],
+    handler: async ({session, tenantId}, data) => {
+      if (!hasStaffRole(session.user.roles)) throw new ForbiddenError();
+      await updateTicketStatus(tenantId, data.id, "rejected", session.user.id, data.rejectionReason);
+      return {success: true};
+    },
+  }, {id, rejectionReason});
 }
 
 export async function deleteTicketAction(id: string) {
-  id = uuidSchema.parse(id);
-  const { session, tenantId } = await requireTenantPermission("ticket:write");
-  if (!hasStaffRole(session.user.roles)) {
-    const ticket = await getTicketById(tenantId, id);
-    if (!ticket || ticket.createdBy !== session.user.id) {
-      throw new ForbiddenError("Only staff or the ticket creator can delete it");
-    }
-  }
-  await deleteTicket(tenantId, id, session.user.id);
-  revalidatePath("/tickets");
-  return { success: true };
+  return runAction({
+    permission: "ticket:write",
+    schema: ticketIdSchema,
+    errors: "errors",
+    revalidate: ["/tickets"],
+    handler: async ({session, tenantId}, data) => {
+      if (!hasStaffRole(session.user.roles)) {
+        const ticket = await getTicketById(tenantId, data.id);
+        if (!ticket || ticket.createdBy !== session.user.id) {
+          throw new ForbiddenError();
+        }
+      }
+      await deleteTicket(tenantId, data.id, session.user.id);
+      return {success: true};
+    },
+  }, {id});
 }
 
 export async function addCommentAction(ticketId: string, content: string, isInternal = false) {
-  ticketId = uuidSchema.parse(ticketId);
-  content = z.string().trim().min(1).max(10000).parse(content);
-  isInternal = z.boolean().parse(isInternal);
-  const { session, tenantId } = await requireTenantPermission("ticket:read");
-  const ticket = await getTicketById(tenantId, ticketId);
-  if (!ticket) throw new Error("Ticket not found");
-  const staff = hasStaffRole(session.user.roles);
-  if (!staff && ticket.createdBy !== session.user.id) {
-    throw new ForbiddenError("You cannot comment on this ticket");
-  }
-  if (isInternal && !staff) {
-    throw new ForbiddenError("Only staff can create internal comments");
-  }
-  await addComment(tenantId, ticketId, session.user.id, content, isInternal);
-  revalidatePath(`/tickets/${ticketId}`);
-  return { success: true };
-}
-
-function requireTicketStaff(roles: Parameters<typeof hasStaffRole>[0]): void {
-  if (!hasStaffRole(roles)) {
-    throw new ForbiddenError("Only staff can manage tickets");
-  }
+  return runAction({
+    permission: "ticket:read",
+    schema: commentSchema,
+    errors: "errors",
+    revalidate: [`/tickets/${ticketId}`],
+    handler: async ({session, tenantId}, data) => {
+      const ticket = await getTicketById(tenantId, data.ticketId);
+      if (!ticket) throw new DomainError("ticketNotFound");
+      const staff = hasStaffRole(session.user.roles);
+      if (!staff && ticket.createdBy !== session.user.id) throw new ForbiddenError();
+      if (data.isInternal && !staff) throw new ForbiddenError();
+      await addComment(tenantId, data.ticketId, session.user.id, data.content, data.isInternal);
+      return {success: true};
+    },
+  }, {ticketId, content, isInternal});
 }
