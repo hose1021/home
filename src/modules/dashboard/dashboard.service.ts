@@ -1,4 +1,4 @@
-import {and, desc, eq, sql} from "drizzle-orm";
+import {and, desc, eq, ne, sql} from "drizzle-orm";
 import {db} from "@/core/db";
 import {charges} from "@/core/db/schema/charges";
 import type {ChargeStatus, PaymentStatus} from "@/core/db/schema/enums";
@@ -11,7 +11,6 @@ import {users} from "@/core/db/schema/users";
 import {listAnnouncements, type Announcement} from "@/modules/announcements/announcement.service";
 import {getActiveCommandant, type CommandantInfo} from "@/modules/commandants/commandant.service";
 import {listChargesForOwner, type OwnerCharge} from "@/modules/finance/services/charge.service";
-import {moneyToCents} from "@/modules/finance/services/money";
 import {getOwnerDetail, type OwnerDetail} from "@/modules/owner/owner.service";
 
 export type BoardMember = {
@@ -110,7 +109,7 @@ export async function getDashboardData(tenantId: string): Promise<DashboardData>
         .orderBy(desc(payments.paymentDate))
         .limit(6);
 
-    const recentChargeRows = await db
+    const recentCharges = await db
         .select({
             id: charges.id,
             amount: charges.amount,
@@ -124,24 +123,9 @@ export async function getDashboardData(tenantId: string): Promise<DashboardData>
         .from(charges)
         .leftJoin(owners, and(eq(owners.id, charges.ownerId), eq(owners.tenantId, tenantId)))
         .leftJoin(units, and(eq(units.id, charges.unitId), eq(units.tenantId, tenantId)))
-        .where(eq(charges.tenantId, tenantId))
+        .where(and(eq(charges.tenantId, tenantId), ne(charges.status, "cancelled")))
         .orderBy(desc(charges.createdAt))
-        .limit(40);
-
-    const chargeGroups = new Map<string, RecentCharge>();
-    for (const row of recentChargeRows) {
-        if (row.status === "cancelled") continue;
-        const key = `${row.unitNumber ?? ""}|${row.periodYear}-${row.periodMonth}`;
-        const group = chargeGroups.get(key);
-        if (!group) {
-            chargeGroups.set(key, {...row});
-            continue;
-        }
-        group.amount = ((moneyToCents(group.amount) + moneyToCents(row.amount)) / 100).toFixed(2);
-        if (row.dueDate < group.dueDate) group.dueDate = row.dueDate;
-        if (row.status === "overdue") group.status = "overdue";
-    }
-    const recentCharges = [...chargeGroups.values()].slice(0, 5);
+        .limit(5);
 
     return {
         unitCount: unitCount?.count ?? 0,
