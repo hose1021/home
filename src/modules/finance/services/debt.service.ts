@@ -117,8 +117,8 @@ export async function getDebtConfig(tenantId: string): Promise<DebtConfig> {
 /** Enumerate billing periods from billing start through `now`'s month. Pure, display only. */
 export function buildPeriods(billingStart: string, now: Date = new Date()): BillingPeriod[] {
     const parsed = parsePeriodKey(billingStart);
-    const startYear = Number.isFinite(parsed.year) ? parsed.year : now.getFullYear();
-    const startMonth = Number.isFinite(parsed.month) ? Math.min(Math.max(parsed.month, 1), 12) : 1;
+    const startYear = parsed?.year ?? now.getFullYear();
+    const startMonth = parsed?.month ?? 1;
     const periods: BillingPeriod[] = [];
     for (let y = startYear; y <= now.getFullYear(); y++) {
         const mFrom = y === startYear ? startMonth : 1;

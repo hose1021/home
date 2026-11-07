@@ -3,6 +3,7 @@ import {db} from "@/core/db";
 import {BILLING} from "@/core/db/schema/enums";
 import {tenants} from "@/core/db/schema/tenants";
 import {DomainError} from "@/core/errors/app-error";
+import {parsePeriodKey} from "@/modules/finance/period";
 import {centsToDecimal, moneyToCents} from "./money";
 
 export type FinancialSettings = {
@@ -36,7 +37,7 @@ export async function updateFinancialSettings(
 ): Promise<FinancialSettings> {
   const tariff = Number(input.tariffPerSqm);
   if (!Number.isFinite(tariff) || tariff <= 0) throw new DomainError("invalidTariff");
-  if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(input.billingStart)) throw new DomainError("invalidBillingStart");
+  if (!parsePeriodKey(input.billingStart)) throw new DomainError("invalidBillingStart");
   if (!Number.isInteger(input.dueDay) || input.dueDay < 1 || input.dueDay > BILLING.maxDueDay) throw new DomainError("invalidDueDay");
 
   await db

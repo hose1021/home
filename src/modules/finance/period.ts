@@ -15,15 +15,17 @@ export function periodKey(year: number, month: number): string {
     return `${year}-${pad(month)}`;
 }
 
-/** Inverse of `periodKey`: splits `YYYY-MM`; a missing month defaults to 1. */
-export function parsePeriodKey(key: string): {year: number; month: number} {
-    const [year = 1970, month = 1] = key.split("-").map(Number);
-    return {year, month};
+/** Strict inverse of `periodKey`: `YYYY-MM` → year and month, or null for any other shape. */
+export function parsePeriodKey(key: string): {year: number; month: number} | null {
+    const match = MONTH.exec(key);
+    if (!match) return null;
+    return {year: Number(key.slice(0, 4)), month: Number(match[1])};
 }
 
 export function monthBounds(month: string): {from: string; to: string} {
-    const {year, month: monthNumber} = parsePeriodKey(month);
-    return {from: `${month}-01`, to: isoDate(new Date(year, monthNumber, 0))};
+    const parsed = parsePeriodKey(month);
+    if (!parsed) return {from: "", to: ""};
+    return {from: `${month}-01`, to: isoDate(new Date(parsed.year, parsed.month, 0))};
 }
 
 /**
