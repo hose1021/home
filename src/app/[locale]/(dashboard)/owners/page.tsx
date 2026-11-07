@@ -4,12 +4,7 @@ import {requireTenantPermission} from "@/core/auth/session";
 import {listOwnersWithDebt} from "@/modules/owner/owner.service";
 import {OwnerTable} from "./owner-table";
 
-export default async function OwnersPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ search?: string; role?: string; units?: string; payment?: string }>;
-}) {
-  const sp = await searchParams;
+export default async function OwnersPage() {
   const t = await getTranslations();
   const { session, tenantId } = await requireTenantPermission("owner:read");
   const restrictToCurrentOwner = !hasStaffRole(session.user.roles);
@@ -31,10 +26,6 @@ export default async function OwnersPage({
         owners={owners}
         canManage={sessionAllows(session, "owner:write")}
         canManageRoles={sessionAllows(session, "user:manage")}
-        initialSearch={sp.search}
-        initialRole={sp.role}
-        initialUnits={sp.units}
-        initialPayment={sp.payment}
       />
     </div>
   );

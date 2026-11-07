@@ -92,23 +92,25 @@ type TableQuery = {
 export function useTableQuery(prefix: string): TableQuery {
     const searchParams = useSearchParams();
 
+    const name = useCallback((key: string) => (prefix ? `${prefix}.${key}` : key), [prefix]);
+
     const value = useCallback(
-        (key: string) => searchParams.get(`${prefix}.${key}`) ?? "",
-        [searchParams, prefix],
+        (key: string) => searchParams.get(name(key)) ?? "",
+        [searchParams, name],
     );
 
     const update = useCallback(
         (patch: Record<string, string>) => {
             const params = new URLSearchParams(window.location.search);
             for (const [key, next] of Object.entries(patch)) {
-                const name = `${prefix}.${key}`;
-                if (next) params.set(name, next);
-                else params.delete(name);
+                const param = name(key);
+                if (next) params.set(param, next);
+                else params.delete(param);
             }
             const query = params.toString();
             window.history.replaceState(null, "", `${window.location.pathname}${query ? `?${query}` : ""}`);
         },
-        [prefix],
+        [name],
     );
 
     return {value, update};

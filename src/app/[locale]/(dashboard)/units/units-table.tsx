@@ -1,9 +1,9 @@
 "use client";
 
-import {IconSearch, IconX} from "@tabler/icons-react";
 import {useTranslations} from "next-intl";
 import {useMemo, useState} from "react";
 import {toast} from "sonner";
+import {FilterSearch, FilterSelect, matchesQuery, useTableQuery} from "@/components/table-filters";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -25,7 +25,6 @@ import {assignExistingUnitAction, listOwnersAction, removeUnitFromOwnerAction} f
 import {createUnitAction, deleteUnitAction, updateUnitAction} from "@/modules/unit/unit.actions";
 
 const OWNER_FILTERS = ["all", "assigned", "unassigned"] as const;
-type OwnerFilter = (typeof OWNER_FILTERS)[number];
 
 type UnitRow = {
   id: string;
@@ -51,9 +50,10 @@ export function UnitsTable({
 }) {
   const t = useTranslations("units");
   const tc = useTranslations("common");
-  const [search, setSearch] = useState("");
-  const [typeFilter, setTypeFilter] = useState("");
-  const [ownerFilter, setOwnerFilter] = useState<OwnerFilter>("all");
+  const params = useTableQuery("units");
+  const search = params.value("q");
+  const typeFilter = params.value("type");
+  const ownerFilter = params.value("owner");
 
   const [createOpen, setCreateOpen] = useState(false);
   const [editUnit, setEditUnit] = useState<UnitRow | null>(null);
@@ -80,11 +80,7 @@ export function UnitsTable({
   const filtered = useMemo(() => {
     let list = units;
     if (search) {
-      const q = search.toLowerCase();
-      list = list.filter((u) =>
-        u.unitNumber.toLowerCase().includes(q) ||
-        u.ownerNames.some((n) => n.toLowerCase().includes(q))
-      );
+      list = list.filter((u) => matchesQuery(search, [u.unitNumber, ...u.ownerNames]));
     }
     if (typeFilter) {
       list = list.filter((u) => u.type === typeFilter);
@@ -219,35 +215,29 @@ export function UnitsTable({
     <>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-2">
-          <div className="relative">
-            <IconSearch className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground/70" />
-            <Input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder={t("searchPlaceholder")}
-              className="w-80 pl-9 pr-8"
-            />
-            {search && (
-              <button type="button" aria-label={tc("reset")} onClick={() => setSearch("")} className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground/70 hover:text-muted-foreground">
-                <IconX className="size-4" />
-              </button>
-            )}
-          </div>
+          <FilterSearch
+            value={search}
+            onChange={(value) => params.update({q: value})}
+            placeholder={t("searchPlaceholder")}
+            clearLabel={tc("reset")}
+          />
 
-          <select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)}
-            className="filter-select">
-            <option value="">{t("allTypes")}</option>
-            {UNIT_TYPES.map((type) => (
-              <option key={type} value={type}>{t(`types.${type}`)}</option>
-            ))}
-          </select>
+          <FilterSelect
+            label={t("allTypes")}
+            value={typeFilter}
+            onChange={(value) => params.update({type: value})}
+            options={[
+              {value: "", label: t("allTypes")},
+              ...UNIT_TYPES.map((type) => ({value: type, label: t(`types.${type}`)})),
+            ]}
+          />
 
-          <select value={ownerFilter} onChange={(e) => setOwnerFilter(e.target.value as OwnerFilter)}
-            className="filter-select">
-            {OWNER_FILTERS.map((filter) => (
-              <option key={filter} value={filter}>{t(`ownerFilters.${filter}`)}</option>
-            ))}
-          </select>
+          <FilterSelect
+            label={t("ownerFilters.all")}
+            value={ownerFilter}
+            onChange={(value) => params.update({owner: value})}
+            options={OWNER_FILTERS.map((filter) => ({value: filter, label: t(`ownerFilters.${filter}`)}))}
+          />
         </div>
 
         {canManage && (

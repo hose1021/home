@@ -1,11 +1,10 @@
 "use client";
 
-import {IconSearch, IconX} from "@tabler/icons-react";
-import {useRouter, useSearchParams} from "next/navigation";
 import {useTranslations} from "next-intl";
 import {useMemo, useState} from "react";
 import {toast} from "sonner";
 import {RoleBadges} from "@/components/role-badge";
+import {FilterSearch, FilterSelect, matchesQuery, useTableQuery} from "@/components/table-filters";
 import {
     AlertDialog,
     AlertDialogAction,
@@ -18,7 +17,6 @@ import {
 } from "@/components/ui/alert-dialog";
 import {Button} from "@/components/ui/button";
 import {Dialog, DialogContent, DialogHeader, DialogTitle,} from "@/components/ui/dialog";
-import {Input} from "@/components/ui/input";
 import {ROLES, type Role} from "@/core/db/schema/enums";
 import {Link} from "@/i18n/navigation";
 import {OwnerCreateForm} from "@/modules/owner/components/OwnerCreateForm";
@@ -43,48 +41,28 @@ const UNIT_MATCHERS: Record<string, (count: number) => boolean> = {
   "3": (count) => count >= 3,
 };
 
-export function OwnerTable({ owners, canManage, canManageRoles, initialSearch, initialRole, initialUnits, initialPayment }: {
+export function OwnerTable({ owners, canManage, canManageRoles }: {
   owners: OwnerRow[];
   canManage?: boolean;
   canManageRoles?: boolean;
-  initialSearch?: string;
-  initialRole?: string;
-  initialUnits?: string;
-  initialPayment?: string;
 }) {
   const to = useTranslations("owners");
   const tc = useTranslations("common");
   const ta = useTranslations("auth");
   const roleOptions = ROLES.map((role) => ({value: role, label: ta(`roleLabels.${role}`)}));
-  const router = useRouter();
-  const sp = useSearchParams();
-  const [search, setSearch] = useState(initialSearch ?? sp.get("search") ?? "");
-  const [roleFilter, setRoleFilter] = useState(initialRole ?? sp.get("role") ?? "");
-  const [unitsFilter, setUnitsFilter] = useState(initialUnits ?? sp.get("units") ?? "");
-  const [paymentFilter, setPaymentFilter] = useState(initialPayment ?? sp.get("payment") ?? "");
+  const params = useTableQuery("");
+  const search = params.value("search");
+  const roleFilter = params.value("role");
+  const unitsFilter = params.value("units");
+  const paymentFilter = params.value("payment");
   const [createOpen, setCreateOpen] = useState(false);
   const [editing, setEditing] = useState<OwnerRow | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
-  function updateURL(s: string, r: string, u: string, p: string) {
-    const params = new URLSearchParams();
-    if (s) params.set("search", s);
-    if (r) params.set("role", r);
-    if (u) params.set("units", u);
-    if (p) params.set("payment", p);
-    const q = params.toString();
-    router.replace(q ? `?${q}` : window.location.pathname, { scroll: false });
-  }
-
   const filtered = useMemo(() => {
     let list = owners;
     if (search) {
-      const q = search.toLowerCase();
-      list = list.filter((o) =>
-        o.fullName.toLowerCase().includes(q) ||
-        o.phone?.toLowerCase().includes(q) ||
-        o.username.toLowerCase().includes(q)
-      );
+      list = list.filter((o) => matchesQuery(search, [o.fullName, o.phone, o.username]));
     }
     if (roleFilter) {
       list = list.filter((o) => o.roles.some((role) => role === roleFilter));
@@ -125,36 +103,33 @@ export function OwnerTable({ owners, canManage, canManageRoles, initialSearch, i
     <>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-2">
-          <div className="relative">
-            <IconSearch className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground/70" />
-            <Input
-              value={search}
-              onChange={(e) => { setSearch(e.target.value); updateURL(e.target.value, roleFilter, unitsFilter, paymentFilter); }}
-              placeholder={to("searchPlaceholder")}
-              className="w-80 pl-9 pr-8"
-            />
-            {search && (
-              <button onClick={() => { setSearch(""); updateURL("", roleFilter, unitsFilter, paymentFilter); }} className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground/70 hover:text-muted-foreground">
-                <IconX className="size-4" />
-              </button>
-            )}
-          </div>
+          <FilterSearch
+            value={search}
+            onChange={(value) => params.update({search: value})}
+            placeholder={to("searchPlaceholder")}
+            clearLabel={tc("reset")}
+          />
 
-          <select value={roleFilter} onChange={(e) => { setRoleFilter(e.target.value); updateURL(search, e.target.value, unitsFilter, paymentFilter); }}
-            className="filter-select">
-            <option value="">{to("filterByRole")}</option>
-            {roleOptions.map((r) => (<option key={r.value} value={r.value}>{r.label}</option>))}
-          </select>
+          <FilterSelect
+            label={to("filterByRole")}
+            value={roleFilter}
+            onChange={(value) => params.update({role: value})}
+            options={[{value: "", label: to("filterByRole")}, ...roleOptions]}
+          />
 
-          <select value={unitsFilter} onChange={(e) => { setUnitsFilter(e.target.value); updateURL(search, roleFilter, e.target.value, paymentFilter); }}
-            className="filter-select">
-            {UNIT_OPTIONS.map((o) => (<option key={o.value} value={o.value}>{o.label}</option>))}
-          </select>
+          <FilterSelect
+            label={to("units")}
+            value={unitsFilter}
+            onChange={(value) => params.update({units: value})}
+            options={UNIT_OPTIONS}
+          />
 
-          <select value={paymentFilter} onChange={(e) => { setPaymentFilter(e.target.value); updateURL(search, roleFilter, unitsFilter, e.target.value); }}
-            className="filter-select">
-            {PAYMENT_OPTIONS.map((o) => (<option key={o.value} value={o.value}>{o.label}</option>))}
-          </select>
+          <FilterSelect
+            label={tc("filter")}
+            value={paymentFilter}
+            onChange={(value) => params.update({payment: value})}
+            options={PAYMENT_OPTIONS}
+          />
         </div>
 
         {canManage && (
