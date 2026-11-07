@@ -1,4 +1,5 @@
 import {date, decimal, integer, pgTable, timestamp, unique, uuid, varchar} from "drizzle-orm/pg-core";
+import type {ChargeStatus} from "./enums";
 import {owners} from "./owners";
 import {tenants} from "./tenants";
 import {units} from "./units";
@@ -17,7 +18,7 @@ export const charges = pgTable("charges", {
   periodYear: integer("period_year").notNull(),
   periodMonth: integer("period_month").notNull(),
   dueDate: date("due_date").notNull(),
-  status: varchar("status", { length: 20 }).notNull().default("pending").$type<"pending" | "paid" | "partially_paid" | "overdue" | "cancelled">(),
+  status: varchar("status", { length: 20 }).notNull().default("pending").$type<ChargeStatus>(),
   createdBy: uuid("created_by").notNull().references(() => users.id),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 }, (table) => ({

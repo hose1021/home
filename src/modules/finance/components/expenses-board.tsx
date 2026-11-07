@@ -5,12 +5,13 @@ import {useLocale, useTranslations} from "next-intl";
 import {useState} from "react";
 import {toast} from "sonner";
 
-import {FilterSearch, TableFilters, matchesQuery} from "@/components/table-filters";
+import {FilterSearch, SortableHead, TableFilters, matchesQuery, sortRows, useTableQuery, type SortDirection} from "@/components/table-filters";
 import {Button} from "@/components/ui/button";
 import {Dialog, DialogContent, DialogHeader, DialogTitle} from "@/components/ui/dialog";
 import {Input} from "@/components/ui/input";
 import {Label} from "@/components/ui/label";
-import {TableBody, TableCell, TableHead, TableHeader, TableRow} from "@/components/ui/table";
+import {TableBody, TableCell, TableHeader, TableRow} from "@/components/ui/table";
+import {todayIso} from "@/lib/date";
 import {FinanceTable} from "@/modules/finance/components/finance-table";
 import {createExpenseAction} from "@/modules/finance/finance.actions";
 import {formatAmount, formatDate} from "@/modules/finance/money-format";
@@ -21,19 +22,35 @@ export function ExpensesBoard({rows, canWrite}: {rows: ExpenseRow[]; canWrite: b
   const tc = useTranslations("common");
   const locale = useLocale();
   const router = useRouter();
-  const [query, setQuery] = useState("");
+  const params = useTableQuery("expenses");
   const [open, setOpen] = useState(false);
 
+  const query = params.value("q");
+  const sortKey = params.value("sort");
+  const sortDir: SortDirection = params.value("dir") === "desc" ? "desc" : "asc";
+
   const filtered = rows.filter((row) => matchesQuery(query, [row.description, row.expenseDate]));
-  const total = filtered.reduce((sum, row) => sum + Number(row.amount), 0);
+  const sorted = sortRows(filtered, sortKey, sortDir, {
+    date: (row) => row.expenseDate,
+    item: (row) => row.description,
+    amount: (row) => Number(row.amount),
+  });
+  const sort = {key: sortKey, direction: sortDir};
+  const total = sorted.reduce((sum, row) => sum + Number(row.amount), 0);
+
+  function toggle(key: string) {
+    if (sortKey !== key) params.update({sort: key, dir: "asc"});
+    else if (sortDir === "asc") params.update({dir: "desc"});
+    else params.update({sort: "", dir: ""});
+  }
 
   return (
     <>
       <div className="flex flex-wrap items-center gap-2">
         <TableFilters>
-          <FilterSearch value={query} onChange={setQuery} placeholder={t("expensesPage.search")} clearLabel={t("filters.clear")} />
+          <FilterSearch value={query} onChange={(value) => params.update({q: value})} placeholder={t("expensesPage.search")} clearLabel={t("filters.clear")} />
         </TableFilters>
-        <p className="ml-auto text-xs text-muted-foreground tabular-nums">{filtered.length} / {rows.length} {tc("pieces")}</p>
+        <p className="ml-auto text-xs text-muted-foreground tabular-nums">{sorted.length} / {rows.length} {tc("pieces")}</p>
         {canWrite && <Button size="sm" onClick={() => setOpen(true)}>+ {t("expensesPage.create")}</Button>}
       </div>
 
@@ -44,20 +61,20 @@ export function ExpensesBoard({rows, canWrite}: {rows: ExpenseRow[]; canWrite: b
       <FinanceTable>
           <TableHeader>
             <TableRow>
-              <TableHead>{tc("date")}</TableHead>
-              <TableHead>{t("expensesPage.item")}</TableHead>
-              <TableHead className="text-right">{tc("amount")}</TableHead>
+              <SortableHead label={tc("date")} sortKey="date" sort={sort} onSort={toggle} />
+              <SortableHead label={t("expensesPage.item")} sortKey="item" sort={sort} onSort={toggle} />
+              <SortableHead label={tc("amount")} sortKey="amount" align="right" sort={sort} onSort={toggle} />
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filtered.map((row) => (
+            {sorted.map((row) => (
               <TableRow key={row.id}>
                 <TableCell className="text-sm text-muted-foreground tabular-nums">{formatDate(row.expenseDate, locale)}</TableCell>
                 <TableCell className="text-sm font-medium">{row.description}</TableCell>
                 <TableCell className="text-right text-sm font-semibold">{formatAmount(row.amount)}</TableCell>
               </TableRow>
             ))}
-            {filtered.length === 0 && (
+            {sorted.length === 0 && (
               <TableRow>
                 <TableCell colSpan={3} className="py-10 text-center text-sm text-muted-foreground">
                   {rows.length === 0 ? t("expensesPage.empty") : t("filters.notFound")}
@@ -81,7 +98,7 @@ function ExpenseDialog({open, onOpenChange, onDone}: {
   const [pending, setPending] = useState(false);
   const [amount, setAmount] = useState("");
   const [description, setDescription] = useState("");
-  const [expenseDate, setExpenseDate] = useState(new Date().toISOString().slice(0, 10));
+  const [expenseDate, setExpenseDate] = useState(todayIso());
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();

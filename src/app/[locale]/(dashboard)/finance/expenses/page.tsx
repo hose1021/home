@@ -1,6 +1,6 @@
 import {getTranslations} from "next-intl/server";
+import {sessionAllows} from "@/core/auth/permissions";
 
-import {getPermissionsForRoles} from "@/core/auth/permissions";
 import {requireTenantPermission} from "@/core/auth/session";
 import {ExpensesBoard} from "@/modules/finance/components/expenses-board";
 import {PrimaryMetric} from "@/modules/finance/components/finance-metric";
@@ -15,7 +15,6 @@ export default async function ExpensesPage({searchParams}: {
     const sp = await searchParams;
     const period = resolvePeriod({month: sp.month, from: sp.from, to: sp.to});
     const {session, tenantId} = await requireTenantPermission("finance:read");
-    const permissions = getPermissionsForRoles(session.user.roles);
     const t = await getTranslations("finance");
     const [rows, budget] = await Promise.all([
         listExpenses(tenantId, 200, {from: period.from, to: period.to}),
@@ -37,7 +36,7 @@ export default async function ExpensesPage({searchParams}: {
                 <PrimaryMetric label={t("expensesPage.spent")} value={formatAmount(spent)} hint={t("expensesPage.spentHint")} />
             </div>
 
-            <ExpensesBoard rows={rows} canWrite={permissions.includes("budget:write")} />
+            <ExpensesBoard rows={rows} canWrite={sessionAllows(session, "budget:write")} />
         </>
     );
 }

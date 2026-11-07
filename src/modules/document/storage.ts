@@ -14,24 +14,6 @@ export function newObjectKey(): string {
   return `${id.slice(0, 2)}/${id}`;
 }
 
-export class InMemoryStorage implements Storage {
-  private objects = new Map<string, Uint8Array>();
-
-  async put(key: string, bytes: Uint8Array): Promise<void> {
-    this.objects.set(key, bytes);
-  }
-
-  async get(key: string): Promise<Uint8Array> {
-    const bytes = this.objects.get(key);
-    if (!bytes) throw new Error(`Object not found: ${key}`);
-    return bytes;
-  }
-
-  async delete(key: string): Promise<void> {
-    this.objects.delete(key);
-  }
-}
-
 export class LocalFsStorage implements Storage {
   private readonly root: string;
 
@@ -59,11 +41,6 @@ export class LocalFsStorage implements Storage {
 
   async delete(key: string): Promise<void> {
     await rm(this.resolveKey(key), {force: true});
-  }
-
-  /** Test helper: remove the whole storage tree. */
-  async destroy(): Promise<void> {
-    await rm(this.root, {recursive: true, force: true});
   }
 }
 

@@ -1,18 +1,9 @@
-import type {NextRequest} from "next/server";
 import createMiddleware from "next-intl/middleware";
 import {routing} from "./i18n/routing";
 
 const intlMiddleware = createMiddleware(routing);
 
-const publicPaths = ["/api", "/_next", "/favicon.ico"];
-
-export function proxy(request: NextRequest) {
-  const {pathname} = request.nextUrl;
-
-  if (publicPaths.some((p) => pathname.startsWith(p))) {
-    return;
-  }
-
+export function proxy(request: Parameters<typeof intlMiddleware>[0]) {
   return intlMiddleware(request);
 }
 

@@ -3,6 +3,7 @@ import {writeAuditLog} from "@/core/audit/audit.service";
 import {db} from "@/core/db";
 import {commandants} from "@/core/db/schema/commandants";
 import {DomainError} from "@/core/errors/app-error";
+import {todayIso} from "@/lib/date";
 
 export type CommandantInput = {
   ownerId?: string | null;
@@ -13,9 +14,15 @@ export type CommandantInput = {
   endDate?: string | null;
 };
 
-function today(): string {
-  return new Date().toISOString().slice(0, 10);
-}
+/** The card-facing shape of an active commandant. */
+export type CommandantInfo = {
+  id: string;
+  ownerId: string | null;
+  fullName: string;
+  phone: string | null;
+  startDate: string;
+  endDate: string | null;
+};
 
 export async function listCommandants(tenantId: string) {
   return await db
@@ -46,8 +53,6 @@ async function deactivateOthers(tx: typeof db, tenantId: string, endDate: string
     ));
 }
 
-
-
 export async function createCommandant(tenantId: string, input: CommandantInput, userId: string) {
   const created = await db.transaction(async (tx) => {
     if (input.isActive) {
@@ -67,7 +72,7 @@ export async function createCommandant(tenantId: string, input: CommandantInput,
       .returning();
     return row;
   });
-  if (!created) throw new Error("Failed to create commandant");
+  if (!created) throw new DomainError("commandant_create_failed");
 
   await writeAuditLog({
     tenantId,
@@ -92,11 +97,11 @@ export async function updateCommandant(
     .from(commandants)
     .where(and(eq(commandants.id, id), eq(commandants.tenantId, tenantId)))
     .limit(1);
-  if (!existing) throw new DomainError("commandant_not_found", "Комендант не найден");
+  if (!existing) throw new DomainError("commandant_not_found");
 
   const updated = await db.transaction(async (tx) => {
     if (input.isActive) {
-      await deactivateOthers(tx as unknown as typeof db, tenantId, input.startDate ?? today(), id);
+      await deactivateOthers(tx as unknown as typeof db, tenantId, input.startDate ?? todayIso(), id);
     }
     const [row] = await tx
       .update(commandants)
@@ -105,6 +110,7 @@ export async function updateCommandant(
       .returning();
     return row;
   });
+  if (!updated) throw new DomainError("commandant_not_found");
 
   await writeAuditLog({
     tenantId,

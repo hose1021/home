@@ -1,8 +1,8 @@
 import {type NextRequest, NextResponse} from "next/server";
 import {z} from "zod";
 import {authenticateUser, createSession} from "@/core/auth/auth";
+import {applySessionCookie, clientIp} from "@/core/auth/http";
 import {clearLoginFailures, isLoginRateLimited, recordLoginFailure} from "@/core/auth/login-rate-limit";
-import {getSessionCookieName} from "@/core/auth/session";
 
 const loginSchema = z.object({
   username: z.string().trim().min(1).max(100),
@@ -22,7 +22,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Username and password required" }, { status: 400 });
     }
 
-    const ip = getClientIp(request);
+    const ip = clientIp(request);
     if (isLoginRateLimited(ip, parsed.data.username)) {
       return NextResponse.json({ error: "Too many login attempts" }, { status: 429 });
     }
@@ -51,21 +51,10 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    response.cookies.set(getSessionCookieName(), token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      path: "/",
-      maxAge: 60 * 60 * 24 * 7,
-    });
-
+    applySessionCookie(response, token);
     return response;
-  } catch {
-    return NextResponse.json({ error: "Login failed" }, { status: 500 });
+  } catch (error) {
+    console.error("Login failed", error);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
-}
-
-function getClientIp(request: NextRequest): string | undefined {
-  const value = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim();
-  return value?.slice(0, 45) || undefined;
 }

@@ -1,6 +1,7 @@
 import {describe, expect, it} from "vitest";
+import {ageBucket} from "../ageing";
 import {deriveChargeStatusFromBalance} from "./allocation.service";
-import {ageBucket, daysBetween} from "./finance-analytics.service";
+import {daysOverdue} from "./finance-analytics.service";
 
 const today = new Date("2026-07-20T00:00:00");
 
@@ -50,8 +51,8 @@ describe("deriveChargeStatusFromBalance", () => {
 
 describe("ageing helpers", () => {
     it("counts days since due date", () => {
-        expect(daysBetween("2026-07-20", today)).toBe(0);
-        expect(daysBetween("2026-06-20", today)).toBe(30);
+        expect(daysOverdue("2026-07-20", today)).toBe(0);
+        expect(daysOverdue("2026-06-20", today)).toBe(30);
     });
 
     it("maps days overdue to buckets", () => {

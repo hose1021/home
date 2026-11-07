@@ -1,5 +1,5 @@
 import {getTranslations} from "next-intl/server";
-import {getPermissionsForRoles, type Permission} from "@/core/auth/permissions";
+import {sessionAllows} from "@/core/auth/permissions";
 import {requireTenantPermission} from "@/core/auth/session";
 import {listMeetings} from "@/modules/meeting/meeting.service";
 import {listProtocols} from "@/modules/protocol/protocol.service";
@@ -8,9 +8,8 @@ import {ProtocolsBoard} from "./protocols-board";
 export default async function ProtocolsPage() {
   const { session, tenantId } = await requireTenantPermission("protocol:read");
   const t = await getTranslations("protocols");
-  const permissions: Permission[] = getPermissionsForRoles(session.user.roles);
-  const canManage = permissions.includes("protocol:write");
-  const canSign = permissions.includes("protocol:sign");
+  const canManage = sessionAllows(session, "protocol:write");
+  const canSign = sessionAllows(session, "protocol:sign");
   const [protocols, meetings] = await Promise.all([
     listProtocols(tenantId),
     listMeetings(tenantId),

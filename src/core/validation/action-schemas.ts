@@ -1,31 +1,53 @@
 import {z} from "zod";
+import {
+  PASSWORD_MAX_LENGTH,
+  PASSWORD_MIN_LENGTH,
+  USERNAME_MAX_LENGTH,
+  USERNAME_MIN_LENGTH,
+  USERNAME_PATTERN,
+} from "@/core/auth/constants";
+import {BILLING, PAYMENT_METHODS, ROLES, UNIT_TYPES} from "@/core/db/schema/enums";
 
 export const uuidSchema = z.string().uuid();
 export const moneySchema = z.string().regex(/^\d{1,10}(\.\d{1,2})?$/, "Invalid monetary amount");
-export const usernameSchema = z.string().trim().min(1).max(100);
-export const shortText = (max: number) => z.string().trim().min(1).max(max);
+export const dateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
+export const monthSchema = z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/);
+
+export const usernameSchema = z
+  .string()
+  .trim()
+  .min(USERNAME_MIN_LENGTH)
+  .max(USERNAME_MAX_LENGTH)
+  .regex(USERNAME_PATTERN);
+
+export const passwordSchema = z.string().min(PASSWORD_MIN_LENGTH).max(PASSWORD_MAX_LENGTH);
+
+export const periodSchema = z.object({
+  periodYear: z.number().int().min(BILLING.minYear).max(BILLING.maxYear),
+  periodMonth: z.number().int().min(BILLING.minMonth).max(BILLING.maxMonth),
+});
 
 export const unitInputSchema = z.object({
-  unitNumber: shortText(50),
+  unitNumber: z.string().trim().min(1).max(50),
   entrance: z.number().int().min(1).max(100),
   floor: z.number().int().min(-5).max(200),
-  type: z.enum(["residential", "commercial", "parking", "storage", "other"]),
+  type: z.enum(UNIT_TYPES),
   area: moneySchema,
 });
 
 export const ownerCreateSchema = z.object({
-  fullName: shortText(255),
+  fullName: z.string().trim().min(1).max(255),
   phone: z.string().trim().max(50).optional(),
   username: usernameSchema,
-  password: z.string().min(12).max(128),
+  password: passwordSchema,
   ...unitInputSchema.shape,
 });
 
 export const ownerUpdateSchema = z.object({
-  fullName: shortText(255).optional(),
+  fullName: z.string().trim().min(1).max(255).optional(),
   phone: z.string().trim().max(50).nullable().optional(),
   username: usernameSchema.optional(),
-  roles: z.array(z.enum(["admin", "management_member", "commandant", "owner"])).max(4).optional(),
+  roles: z.array(z.enum(ROLES)).max(ROLES.length).optional(),
 });
 
 export const paymentInputSchema = z.object({
@@ -33,20 +55,10 @@ export const paymentInputSchema = z.object({
   unitId: uuidSchema,
   ownerId: uuidSchema,
   amount: moneySchema,
-  periodYear: z.number().int().min(2000).max(2200),
-  periodMonth: z.number().int().min(1).max(12),
-  paymentMethod: z.enum(["cash", "bank_transfer", "card", "e_manat", "pos_terminal"]),
+  periodYear: periodSchema.shape.periodYear,
+  periodMonth: periodSchema.shape.periodMonth,
+  paymentMethod: z.enum(PAYMENT_METHODS),
   referenceNo: z.string().trim().max(100).optional(),
   notes: z.string().trim().max(2000).optional(),
   tariffPerSqm: moneySchema.optional(),
-});
-
-export const budgetYearSchema = z.number().int().min(2000).max(2200);
-export const budgetItemSchema = z.object({
-  accountCode: z.string().trim().regex(/^\d{4}$/),
-  plannedAmount: moneySchema,
-  notes: z.string().trim().max(2000).optional(),
-});
-export const budgetItemUpdateSchema = budgetItemSchema.partial().extend({
-  actualAmount: moneySchema.optional(),
 });

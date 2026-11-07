@@ -1,13 +1,14 @@
 "use client";
 
 import {IconCalendar, IconChevronRight, IconMapPin, IconPlus, IconTicket} from "@tabler/icons-react";
-import {useTranslations} from "next-intl";
+import {useLocale, useTranslations} from "next-intl";
 import {useState} from "react";
 import {Badge} from "@/components/ui/badge";
 import {Button} from "@/components/ui/button";
 import {Dialog, DialogContent, DialogHeader, DialogTitle} from "@/components/ui/dialog";
+import type {TicketCategory, TicketPriority, TicketStatus} from "@/core/db/schema/enums";
 import {Link} from "@/i18n/navigation";
-import type {TicketCategory, TicketPriority, TicketStatus} from "../ticket.service";
+import {TICKET_TONE} from "../ticket.constants";
 import {TicketCreateForm} from "./TicketCreateForm";
 
 export type TicketListItem = {
@@ -23,14 +24,6 @@ export type TicketListItem = {
   floor: number | null;
   ownerName: string | null;
   ownerPhone: string | null;
-  createdBy: string;
-};
-
-const STATUS_COLORS: Record<TicketStatus, string> = {
-  pending: "bg-primary/12 border-primary/35 text-primary",
-  in_progress: "bg-gold/12 border-gold/35 text-gold",
-  rejected: "bg-danger/12 border-danger/35 text-danger",
-  done: "bg-success/12 border-success/35 text-success",
 };
 
 export function TicketList({
@@ -43,6 +36,7 @@ export function TicketList({
   units: { id: string; unitNumber: string; entrance: number; floor: number; ownerName: string | null }[];
 }) {
   const t = useTranslations("tickets");
+  const locale = useLocale();
   const tc = useTranslations("common");
   const td = useTranslations("dashboard");
   const tu = useTranslations("units");
@@ -86,12 +80,12 @@ export function TicketList({
                       <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
                         <span className="font-medium text-foreground/70">{categoryLabel(ticket.category)}</span>
                         <span className="flex items-center gap-1"><IconMapPin className="size-3.5" />{ticket.unitNumber ? `${td("block")} ${ticket.entrance}, ${tu("floor")} ${ticket.floor}, ${tu("unitNumber")} ${ticket.unitNumber}` : t("yardShort")}</span>
-                        <span className="flex items-center gap-1"><IconCalendar className="size-3.5" />{new Date(ticket.createdAt).toLocaleDateString("ru")}</span>
+                        <span className="flex items-center gap-1"><IconCalendar className="size-3.5" />{new Date(ticket.createdAt).toLocaleDateString(locale)}</span>
                       </div>
                     </div>
                     <div className="flex shrink-0 items-center gap-2">
                       <Badge variant="outline" className={ticket.priority === "urgent" ? "border-danger/40 text-danger" : "text-muted-foreground"}>{priorityLabel(ticket.priority)}</Badge>
-                      <Badge className={`border-0 ${STATUS_COLORS[ticket.status]}`}>{statusLabel(ticket.status)}</Badge>
+                      <Badge className={`border-0 ${TICKET_TONE[ticket.status].badge}`}>{statusLabel(ticket.status)}</Badge>
                       <IconChevronRight className="size-4 text-muted-foreground" />
                     </div>
                   </div>
@@ -122,5 +116,3 @@ export function TicketList({
     </>
   );
 }
-
-export { STATUS_COLORS };

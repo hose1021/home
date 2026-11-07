@@ -24,12 +24,12 @@ export default async function FinanceOverviewPage({
     const period = resolvePeriod({month: sp.month, from: sp.from, to: sp.to});
     const {tenantId} = await requireTenantPermission("finance:read");
     const t = await getTranslations("finance");
+    const tc = await getTranslations("common");
     const tenant = await getTenantById(tenantId);
 
     const data = await getOverviewData(tenantId, period.from, period.to);
 
-    const monthLabel = (key: string) =>
-        new Date(`${key}-01T00:00:00`).toLocaleDateString(locale, {month: "short"});
+    const monthLabel = (key: string) => tc(`months.${Number(key.slice(5, 7))}`);
     const monthly = data.monthly.map((month) => ({label: monthLabel(month.month), charged: month.charged, paid: month.paid}));
     const cashflow = data.cashflow.map((month) => ({label: monthLabel(month.month), inflow: month.inflow, outflow: month.outflow}));
     const ageing = [

@@ -1,17 +1,19 @@
 import {and, eq, ne, sql} from "drizzle-orm";
 import {writeAuditLog} from "@/core/audit/audit.service";
 import {db} from "@/core/db";
+import {buildings} from "@/core/db/schema/buildings";
+import type {UnitType} from "@/core/db/schema/enums";
 import {owners, ownerships} from "@/core/db/schema/owners";
 import {units} from "@/core/db/schema/units";
+import {DomainError} from "@/core/errors/app-error";
 
-export async function getUnitById(tenantId: string, id: string) {
-  const [u] = await db
-    .select()
-    .from(units)
-    .where(and(eq(units.id, id), eq(units.tenantId, tenantId)))
-    .limit(1);
-  return u ?? null;
-}
+export type UnitInput = {
+  unitNumber: string;
+  entrance: number;
+  floor: number;
+  type: UnitType;
+  area: string;
+};
 
 export async function listUnits(tenantId: string) {
   return await db
@@ -22,17 +24,18 @@ export async function listUnits(tenantId: string) {
     .limit(1000);
 }
 
-export async function createUnit(tenantId: string, buildingId: string, input: {
-  unitNumber: string;
-  entrance: number;
-  floor: number;
-  type: "residential" | "commercial" | "parking" | "storage" | "other";
-  area: string;
-}, userId: string) {
+export async function createUnit(tenantId: string, input: UnitInput, userId: string) {
+  const [building] = await db
+    .select({id: buildings.id})
+    .from(buildings)
+    .where(eq(buildings.tenantId, tenantId))
+    .limit(1);
+  if (!building) throw new DomainError("buildingNotFound");
+
   const [u] = await db.insert(units).values({
-    tenantId, buildingId, ...input,
+    tenantId, buildingId: building.id, ...input,
   }).returning();
-  if (!u) throw new Error("Failed to create unit");
+  if (!u) throw new DomainError("unitCreateFailed");
 
   await writeAuditLog({
     tenantId,
@@ -46,25 +49,20 @@ export async function createUnit(tenantId: string, buildingId: string, input: {
   return u;
 }
 
-export async function updateUnit(tenantId: string, id: string, input: {
-  unitNumber?: string;
-  entrance?: number;
-  floor?: number;
-  type?: "residential" | "commercial" | "parking" | "storage" | "other";
-  area?: string;
-}, userId: string) {
+export async function updateUnit(tenantId: string, id: string, input: Partial<UnitInput>, userId: string) {
   const [existing] = await db
     .select()
     .from(units)
     .where(and(eq(units.id, id), eq(units.tenantId, tenantId)))
     .limit(1);
-  if (!existing) return null;
+  if (!existing) throw new DomainError("unitNotFound");
 
   const [u] = await db
     .update(units)
     .set({ ...input, updatedAt: new Date() })
     .where(and(eq(units.id, id), eq(units.tenantId, tenantId)))
     .returning();
+  if (!u) throw new DomainError("unitNotFound");
 
   await writeAuditLog({
     tenantId,
@@ -85,7 +83,7 @@ export async function deleteUnit(tenantId: string, id: string, userId: string) {
     .from(units)
     .where(and(eq(units.id, id), eq(units.tenantId, tenantId)))
     .limit(1);
-  if (!existing) return;
+  if (!existing) throw new DomainError("unitNotFound");
 
   await db
     .update(units)

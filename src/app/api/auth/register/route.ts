@@ -1,15 +1,15 @@
-import {and, eq} from "drizzle-orm";
 import {type NextRequest, NextResponse} from "next/server";
 import {z} from "zod";
 import {createSession, createUser} from "@/core/auth/auth";
-import {getSessionCookieName} from "@/core/auth/session";
+import {applySessionCookie, clientIp} from "@/core/auth/http";
 import {getTenantSlug} from "@/core/config";
-import {db} from "@/core/db";
-import {tenants} from "@/core/db/schema/tenants";
+import {resolveTenantId} from "@/core/multi-tenant";
+import {passwordSchema, usernameSchema} from "@/core/validation/action-schemas";
+import {getTenantById} from "@/modules/tenant/tenant.service";
 
 const registrationSchema = z.object({
-  username: z.string().trim().min(3).max(100).regex(/^\p{L}+\.\p{L}+$/u),
-  password: z.string().min(12).max(128),
+  username: usernameSchema,
+  password: passwordSchema,
   name: z.string().trim().min(2).max(255),
 });
 
@@ -25,14 +25,10 @@ export async function POST(request: NextRequest) {
     }
 
     const { username, password, name } = parsed.data;
-    const slug = getTenantSlug();
-    const [tenant] = await db
-      .select()
-      .from(tenants)
-      .where(and(eq(tenants.slug, slug), eq(tenants.status, "active")))
-      .limit(1);
+    const tenantId = await resolveTenantId(getTenantSlug());
+    const tenant = tenantId ? await getTenantById(tenantId) : null;
 
-    if (!tenant) {
+    if (!tenant || tenant.status !== "active") {
       return NextResponse.json({ error: "Tenant not found" }, { status: 404 });
     }
 
@@ -46,7 +42,7 @@ export async function POST(request: NextRequest) {
     const { token } = await createSession(
       user.id,
       user.tenantId,
-      getClientIp(request),
+      clientIp(request),
       request.headers.get("user-agent") ?? undefined,
     );
 
@@ -59,26 +55,15 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    response.cookies.set(getSessionCookieName(), token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      path: "/",
-      maxAge: 60 * 60 * 24 * 7,
-    });
-
+    applySessionCookie(response, token);
     return response;
   } catch (error) {
     if (isUniqueViolation(error)) {
       return NextResponse.json({ error: "Username already exists" }, { status: 409 });
     }
+    console.error("Registration failed", error);
     return NextResponse.json({ error: "Registration failed" }, { status: 500 });
   }
-}
-
-function getClientIp(request: NextRequest): string | undefined {
-  const value = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim();
-  return value?.slice(0, 45) || undefined;
 }
 
 function isUniqueViolation(error: unknown): boolean {

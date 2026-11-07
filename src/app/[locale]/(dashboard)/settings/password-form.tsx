@@ -1,14 +1,18 @@
 "use client";
 
+import {useTranslations} from "next-intl";
 import {useState} from "react";
 import {toast} from "sonner";
 import {Button} from "@/components/ui/button";
+import {PASSWORD_MIN_LENGTH} from "@/core/auth/constants";
 import {changeOwnPasswordAction} from "@/modules/settings/settings.actions";
 
 const inputClass =
   "mt-1 field";
 
 export function PasswordForm() {
+  const t = useTranslations("settings");
+  const tc = useTranslations("common");
   const [pending, setPending] = useState(false);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -19,13 +23,13 @@ export function PasswordForm() {
     const newPassword = (fd.get("newPassword") as string) ?? "";
     const confirmPassword = (fd.get("confirmPassword") as string) ?? "";
 
-    if (newPassword.length < 12) {
-      toast.error("Пароль должен быть не менее 12 символов");
+    if (newPassword.length < PASSWORD_MIN_LENGTH) {
+      toast.error(t("passwordTooShort", {min: PASSWORD_MIN_LENGTH}));
       setPending(false);
       return;
     }
     if (newPassword !== confirmPassword) {
-      toast.error("Пароли не совпадают");
+      toast.error(t("passwordMismatch"));
       setPending(false);
       return;
     }
@@ -33,7 +37,7 @@ export function PasswordForm() {
     try {
       await changeOwnPasswordAction(currentPassword, newPassword);
       e.currentTarget.reset();
-      toast.success("Пароль изменён. Остальные сессии сброшены.");
+      toast.success(t("passwordSaved"));
     } catch (err) {
       toast.error((err as Error).message);
     } finally {
@@ -44,23 +48,23 @@ export function PasswordForm() {
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div>
-        <label htmlFor="password-current" className="block text-sm font-medium">Текущий пароль</label>
+        <label htmlFor="password-current" className="block text-sm font-medium">{t("currentPassword")}</label>
         <input id="password-current" name="currentPassword" type="password" required className={inputClass} />
       </div>
       <div className="grid gap-4 sm:grid-cols-2">
         <div>
-          <label htmlFor="password-new" className="block text-sm font-medium">Новый пароль</label>
-          <input id="password-new" name="newPassword" type="password" required minLength={12} className={inputClass} />
-          <p className="mt-1 text-xs text-muted-foreground">Минимум 12 символов</p>
+          <label htmlFor="password-new" className="block text-sm font-medium">{t("newPassword")}</label>
+          <input id="password-new" name="newPassword" type="password" required minLength={PASSWORD_MIN_LENGTH} className={inputClass} />
+          <p className="mt-1 text-xs text-muted-foreground">{t("passwordHintMin", {min: PASSWORD_MIN_LENGTH})}</p>
         </div>
         <div>
-          <label htmlFor="password-confirm" className="block text-sm font-medium">Повторите пароль</label>
-          <input id="password-confirm" name="confirmPassword" type="password" required minLength={12} className={inputClass} />
+          <label htmlFor="password-confirm" className="block text-sm font-medium">{t("confirmPassword")}</label>
+          <input id="password-confirm" name="confirmPassword" type="password" required minLength={PASSWORD_MIN_LENGTH} className={inputClass} />
         </div>
       </div>
       <div className="flex justify-end pt-2">
         <Button type="submit" disabled={pending}>
-          {pending ? "Сохранение..." : "Сменить пароль"}
+          {pending ? t("saving") : tc("save")}
         </Button>
       </div>
     </form>

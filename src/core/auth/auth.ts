@@ -5,10 +5,11 @@ import {db} from "@/core/db";
 import {owners} from "@/core/db/schema/owners";
 import {tenants} from "@/core/db/schema/tenants";
 import {sessions, userRoles, users} from "@/core/db/schema/users";
+import {USERNAME_PATTERN} from "./constants";
 import type {Role} from "./permissions";
 
 const SALT_ROUNDS = 12;
-const SESSION_DURATION_MS = 7 * 24 * 60 * 60 * 1000;
+export const SESSION_DURATION_MS = 7 * 24 * 60 * 60 * 1000;
 
 export type SessionUser = {
   id: string;
@@ -18,8 +19,6 @@ export type SessionUser = {
   roles: Role[];
   isPlatformAdmin: boolean;
 };
-
-const USERNAME_PATTERN = /^\p{L}+\.\p{L}+$/u;
 
 export function normalizeUsername(username: string): string {
   return username.trim().toLocaleLowerCase("az");
@@ -155,22 +154,57 @@ export async function getSessionFromToken(token: string): Promise<SessionUser | 
 
   if (!result) return null;
 
-  const roleRows = await db
-    .select({ role: userRoles.role, scopeTenantId: userRoles.scopeTenantId })
-    .from(userRoles)
-    .where(and(
-      eq(userRoles.userId, result.userId),
-      or(
-        eq(userRoles.scopeTenantId, result.tenantId),
-        and(eq(userRoles.role, "admin"), isNull(userRoles.scopeTenantId)),
-      ),
-    ));
-
+  const roleRows = await loadRoleRows(result.userId, result.tenantId);
   const roles = rolesFromDatabase(roleRows);
   if (roles.length === 0) return null;
 
   return {
     id: result.userId,
+    tenantId: result.tenantId,
+    username: result.username,
+    fullName: result.fullName,
+    roles,
+    isPlatformAdmin: hasPlatformAdminRole(roleRows),
+  };
+}
+
+async function loadRoleRows(userId: string, tenantId: string) {
+  return db
+    .select({ role: userRoles.role, scopeTenantId: userRoles.scopeTenantId })
+    .from(userRoles)
+    .where(and(
+      eq(userRoles.userId, userId),
+      or(
+        eq(userRoles.scopeTenantId, tenantId),
+        and(eq(userRoles.role, "admin"), isNull(userRoles.scopeTenantId)),
+      ),
+    ));
+}
+
+/** Another tenant user's session identity, for admin "view as user". Inactive or unknown users are null. */
+export async function getSessionUserById(userId: string, tenantId: string): Promise<SessionUser | null> {
+  const [result] = await db
+    .select({
+      id: users.id,
+      tenantId: users.tenantId,
+      username: users.username,
+      fullName: users.fullName,
+    })
+    .from(users)
+    .where(and(
+      eq(users.id, userId),
+      eq(users.tenantId, tenantId),
+      eq(users.isActive, true),
+    ))
+    .limit(1);
+  if (!result) return null;
+
+  const roleRows = await loadRoleRows(result.id, result.tenantId);
+  const roles = rolesFromDatabase(roleRows);
+  if (roles.length === 0) return null;
+
+  return {
+    id: result.id,
     tenantId: result.tenantId,
     username: result.username,
     fullName: result.fullName,
@@ -193,10 +227,6 @@ export function hashSessionToken(token: string): string {
 
 export async function deleteSession(token: string) {
   await db.delete(sessions).where(eq(sessions.token, hashSessionToken(token)));
-}
-
-export async function deleteUserSessions(userId: string) {
-  await db.delete(sessions).where(eq(sessions.userId, userId));
 }
 
 export async function deleteOtherUserSessions(userId: string, currentToken?: string) {

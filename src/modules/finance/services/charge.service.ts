@@ -2,9 +2,13 @@ import {and, desc, eq} from "drizzle-orm";
 import {writeAuditLog} from "@/core/audit/audit.service";
 import {db} from "@/core/db";
 import {charges} from "@/core/db/schema/charges";
-import {ownerships} from "@/core/db/schema/owners";
-import {tenants} from "@/core/db/schema/tenants";
+import {BILLING, type ChargeStatus} from "@/core/db/schema/enums";
+import {owners, ownerships} from "@/core/db/schema/owners";
 import {units} from "@/core/db/schema/units";
+import {DomainError} from "@/core/errors/app-error";
+import {periodKey} from "@/modules/finance/period";
+import {moneyToCents} from "./money";
+import {getFinancialSettings} from "./settings.service";
 
 type GenerateChargesInput = {
   periodYear: number;
@@ -14,7 +18,7 @@ type GenerateChargesInput = {
 function dueDateFor(periodYear: number, periodMonth: number, dueDay: number): string {
   const lastDay = new Date(periodYear, periodMonth, 0).getDate();
   const day = Math.min(Math.max(dueDay, 1), lastDay);
-  return `${periodYear}-${String(periodMonth).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+  return `${periodKey(periodYear, periodMonth)}-${String(day).padStart(2, "0")}`;
 }
 
 /**
@@ -22,22 +26,17 @@ function dueDateFor(periodYear: number, periodMonth: number, dueDay: number): st
  * collected money, so no other charge source exists.
  */
 export async function generateMonthlyCharges(tenantId: string, input: GenerateChargesInput, userId: string) {
-  if (!Number.isInteger(input.periodYear) || input.periodYear < 2000 || input.periodYear > 2200) {
-    throw new Error("Invalid charge year");
+  if (!Number.isInteger(input.periodYear) || input.periodYear < BILLING.minYear || input.periodYear > BILLING.maxYear) {
+    throw new DomainError("invalidChargeYear");
   }
-  if (!Number.isInteger(input.periodMonth) || input.periodMonth < 1 || input.periodMonth > 12) {
-    throw new Error("Invalid charge month");
+  if (!Number.isInteger(input.periodMonth) || input.periodMonth < BILLING.minMonth || input.periodMonth > BILLING.maxMonth) {
+    throw new DomainError("invalidChargeMonth");
   }
 
-  const [tenant] = await db
-    .select({tariffPerSqm: tenants.tariffPerSqm, dueDay: tenants.dueDay})
-    .from(tenants)
-    .where(eq(tenants.id, tenantId))
-    .limit(1);
-  if (!tenant) throw new Error("Tenant not found");
-
-  const tariff = Number(tenant.tariffPerSqm);
-  if (!Number.isFinite(tariff) || tariff <= 0) throw new Error("Tariff is not configured");
+  const settings = await getFinancialSettings(tenantId);
+  if (!Number.isFinite(settings.tariffPerSqm) || settings.tariffPerSqm <= 0) {
+    throw new DomainError("invalidTariff");
+  }
 
   const unitList = await db
     .select({
@@ -53,14 +52,14 @@ export async function generateMonthlyCharges(tenantId: string, input: GenerateCh
     ))
     .where(eq(units.tenantId, tenantId));
 
-  const dueDate = dueDateFor(input.periodYear, input.periodMonth, tenant.dueDay);
+  const dueDate = dueDateFor(input.periodYear, input.periodMonth, settings.dueDay);
   const chargeValues = unitList
     .filter((unit): unit is typeof unit & {ownerId: string} => unit.ownerId !== null)
     .map((unit) => ({
       tenantId,
       unitId: unit.unitId,
       ownerId: unit.ownerId,
-      amount: (Math.round(Number(unit.area) * tariff * 100) / 100).toFixed(2),
+      amount: (moneyToCents(Number(unit.area) * settings.tariffPerSqm) / 100).toFixed(2),
       periodYear: input.periodYear,
       periodMonth: input.periodMonth,
       dueDate,
@@ -84,24 +83,10 @@ export async function generateMonthlyCharges(tenantId: string, input: GenerateCh
     action: "create",
     entityType: "charge",
     entityId: created[0]!.id,
-    newValues: {count: created.length, period: `${input.periodYear}-${input.periodMonth}`, tariff},
+    newValues: {count: created.length, period: periodKey(input.periodYear, input.periodMonth), tariff: settings.tariffPerSqm},
   });
 
   return created;
-}
-
-export async function listCharges(tenantId: string, periodYear?: number, periodMonth?: number) {
-  const conditions = [eq(charges.tenantId, tenantId)];
-
-  if (periodYear) conditions.push(eq(charges.periodYear, periodYear));
-  if (periodMonth) conditions.push(eq(charges.periodMonth, periodMonth));
-
-  return await db
-    .select()
-    .from(charges)
-    .where(and(...conditions))
-    .orderBy(charges.dueDate)
-    .limit(500);
 }
 
 export type OwnerCharge = {
@@ -110,7 +95,7 @@ export type OwnerCharge = {
   periodYear: number;
   periodMonth: number;
   dueDate: string;
-  status: "pending" | "paid" | "partially_paid" | "overdue" | "cancelled";
+  status: ChargeStatus;
   unitNumber: string | null;
 };
 
@@ -131,4 +116,33 @@ export async function listChargesForOwner(tenantId: string, ownerId: string, lim
     .where(and(eq(charges.tenantId, tenantId), eq(charges.ownerId, ownerId)))
     .orderBy(desc(charges.periodYear), desc(charges.periodMonth))
     .limit(limit);
+}
+
+export type PayableUnit = {
+  id: string;
+  unitNumber: string;
+  entrance: number;
+  floor: number;
+  ownerName: string | null;
+  ownerId: string;
+};
+
+/** Active units with their primary owner, for the payment form. */
+export async function listPayableUnits(tenantId: string): Promise<PayableUnit[]> {
+  const rows = await db
+    .select({
+      id: units.id,
+      unitNumber: units.unitNumber,
+      entrance: units.entrance,
+      floor: units.floor,
+      ownerName: owners.fullName,
+      ownerId: owners.id,
+    })
+    .from(units)
+    .leftJoin(ownerships, and(eq(ownerships.unitId, units.id), eq(ownerships.tenantId, tenantId), eq(ownerships.isPrimary, true)))
+    .leftJoin(owners, and(eq(owners.id, ownerships.ownerId), eq(owners.tenantId, tenantId)))
+    .where(and(eq(units.tenantId, tenantId), eq(units.status, "active")))
+    .orderBy(units.entrance, units.floor, units.unitNumber);
+
+  return rows.filter((unit): unit is PayableUnit => unit.ownerId !== null);
 }

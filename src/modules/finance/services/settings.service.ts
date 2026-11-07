@@ -1,6 +1,8 @@
 import {eq} from "drizzle-orm";
 import {db} from "@/core/db";
+import {BILLING} from "@/core/db/schema/enums";
 import {tenants} from "@/core/db/schema/tenants";
+import {DomainError} from "@/core/errors/app-error";
 
 export type FinancialSettings = {
   tariffPerSqm: number;
@@ -19,7 +21,7 @@ export async function getFinancialSettings(tenantId: string): Promise<FinancialS
     .from(tenants)
     .where(eq(tenants.id, tenantId))
     .limit(1);
-  if (!row) throw new Error("Tenant not found");
+  if (!row) throw new DomainError("tenantNotFound");
   return {
     tariffPerSqm: Number(row.tariffPerSqm),
     billingStart: row.billingStart,
@@ -32,9 +34,9 @@ export async function updateFinancialSettings(
   input: {tariffPerSqm: string; billingStart: string; dueDay: number},
 ): Promise<FinancialSettings> {
   const tariff = Number(input.tariffPerSqm);
-  if (!Number.isFinite(tariff) || tariff <= 0) throw new Error("Tariff must be positive");
-  if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(input.billingStart)) throw new Error("Billing start must be YYYY-MM");
-  if (!Number.isInteger(input.dueDay) || input.dueDay < 1 || input.dueDay > 28) throw new Error("Due day must be 1-28");
+  if (!Number.isFinite(tariff) || tariff <= 0) throw new DomainError("invalidTariff");
+  if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(input.billingStart)) throw new DomainError("invalidBillingStart");
+  if (!Number.isInteger(input.dueDay) || input.dueDay < 1 || input.dueDay > BILLING.maxDueDay) throw new DomainError("invalidDueDay");
 
   await db
     .update(tenants)

@@ -2,6 +2,7 @@ import {and, eq} from "drizzle-orm";
 import {writeAuditLog} from "@/core/audit/audit.service";
 import {db} from "@/core/db";
 import {managementMembers} from "@/core/db/schema/management-members";
+import {DomainError} from "@/core/errors/app-error";
 
 export async function listManagementMembers(tenantId: string) {
   return await db
@@ -23,7 +24,7 @@ export async function createManagementMember(
     position: input.position?.trim() || null,
     sortOrder: input.sortOrder ?? 0,
   }).returning();
-  if (!created) throw new Error("Failed to create member");
+  if (!created) throw new DomainError("managementMemberCreateFailed");
 
   await writeAuditLog({
     tenantId, userId,
@@ -46,7 +47,7 @@ export async function updateManagementMember(
     .from(managementMembers)
     .where(and(eq(managementMembers.id, id), eq(managementMembers.tenantId, tenantId)))
     .limit(1);
-  if (!existing) throw new Error("Член правления не найден");
+  if (!existing) throw new DomainError("managementMemberNotFound");
 
   const [updated] = await db.update(managementMembers).set({
     fullName: input.fullName?.trim() ?? existing.fullName,
@@ -56,7 +57,7 @@ export async function updateManagementMember(
     isActive: input.isActive ?? existing.isActive,
     updatedAt: new Date(),
   }).where(and(eq(managementMembers.id, id), eq(managementMembers.tenantId, tenantId))).returning();
-  if (!updated) throw new Error("Член правления не найден");
+  if (!updated) throw new DomainError("managementMemberNotFound");
 
   await writeAuditLog({
     tenantId, userId,

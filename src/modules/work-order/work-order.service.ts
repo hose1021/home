@@ -2,10 +2,11 @@ import {and, desc, eq} from "drizzle-orm";
 import {writeAuditLog} from "@/core/audit/audit.service";
 import {db} from "@/core/db";
 import {contractors} from "@/core/db/schema/contractors";
+import type {WorkOrderStatus} from "@/core/db/schema/enums";
 import {tickets} from "@/core/db/schema/tickets";
 import {workOrders} from "@/core/db/schema/work-orders";
-
-export type WorkOrderStatus = "pending" | "approved" | "in_progress" | "completed" | "cancelled";
+import {DomainError} from "@/core/errors/app-error";
+import {isValidWorkOrderTransition} from "./work-order.constants";
 
 export async function listWorkOrders(tenantId: string) {
   return await db
@@ -53,14 +54,14 @@ export async function createWorkOrder(
     status: "pending",
     createdBy: userId,
   }).returning();
-  if (!created) throw new Error("Failed to create work order");
+  if (!created) throw new DomainError("workOrderNotFound");
 
   await writeAuditLog({
     tenantId, userId,
     action: "create",
     entityType: "work_order",
     entityId: created.id,
-    newValues: { title: created.title, status: created.status } as Record<string, unknown>,
+    newValues: {title: created.title, status: created.status} as Record<string, unknown>,
   });
   return created;
 }
@@ -76,22 +77,26 @@ export async function updateWorkOrderStatus(
     .from(workOrders)
     .where(and(eq(workOrders.id, id), eq(workOrders.tenantId, tenantId)))
     .limit(1);
-  if (!existing) throw new Error("Наряд не найден");
+  if (!existing) throw new DomainError("workOrderNotFound");
+
+  if (existing.status !== status && !isValidWorkOrderTransition(existing.status, status)) {
+    throw new DomainError("invalidTransition");
+  }
 
   const [updated] = await db.update(workOrders).set({
     status,
-    completedDate: status === "completed" ? new Date() : existing.completedDate,
+    completedDate: status === "completed" ? existing.completedDate ?? new Date() : null,
     updatedAt: new Date(),
   }).where(and(eq(workOrders.id, id), eq(workOrders.tenantId, tenantId))).returning();
-  if (!updated) throw new Error("Наряд не найден");
+  if (!updated) throw new DomainError("workOrderNotFound");
 
   await writeAuditLog({
     tenantId, userId,
     action: "update",
     entityType: "work_order",
     entityId: id,
-    oldValues: { status: existing.status } as Record<string, unknown>,
-    newValues: { status } as Record<string, unknown>,
+    oldValues: {status: existing.status} as Record<string, unknown>,
+    newValues: {status} as Record<string, unknown>,
   });
   return updated;
 }

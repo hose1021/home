@@ -4,29 +4,13 @@ import {db} from "@/core/db";
 import {documents} from "@/core/db/schema/documents";
 import {users} from "@/core/db/schema/users";
 import {DomainError} from "@/core/errors/app-error";
-import {MAX_DOCUMENT_BYTES, type DocumentCategory} from "./document.constants";
-import {ALLOWED_MIME_TYPES} from "./mime";
+import {ALLOWED_MIME_SET, MAX_DOCUMENT_BYTES, type DocumentCategory} from "./document.constants";
 import {createDefaultStorage, newObjectKey, type Storage} from "./storage";
 
-type DocumentErrorCode = "not_found" | "empty_file" | "too_large" | "forbidden_mime";
-
-const ERROR_STATUS: Record<DocumentErrorCode, number> = {
-  not_found: 404,
-  empty_file: 400,
-  too_large: 413,
-  forbidden_mime: 400,
-};
-
-export class DocumentError extends DomainError {
-  constructor(code: DocumentErrorCode) {
-    super(code, `Document error: ${code}`, ERROR_STATUS[code]);
-  }
-}
-
 export function validateUpload(input: {mimeType: string; sizeBytes: number}) {
-  if (input.sizeBytes === 0) throw new DocumentError("empty_file");
-  if (input.sizeBytes > MAX_DOCUMENT_BYTES) throw new DocumentError("too_large");
-  if (!ALLOWED_MIME_TYPES.has(input.mimeType)) throw new DocumentError("forbidden_mime");
+  if (input.sizeBytes === 0) throw new DomainError("empty_file");
+  if (input.sizeBytes > MAX_DOCUMENT_BYTES) throw new DomainError("too_large", "too_large", 413);
+  if (!ALLOWED_MIME_SET.has(input.mimeType)) throw new DomainError("forbidden_mime");
 }
 
 export async function uploadDocument(
@@ -59,7 +43,7 @@ export async function uploadDocument(
       objectKey: key,
       createdBy: userId,
     }).returning();
-    if (!created) throw new Error("Failed to create document");
+    if (!created) throw new DomainError("not_found");
 
     await writeAuditLog({
       tenantId,
@@ -86,7 +70,6 @@ export async function listDocuments(tenantId: string) {
       originalFileName: documents.originalFileName,
       mimeType: documents.mimeType,
       sizeBytes: documents.sizeBytes,
-      status: documents.status,
       createdAt: documents.createdAt,
       uploadedByName: users.fullName,
     })

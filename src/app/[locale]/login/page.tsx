@@ -11,6 +11,7 @@ import {useEffect, useState} from "react";
 import {Button} from "@/components/ui/button";
 import {Input} from "@/components/ui/input";
 import {Label} from "@/components/ui/label";
+import {USERNAME_MAX_LENGTH, USERNAME_PATTERN} from "@/core/auth/constants";
 import {PLATFORM_NAME} from "@/core/config";
 import {useRouter} from "@/i18n/navigation";
 
@@ -130,7 +131,8 @@ export default function LoginPage() {
                     name="username"
                     className="h-10"
                     placeholder={t("loginPlaceholder")}
-                    pattern="[\p{L}]+\.[\p{L}]+"
+                    pattern={USERNAME_PATTERN.source}
+                    maxLength={USERNAME_MAX_LENGTH}
                     autoComplete="username"
                     required
                   />
@@ -143,7 +145,7 @@ export default function LoginPage() {
                       <IconLock className="size-3" /> {t("secureEntry")}
                     </span>
                   </div>
-                  <Input id="password" name="password" type="password" className="h-10" autoComplete="current-password" required minLength={8} />
+                  <Input id="password" name="password" type="password" className="h-10" autoComplete="current-password" required minLength={1} />
                 </div>
 
                 {error && (

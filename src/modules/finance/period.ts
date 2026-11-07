@@ -12,8 +12,19 @@ export function isoDate(date: Date): string {
     return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
 }
 
+/** Canonical billing-period key: `YYYY-MM`, month always padded. */
+export function periodKey(year: number, month: number): string {
+    return `${year}-${pad(month)}`;
+}
+
+/** Inverse of `periodKey`: splits `YYYY-MM`; a missing month defaults to 1. */
+export function parsePeriodKey(key: string): {year: number; month: number} {
+    const [year = 1970, month = 1] = key.split("-").map(Number);
+    return {year, month};
+}
+
 export function monthBounds(month: string): {from: string; to: string} {
-    const [year = 1970, monthNumber = 1] = month.split("-").map(Number);
+    const {year, month: monthNumber} = parsePeriodKey(month);
     return {from: `${month}-01`, to: isoDate(new Date(year, monthNumber, 0))};
 }
 

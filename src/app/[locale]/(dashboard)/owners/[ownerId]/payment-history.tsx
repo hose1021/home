@@ -17,6 +17,8 @@ import {
 } from "@/components/ui/alert-dialog";
 import {Button} from "@/components/ui/button";
 import {Link} from "@/i18n/navigation";
+import {formatAmount, formatDate, formatNumber} from "@/modules/finance/money-format";
+import {isoDate} from "@/modules/finance/period";
 import {monthName} from "./month-row";
 import {refundPaymentAction} from "./pay-action";
 
@@ -74,9 +76,9 @@ export function PaymentHistory({
             <IconCheck className="size-4" />
           </span>
           <div className="flex-1 min-w-0">
-            <p className="truncate text-sm font-semibold amount">{Number(p.amount).toFixed(2)} ₼</p>
+            <p className="truncate text-sm font-semibold amount">{formatAmount(p.amount)}</p>
             <div className="truncate text-xs text-muted-foreground">
-              {new Date(p.paymentDate).toLocaleDateString(locale)}
+              {formatDate(isoDate(new Date(p.paymentDate)), locale)}
               <span className="mx-1">·</span>
               {t("unitNumber", {unit: p.unitNumber})}
               <span className="mx-1">·</span>
@@ -103,7 +105,7 @@ export function PaymentHistory({
                 <AlertDialogHeader>
                   <AlertDialogTitle>{tp("refundTitle")}</AlertDialogTitle>
                   <AlertDialogDescription>
-                    {tp("refundDescription", {amount: Number(p.amount).toFixed(2), period: `${monthName(locale, p.periodYear, p.periodMonth, "short")} ${p.periodYear}`})}
+                    {tp("refundDescription", {amount: formatNumber(p.amount), period: `${monthName(locale, p.periodYear, p.periodMonth, "short")} ${p.periodYear}`})}
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>

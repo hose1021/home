@@ -1,25 +1,26 @@
 import "dotenv/config";
 import {and, eq} from "drizzle-orm";
+import {createUser, hashPassword} from "@/core/auth/auth";
+import type {Role} from "@/core/auth/permissions";
+import {db} from "@/core/db";
 import {
     buildings,
     managementMembers,
     meetingAgendas,
     meetings,
     payments,
-    paymentAllocations,
     protocols,
     protocolSignatures
 } from "@/core/db/schema";
-import {createUser, hashPassword} from "../auth/auth";
-import type {Role} from "../auth/permissions";
-import {charges} from "./schema/charges";
-import {expenses} from "./schema/expenses";
-import {owners, ownerships} from "./schema/owners";
-import {tenants} from "./schema/tenants";
-import {units} from "./schema/units";
-import {userRoles, users} from "./schema/users";
-import {votes, votingOptions, votings} from "./schema/votings";
-import {db} from "./index";
+import {charges} from "@/core/db/schema/charges";
+import {expenses} from "@/core/db/schema/expenses";
+import {owners, ownerships} from "@/core/db/schema/owners";
+import {tenants} from "@/core/db/schema/tenants";
+import {units} from "@/core/db/schema/units";
+import {userRoles, users} from "@/core/db/schema/users";
+import {votes, votingOptions, votings} from "@/core/db/schema/votings";
+import {generateMonthlyCharges} from "@/modules/finance/services/charge.service";
+import {registerPayment} from "@/modules/finance/services/payment.service";
 
 const SEED_TENANT_SLUG = process.env.SEED_TENANT_SLUG ?? "demo";
 const SEED_TENANT_NAME = process.env.SEED_TENANT_NAME ?? "Demo Residence";
@@ -302,51 +303,36 @@ async function seed() {
         dueDay: 15,
     }).where(eq(tenants.id, tenant.id));
 
-    // ─── CHARGES: one apartment charge = area × tariff ─────────
+    // ─── CHARGES: billed by the finance service so the invariants hold ───
     let createdCharges = await db.select().from(charges).where(eq(charges.tenantId, tenant.id));
     if (createdCharges.length === 0) {
         const periods = [
-            {year: 2026, month: 5, due: "2026-05-15"},
-            {year: 2026, month: 6, due: "2026-06-15"},
-            {year: 2026, month: 7, due: "2026-07-15"},
+            {periodYear: 2026, periodMonth: 5},
+            {periodYear: 2026, periodMonth: 6},
+            {periodYear: 2026, periodMonth: 7},
         ];
-        const rows: typeof createdCharges = [];
         for (const period of periods) {
-            for (const u of allUnits) {
-                const ownerId = createdOwnerships.find((o) => o.unitId === u.id)?.ownerId;
-                if (!ownerId) continue;
-                const [created] = await db.insert(charges).values({
-                    tenantId: tenant.id, unitId: u.id, ownerId,
-                    amount: (Number(u.area) * 0.40).toFixed(2),
-                    periodYear: period.year, periodMonth: period.month,
-                    dueDate: period.due, status: "pending", createdBy: admin.id,
-                }).returning();
-                if (created) rows.push(created);
-            }
+            await generateMonthlyCharges(tenant.id, period, admin.id);
         }
-        createdCharges = rows;
+        createdCharges = await db.select().from(charges).where(eq(charges.tenantId, tenant.id));
         console.log(`Created ${createdCharges.length} charges`);
     }
 
-    // ─── PAYMENTS + ALLOCATIONS (May and June settled) ────────
+    // ─── PAYMENTS: May and June settled through the payment service ───
     let createdPayments = await db.select().from(payments).where(eq(payments.tenantId, tenant.id));
     if (createdPayments.length === 0) {
-        const rows: typeof createdPayments = [];
         for (const charge of createdCharges.filter((c) => c.periodMonth < 7)) {
-            const [created] = await db.insert(payments).values({
-                tenantId: tenant.id, chargeId: charge.id, unitId: charge.unitId, ownerId: charge.ownerId,
-                amount: charge.amount, periodYear: charge.periodYear, periodMonth: charge.periodMonth,
-                paymentDate: new Date(charge.dueDate), paymentMethod: "bank_transfer",
-                status: "confirmed", confirmedBy: admin.id,
-            }).returning();
-            if (!created) continue;
-            rows.push(created);
-            await db.insert(paymentAllocations).values({
-                tenantId: tenant.id, paymentId: created.id, chargeId: charge.id, amount: charge.amount,
-            });
-            await db.update(charges).set({status: "paid"}).where(eq(charges.id, charge.id));
+            await registerPayment(tenant.id, {
+                chargeId: charge.id,
+                unitId: charge.unitId,
+                ownerId: charge.ownerId,
+                amount: charge.amount,
+                periodYear: charge.periodYear,
+                periodMonth: charge.periodMonth,
+                paymentMethod: "bank_transfer",
+            }, admin.id);
         }
-        createdPayments = rows;
+        createdPayments = await db.select().from(payments).where(eq(payments.tenantId, tenant.id));
         console.log(`Created ${createdPayments.length} payments`);
     }
 

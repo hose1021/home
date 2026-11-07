@@ -1,6 +1,7 @@
 import {beforeEach, describe, expect, it, vi} from "vitest";
-import {DocumentError, uploadDocument, validateUpload} from "./document.service";
-import {InMemoryStorage, newObjectKey} from "./storage";
+import {DomainError} from "@/core/errors/app-error";
+import {uploadDocument, validateUpload} from "./document.service";
+import {newObjectKey, type Storage} from "./storage";
 
 const {insert, returning, writeAuditLog} = vi.hoisted(() => ({
   insert: vi.fn(),
@@ -9,6 +10,24 @@ const {insert, returning, writeAuditLog} = vi.hoisted(() => ({
 }));
 vi.mock("@/core/db", () => ({db: {insert}}));
 vi.mock("@/core/audit/audit.service", () => ({writeAuditLog}));
+
+class InMemoryStorage implements Storage {
+  private objects = new Map<string, Uint8Array>();
+
+  async put(key: string, bytes: Uint8Array): Promise<void> {
+    this.objects.set(key, bytes);
+  }
+
+  async get(key: string): Promise<Uint8Array> {
+    const bytes = this.objects.get(key);
+    if (!bytes) throw new Error(`Object not found: ${key}`);
+    return bytes;
+  }
+
+  async delete(key: string): Promise<void> {
+    this.objects.delete(key);
+  }
+}
 
 beforeEach(() => {
   insert.mockReset().mockImplementation(() => ({values: () => ({returning})}));
@@ -69,8 +88,9 @@ describe("validateUpload", () => {
       validateUpload({...valid, sizeBytes: 0});
       expect.unreachable();
     } catch (err) {
-      expect(err).toBeInstanceOf(DocumentError);
-      expect((err as DocumentError).code).toBe("empty_file");
+      expect(err).toBeInstanceOf(DomainError);
+      expect((err as DomainError).code).toBe("empty_file");
+      expect((err as DomainError).statusCode).toBe(400);
     }
   });
 
@@ -79,8 +99,8 @@ describe("validateUpload", () => {
       validateUpload({...valid, sizeBytes: 25 * 1024 * 1024 + 1});
       expect.unreachable();
     } catch (err) {
-      expect((err as DocumentError).code).toBe("too_large");
-      expect((err as DocumentError).statusCode).toBe(413);
+      expect((err as DomainError).code).toBe("too_large");
+      expect((err as DomainError).statusCode).toBe(413);
     }
   });
 
@@ -89,7 +109,8 @@ describe("validateUpload", () => {
       validateUpload({...valid, mimeType: "application/x-msdownload"});
       expect.unreachable();
     } catch (err) {
-      expect((err as DocumentError).code).toBe("forbidden_mime");
+      expect((err as DomainError).code).toBe("forbidden_mime");
+      expect((err as DomainError).statusCode).toBe(400);
     }
   });
 });
@@ -105,15 +126,6 @@ describe("newObjectKey", () => {
   it("generates unique keys", () => {
     const keys = new Set(Array.from({length: 50}, () => newObjectKey()));
     expect(keys.size).toBe(50);
-  });
-});
-
-describe("DocumentError", () => {
-  it("carries machine codes for the action boundary", () => {
-    expect(new DocumentError("not_found").statusCode).toBe(404);
-    expect(new DocumentError("empty_file").statusCode).toBe(400);
-    expect(new DocumentError("too_large").statusCode).toBe(413);
-    expect(new DocumentError("forbidden_mime").statusCode).toBe(400);
   });
 });
 

@@ -13,7 +13,7 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {SidebarMenu, SidebarMenuButton, SidebarMenuItem, useSidebar} from "@/components/ui/sidebar";
-import {useRouter} from "@/i18n/navigation";
+import {Link, useRouter} from "@/i18n/navigation";
 
 export function NavUser({userName, userEmail}: {userName: string; userEmail?: string}) {
   const t = useTranslations("auth");
@@ -65,9 +65,9 @@ export function NavUser({userName, userEmail}: {userName: string; userEmail?: st
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
-              <DropdownMenuItem onClick={() => router.push("/")}><IconUser /> {t("profile")}</DropdownMenuItem>
-              <DropdownMenuItem><IconBell /> {t("notifications")}</DropdownMenuItem>
-              <DropdownMenuItem><IconSettings /> {t("settings")}</DropdownMenuItem>
+              <DropdownMenuItem render={<Link href="/settings" />}><IconUser /> {t("profile")}</DropdownMenuItem>
+              <DropdownMenuItem render={<Link href="/notifications" />}><IconBell /> {t("notifications")}</DropdownMenuItem>
+              <DropdownMenuItem render={<Link href="/settings" />}><IconSettings /> {t("settings")}</DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuItem variant="destructive" onClick={logout}><IconLogout /> {t("logout")}</DropdownMenuItem>

@@ -1,8 +1,10 @@
 import {and, desc, eq} from "drizzle-orm";
 import {writeAuditLog} from "@/core/audit/audit.service";
 import {db} from "@/core/db";
+import type {ResidentType} from "@/core/db/schema/enums";
 import {residents} from "@/core/db/schema/residents";
 import {units} from "@/core/db/schema/units";
+import {DomainError} from "@/core/errors/app-error";
 
 export async function listResidents(tenantId: string) {
   return await db
@@ -32,7 +34,7 @@ export async function createResident(
     fullName: string;
     idNumber?: string;
     phone?: string;
-    residentType: "owner" | "family" | "tenant" | "guest";
+    residentType: ResidentType;
     movedInAt: string;
   },
   userId: string,
@@ -46,7 +48,7 @@ export async function createResident(
     residentType: input.residentType,
     movedInAt: input.movedInAt,
   }).returning();
-  if (!created) throw new Error("Failed to create resident");
+  if (!created) throw new DomainError("residentCreateFailed");
 
   await writeAuditLog({
     tenantId, userId,
@@ -69,13 +71,13 @@ export async function updateResident(
     .from(residents)
     .where(and(eq(residents.id, id), eq(residents.tenantId, tenantId)))
     .limit(1);
-  if (!existing) throw new Error("Житель не найден");
+  if (!existing) throw new DomainError("residentNotFound");
 
   const [updated] = await db.update(residents).set({
     movedOutAt: input.movedOutAt !== undefined ? input.movedOutAt || null : existing.movedOutAt,
     phone: input.phone !== undefined ? input.phone?.trim() || null : existing.phone,
   }).where(and(eq(residents.id, id), eq(residents.tenantId, tenantId))).returning();
-  if (!updated) throw new Error("Житель не найден");
+  if (!updated) throw new DomainError("residentNotFound");
 
   await writeAuditLog({
     tenantId, userId,

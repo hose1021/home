@@ -1,8 +1,8 @@
 import {decimal, integer, pgTable, text, timestamp, uuid, varchar} from "drizzle-orm/pg-core";
 import {charges} from "./charges";
+import type {PaymentMethod, PaymentStatus} from "./enums";
 import {owners} from "./owners";
 import {tenants} from "./tenants";
-import {transactions} from "./transactions";
 import {units} from "./units";
 import {users} from "./users";
 
@@ -17,11 +17,10 @@ export const payments = pgTable("payments", {
   periodYear: integer("period_year").notNull(),
   periodMonth: integer("period_month").notNull(),
   paymentDate: timestamp("payment_date", { withTimezone: true }).notNull(),
-  paymentMethod: varchar("payment_method", { length: 30 }).notNull().$type<"cash" | "bank_transfer" | "card" | "e_manat" | "pos_terminal" | "other">(),
+  paymentMethod: varchar("payment_method", { length: 30 }).notNull().$type<PaymentMethod>(),
   referenceNo: varchar("reference_no", { length: 100 }),
-  status: varchar("status", { length: 20 }).notNull().default("confirmed").$type<"confirmed" | "rejected" | "refunded">(),
+  status: varchar("status", { length: 20 }).notNull().default("confirmed").$type<PaymentStatus>(),
   confirmedBy: uuid("confirmed_by").references(() => users.id),
-  transactionId: uuid("transaction_id").references(() => transactions.id),
   notes: text("notes"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),

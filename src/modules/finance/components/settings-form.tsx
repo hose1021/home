@@ -17,7 +17,7 @@ export function SettingsForm({tariffPerSqm, billingStart, dueDay}: {
 }) {
   const t = useTranslations("finance");
   const router = useRouter();
-  const [tariff, setTariff] = useState(tariffPerSqm.toFixed(2));
+  const [tariff, setTariff] = useState(String(tariffPerSqm));
   const [start, setStart] = useState(billingStart);
   const [day, setDay] = useState(String(dueDay));
   const [pending, setPending] = useState(false);

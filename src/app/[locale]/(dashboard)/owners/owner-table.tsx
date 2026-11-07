@@ -5,6 +5,7 @@ import {useRouter, useSearchParams} from "next/navigation";
 import {useTranslations} from "next-intl";
 import {useMemo, useState} from "react";
 import {toast} from "sonner";
+import {RoleBadges} from "@/components/role-badge";
 import {
     AlertDialog,
     AlertDialogAction,
@@ -15,17 +16,14 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import {Badge} from "@/components/ui/badge";
 import {Button} from "@/components/ui/button";
 import {Dialog, DialogContent, DialogHeader, DialogTitle,} from "@/components/ui/dialog";
 import {Input} from "@/components/ui/input";
-import {type Role, ROLE_LABELS, ROLE_ORDER} from "@/core/auth/permissions";
+import {ROLES, type Role} from "@/core/db/schema/enums";
 import {Link} from "@/i18n/navigation";
 import {OwnerCreateForm} from "@/modules/owner/components/OwnerCreateForm";
 import {OwnerEditForm} from "@/modules/owner/components/OwnerEditForm";
 import {deleteOwnerAction} from "@/modules/owner/owner.actions";
-
-const ALL_ROLES = ROLE_ORDER.map((r) => ({ value: r, label: ROLE_LABELS[r] }));
 
 type OwnerRow = {
   id: string;
@@ -33,10 +31,16 @@ type OwnerRow = {
   fullName: string;
   phone: string | null;
   username: string;
-  roles: string[];
+  roles: Role[];
   unitCount: number;
   hasDebt: boolean;
   hasPaid: boolean;
+};
+
+const UNIT_MATCHERS: Record<string, (count: number) => boolean> = {
+  "1": (count) => count === 1,
+  "2": (count) => count === 2,
+  "3": (count) => count >= 3,
 };
 
 export function OwnerTable({ owners, canManage, canManageRoles, initialSearch, initialRole, initialUnits, initialPayment }: {
@@ -50,6 +54,8 @@ export function OwnerTable({ owners, canManage, canManageRoles, initialSearch, i
 }) {
   const to = useTranslations("owners");
   const tc = useTranslations("common");
+  const ta = useTranslations("auth");
+  const roleOptions = ROLES.map((role) => ({value: role, label: ta(`roleLabels.${role}`)}));
   const router = useRouter();
   const sp = useSearchParams();
   const [search, setSearch] = useState(initialSearch ?? sp.get("search") ?? "");
@@ -81,11 +87,11 @@ export function OwnerTable({ owners, canManage, canManageRoles, initialSearch, i
       );
     }
     if (roleFilter) {
-      list = list.filter((o) => o.roles.includes(roleFilter));
+      list = list.filter((o) => o.roles.some((role) => role === roleFilter));
     }
     if (unitsFilter) {
-      const count = Number(unitsFilter);
-      list = list.filter((o) => unitsFilter === "3" ? o.unitCount >= 3 : o.unitCount === count);
+      const match = UNIT_MATCHERS[unitsFilter];
+      list = list.filter((o) => match?.(o.unitCount) ?? true);
     }
     if (paymentFilter === "debt") {
       list = list.filter((o) => o.hasDebt);
@@ -137,7 +143,7 @@ export function OwnerTable({ owners, canManage, canManageRoles, initialSearch, i
           <select value={roleFilter} onChange={(e) => { setRoleFilter(e.target.value); updateURL(search, e.target.value, unitsFilter, paymentFilter); }}
             className="filter-select">
             <option value="">{to("filterByRole")}</option>
-            {ALL_ROLES.map((r) => (<option key={r.value} value={r.value}>{r.label}</option>))}
+            {roleOptions.map((r) => (<option key={r.value} value={r.value}>{r.label}</option>))}
           </select>
 
           <select value={unitsFilter} onChange={(e) => { setUnitsFilter(e.target.value); updateURL(search, roleFilter, e.target.value, paymentFilter); }}
@@ -176,7 +182,7 @@ export function OwnerTable({ owners, canManage, canManageRoles, initialSearch, i
                 <td className="px-4 py-3 text-sm font-medium">
                   <Link href={`/owners/${o.id}`} className="hover:underline">{o.fullName}</Link>
                 </td>
-                <td className="px-4 py-3 text-sm"><RoleBadge roles={o.roles} /></td>
+                <td className="px-4 py-3 text-sm"><RoleBadges roles={o.roles} /></td>
                 <td className="px-4 py-3 text-sm text-muted-foreground">{o.phone ?? "—"}</td>
                 <td className="px-4 py-3 text-sm text-muted-foreground">{o.username}</td>
                 <td className="px-4 py-3 text-right text-sm">{o.unitCount}</td>
@@ -223,22 +229,5 @@ export function OwnerTable({ owners, canManage, canManageRoles, initialSearch, i
         </AlertDialogContent>
       </AlertDialog>
     </>
-  );
-}
-
-function RoleBadge({ roles }: { roles: string[] }) {
-  if (roles.length === 0) return null;
-  const colors: Record<string, string> = {
-    admin: "admin",
-    management_member: "management_member",
-    commandant: "commandant",
-    owner: "secondary",
-  };
-  return (
-    <div className="flex flex-wrap gap-1">
-      {roles.map((r) => (
-        <Badge variant={colors[r] as "admin" | "secondary" | "management_member" | "commandant"} key={r}>{ROLE_LABELS[r as Role] ?? r}</Badge>
-      ))}
-    </div>
   );
 }

@@ -19,8 +19,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
-import { registerPaymentAction } from "@/modules/finance/finance.actions";
+import {Textarea} from "@/components/ui/textarea";
+import {BILLING, PAYMENT_METHODS, type PaymentMethod} from "@/core/db/schema/enums";
+import {registerPaymentAction} from "@/modules/finance/finance.actions";
 
 type UnitOption = {
   id: string;
@@ -47,22 +48,16 @@ export function PaymentForm({
   const [amount, setAmount] = useState("");
   const [year, setYear] = useState(String(new Date().getFullYear()));
   const [month, setMonth] = useState(String(new Date().getMonth() + 1));
-  const [method, setMethod] = useState<
-    "cash" | "bank_transfer" | "card" | "e_manat" | "pos_terminal"
-  >("cash");
+  const [method, setMethod] = useState<PaymentMethod>("cash");
   const [referenceNo, setReferenceNo] = useState("");
   const [notes, setNotes] = useState("");
 
   const selected = units.find((u) => u.id === unitId);
 
-  const methods: Array<
-    "cash" | "bank_transfer" | "card" | "e_manat" | "pos_terminal"
-  > = ["cash", "bank_transfer", "card", "e_manat", "pos_terminal"];
-
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!unitId) {
-      toast.error(`${t("payments.unit")} — ${tc("common.unitNumber")}`);
+      toast.error(`${t("payments.unit")} — ${tu("unitNumber")}`);
       return;
     }
     if (!amount || Number(amount) <= 0) {
@@ -160,7 +155,7 @@ export function PaymentForm({
               </SelectValue>
             </SelectTrigger>
             <SelectContent>
-              {methods.map((m) => (
+              {PAYMENT_METHODS.map((m) => (
                 <SelectItem key={m} value={m}>
                   {t(`payments.paymentMethods.${m}` as Parameters<typeof t>[0])}
                 </SelectItem>
@@ -177,8 +172,8 @@ export function PaymentForm({
             value={year}
             onChange={(e) => setYear(e.target.value)}
             type="number"
-            min={2024}
-            max={2030}
+            min={BILLING.minYear}
+            max={BILLING.maxYear}
             className="mt-1"
           />
         </div>

@@ -1,11 +1,12 @@
 import {describe, expect, it} from "vitest";
+import type {PaymentMethod} from "@/core/db/schema/enums";
 import {PaymentError, validatePaymentValues} from "./payment.service";
 
 const validPayment = {
   amount: "25.50",
   periodYear: 2026,
   periodMonth: 7,
-  paymentMethod: "bank_transfer",
+  paymentMethod: "bank_transfer" as PaymentMethod,
   tariffPerSqm: "0.40",
 };
 
@@ -15,19 +16,19 @@ describe("validatePaymentValues", () => {
   });
 
   it.each(["0", "-1", "not-a-number", "Infinity"])("rejects invalid amount %s", (amount) => {
-    expect(() => validatePaymentValues({...validPayment, amount})).toThrow("Payment amount");
+    expect(() => validatePaymentValues({...validPayment, amount})).toThrow("paymentAmountPositive");
   });
 
   it.each([0, 13, 1.5])("rejects invalid month %s", (periodMonth) => {
-    expect(() => validatePaymentValues({...validPayment, periodMonth})).toThrow("payment month");
+    expect(() => validatePaymentValues({...validPayment, periodMonth})).toThrow("invalidPaymentMonth");
   });
 
   it("rejects unsupported payment methods", () => {
-    expect(() => validatePaymentValues({...validPayment, paymentMethod: "crypto"})).toThrow("payment method");
+    expect(() => validatePaymentValues({...validPayment, paymentMethod: "crypto" as PaymentMethod})).toThrow("invalidPaymentMethod");
   });
 
   it("rejects a negative tariff", () => {
-    expect(() => validatePaymentValues({...validPayment, tariffPerSqm: "-0.01"})).toThrow("tariff");
+    expect(() => validatePaymentValues({...validPayment, tariffPerSqm: "-0.01"})).toThrow("invalidTariff");
   });
 });
 

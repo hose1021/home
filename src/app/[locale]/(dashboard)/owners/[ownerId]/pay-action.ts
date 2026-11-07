@@ -1,23 +1,24 @@
 "use server";
 
-import {revalidatePath} from "next/cache";
-import {getTranslations} from "next-intl/server";
-import {requireTenantPermission} from "@/core/auth/session";
+import {z} from "zod";
+import {runAction} from "@/core/actions/action";
 import {uuidSchema} from "@/core/validation/action-schemas";
-import {PaymentError, refundPayment, requireOwnerPaymentAccess} from "@/modules/finance/services/payment.service";
+import {refundPayment, requireOwnerPaymentAccess} from "@/modules/finance/services/payment.service";
+
+const refundSchema = z.object({ownerId: uuidSchema, paymentId: uuidSchema});
 
 export async function refundPaymentAction(ownerId: string, paymentId: string) {
-  const t = await getTranslations("payments.errors");
-  ownerId = uuidSchema.parse(ownerId);
-  paymentId = uuidSchema.parse(paymentId);
-  const { session, tenantId } = await requireTenantPermission("payment:write");
-  await requireOwnerPaymentAccess(tenantId, ownerId, session.user.id, session.user.roles);
-  try {
-    const payment = await refundPayment(tenantId, paymentId, session.user.id);
-    revalidatePath(`/owners/${ownerId}`);
-    return { success: true, payment };
-  } catch (err) {
-    if (err instanceof PaymentError) throw new Error(t(err.code));
-    throw err;
-  }
+  return runAction({
+    permission: "payment:write",
+    schema: refundSchema,
+    errors: "payments.errors",
+    authorize: async ({tenantId, session}, data) => {
+      await requireOwnerPaymentAccess(tenantId, data.ownerId, session.user.id, session.user.roles);
+    },
+    revalidate: (_data: {ownerId: string; paymentId: string}, result: {ownerId: string}) => ["/finance/payments", `/owners/${result.ownerId}`],
+    handler: async ({tenantId, session}, data) => {
+      const payment = await refundPayment(tenantId, data.paymentId, session.user.id);
+      return {success: true, payment, ownerId: data.ownerId};
+    },
+  }, {ownerId, paymentId});
 }

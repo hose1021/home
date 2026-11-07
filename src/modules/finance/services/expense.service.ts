@@ -3,6 +3,8 @@ import {writeAuditLog} from "@/core/audit/audit.service";
 import {db} from "@/core/db";
 import {expenses} from "@/core/db/schema/expenses";
 import {payments} from "@/core/db/schema/payments";
+import {DomainError} from "@/core/errors/app-error";
+import {moneyToCents} from "./money";
 
 export type ExpenseRow = {
   id: string;
@@ -36,9 +38,9 @@ export async function createExpense(
   userId: string,
 ) {
   const amount = Number(input.amount);
-  if (!Number.isFinite(amount) || amount <= 0) throw new Error("Amount must be positive");
-  if (!input.description.trim()) throw new Error("Description is required");
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(input.expenseDate)) throw new Error("Invalid expense date");
+  if (!Number.isFinite(amount) || amount <= 0) throw new DomainError("expenseAmountPositive");
+  if (!input.description.trim()) throw new DomainError("expenseDescriptionRequired");
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(input.expenseDate)) throw new DomainError("invalidExpenseDate");
 
   const [created] = await db
     .insert(expenses)
@@ -81,7 +83,7 @@ export async function getBuildingBudget(tenantId: string): Promise<BuildingBudge
     .from(expenses)
     .where(eq(expenses.tenantId, tenantId));
 
-  const income = Math.round(Number(incomeRow?.total ?? 0) * 100) / 100;
-  const spent = Math.round(Number(expenseRow?.total ?? 0) * 100) / 100;
-  return {income, expenses: spent, balance: Math.round((income - spent) * 100) / 100};
+  const incomeCents = moneyToCents(incomeRow?.total ?? 0);
+  const spentCents = moneyToCents(expenseRow?.total ?? 0);
+  return {income: incomeCents / 100, expenses: spentCents / 100, balance: (incomeCents - spentCents) / 100};
 }

@@ -11,14 +11,15 @@ import {
     IconTicket,
     IconUsersGroup,
 } from "@tabler/icons-react";
-import {getTranslations} from "next-intl/server";
+import {getLocale, getTranslations} from "next-intl/server";
 import {ChargeStatusBadge, PaymentStatusBadge} from "@/components/status-badge";
 import {Badge} from "@/components/ui/badge";
-import {hasAnyPermission, hasStaffRole} from "@/core/auth/permissions";
+import {hasStaffRole, sessionAllows} from "@/core/auth/permissions";
 import {requireTenantContext} from "@/core/auth/session";
 import {Link as IntlLink} from "@/i18n/navigation";
 import {getDashboardAnnouncement} from "@/modules/announcements/announcement.service";
 import {getDashboardData, getResidentOverview} from "@/modules/dashboard/dashboard.service";
+import {formatAmount, formatDate} from "@/modules/finance/money-format";
 import {getTenantDebtSummary} from "@/modules/finance/services/debt.service";
 import {getTenantById} from "@/modules/tenant/tenant.service";
 import {CommandantCard} from "./commandant-card";
@@ -26,6 +27,7 @@ import {ResidentDashboard} from "./resident-dashboard";
 
 export default async function DashboardPage() {
     const t = await getTranslations();
+    const locale = await getLocale();
     const {session, tenantId} = await requireTenantContext();
     const tenant = await getTenantById(tenantId);
     const isStaff = hasStaffRole(session.user.roles);
@@ -35,7 +37,7 @@ export default async function DashboardPage() {
         return <ResidentDashboard overview={overview} userName={session.user.fullName} tenantName={tenant?.name ?? "MMMC"} />;
     }
 
-    const canViewFinance = hasAnyPermission(session.user.roles, "finance:read");
+    const canViewFinance = sessionAllows(session, "finance:read");
     const dashboardAnnouncement = await getDashboardAnnouncement(tenantId);
 
     const {
@@ -49,8 +51,7 @@ export default async function DashboardPage() {
     } = await getDashboardData(tenantId);
     const {totalDebt} = await getTenantDebtSummary(tenantId);
 
-    const now = new Date();
-    const dateStr = now.toLocaleDateString("ru", {day: "numeric", month: "long", year: "numeric"});
+    const dateStr = new Date().toLocaleDateString(locale, {day: "numeric", month: "long", year: "numeric"});
 
     return (
         <div className="page-shell">
@@ -122,7 +123,7 @@ export default async function DashboardPage() {
             <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
                 <StatCard href="/units" title={t("dashboard.units")} value={String(unitCount)} caption={t("dashboard.unitsCaption")} icon={IconHome} tone="text-primary" />
                 <StatCard href="/owners" title={t("dashboard.owners")} value={String(ownerCount)} caption={t("dashboard.ownersCaption")} icon={IconUsersGroup} tone="text-brand-soft" />
-                <StatCard href="/finance" title={t("dashboard.debt")} value={`${totalDebt.toFixed(2)} ${t("common.currency")}`} caption={t("dashboard.debtCaption")} icon={IconCash} tone="text-gold" amount />
+                <StatCard href="/finance" title={t("dashboard.debt")} value={formatAmount(totalDebt)} caption={t("dashboard.debtCaption")} icon={IconCash} tone="text-gold" amount />
                 <StatCard href="/tickets" title={t("dashboard.activeTickets")} value={String(ticketCount)} caption={t("dashboard.activeTicketsCaption")} icon={IconTicket} tone="text-danger" />
             </div>
 
@@ -133,7 +134,7 @@ export default async function DashboardPage() {
                         <ul>
                             {boardMembers.map((member) => (
                                 <li
-                                    key={member.userId}
+                                    key={member.id}
                                     className="flex items-center justify-between gap-4 border-b border-border/70 px-5 py-3 text-sm transition-colors last:border-0 hover:bg-white/[0.04]"
                                 >
                                     <div className="flex min-w-0 items-center gap-3">
@@ -157,10 +158,7 @@ export default async function DashboardPage() {
                         <div className="px-5 pb-5"><EmptyState text={t("dashboard.noBoardMembers")} /></div>
                     )}
                     <div className="px-5 pb-5">
-                        <CommandantCard
-                            commandant={commandant}
-                            canBrowseOwners={true}
-                        />
+                        <CommandantCard commandant={commandant} />
                     </div>
                 </section>
 
@@ -179,11 +177,11 @@ export default async function DashboardPage() {
                                             {payment.unitNumber && <span className="font-normal text-muted-foreground"> · {t("resident.unit", {unit: payment.unitNumber})}</span>}
                                         </p>
                                         <p className="mt-0.5 truncate text-xs text-muted-foreground">
-                                            {t("resident.period", {month: payment.periodMonth, year: payment.periodYear})} · {t(`finance.payments.paymentMethods.${payment.paymentMethod}`)} · {new Date(payment.paymentDate).toLocaleDateString("ru", {day: "numeric", month: "short"})}
+                                            {t("resident.period", {month: payment.periodMonth, year: payment.periodYear})} · {t(`finance.payments.paymentMethods.${payment.paymentMethod}`)} · {new Date(payment.paymentDate).toLocaleDateString(locale, {day: "numeric", month: "short"})}
                                         </p>
                                     </div>
                                     <div className="flex shrink-0 flex-col items-end gap-1">
-                                        <p className="amount text-[0.95rem] font-semibold">{Number(payment.amount).toFixed(2)} {t("common.currency")}</p>
+                                        <p className="amount text-[0.95rem] font-semibold">{formatAmount(payment.amount)}</p>
                                         <PaymentStatusBadge status={payment.status} label={t(`finance.payments.status.${payment.status}`)} />
                                     </div>
                                 </IntlLink>
@@ -205,13 +203,13 @@ export default async function DashboardPage() {
                                     <span className="chip size-8 text-muted-foreground"><IconReceipt className="size-4" /></span>
                                     <ChargeStatusBadge status={charge.status} label={t(`finance.charges.status.${charge.status}`)} />
                                 </div>
-                                <p className="amount mt-4 text-lg font-semibold">{Number(charge.amount).toFixed(2)} {t("common.currency")}</p>
+                                <p className="amount mt-4 text-lg font-semibold">{formatAmount(charge.amount)}</p>
                                 <p className="mt-1 truncate text-xs font-medium text-foreground">
                                     {charge.ownerName ?? "—"}
                                     {charge.unitNumber && <span className="font-normal text-muted-foreground"> · {t("resident.unit", {unit: charge.unitNumber})}</span>}
                                 </p>
                                 <p className="mt-0.5 truncate text-xs text-muted-foreground">
-                                    {t("finance.charges.apartmentCharge")} · {t("dashboard.dueBy")} {new Date(charge.dueDate).toLocaleDateString("ru")}
+                                    {t("finance.charges.apartmentCharge")} · {t("dashboard.dueBy")} {formatDate(charge.dueDate, locale)}
                                 </p>
                             </div>
                         ))}

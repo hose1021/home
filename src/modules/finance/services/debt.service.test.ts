@@ -1,5 +1,6 @@
 import {describe, expect, it} from "vitest";
-import {buildPeriods, unitDebt, type BillingPeriod} from "./debt.service";
+import {periodKey} from "@/modules/finance/period";
+import {buildPeriods} from "./debt.service";
 
 describe("buildPeriods", () => {
   it("enumerates from billing start through current month", () => {
@@ -16,44 +17,16 @@ describe("buildPeriods", () => {
 
   it("rolls over year boundaries without gaps or duplicates", () => {
     const periods = buildPeriods("2024-11", new Date(2026, 0, 10)); // Jan 2026
-    const keys = periods.map((p) => `${p.year}-${p.month}`);
+    const keys = periods.map((p) => periodKey(p.year, p.month));
     expect(keys).toEqual([
       "2024-11", "2024-12",
-      ...Array.from({length: 12}, (_, i) => `2025-${i + 1}`),
-      "2026-1",
+      ...Array.from({length: 12}, (_, i) => periodKey(2025, i + 1)),
+      "2026-01",
     ]);
   });
 
   it("falls back to now's January when billingStart is malformed", () => {
     const periods = buildPeriods("garbage", new Date(2026, 0, 31));
     expect(periods).toEqual([{year: 2026, month: 1}]);
-  });
-});
-
-describe("unitDebt", () => {
-  const periods: BillingPeriod[] = [
-    {year: 2025, month: 1},
-    {year: 2025, month: 2},
-    {year: 2025, month: 3},
-  ];
-  const fee = 36;
-
-  it("sums full fee for unpaid periods", () => {
-    expect(unitDebt(fee, periods, () => 0)).toBe(108);
-  });
-
-  it("clamps per period: overpayment never offsets another period", () => {
-    const paidFor = (p: BillingPeriod) =>
-      p.month === 1 ? 72 : p.month === 2 ? 0 : 36; // overpaid Jan, skipped Feb
-    expect(unitDebt(fee, periods, paidFor)).toBe(36); // only February owed
-  });
-
-  it("counts partial payments as remainder", () => {
-    const paidFor = (p: BillingPeriod) => (p.month === 1 ? 20 : fee);
-    expect(unitDebt(fee, periods, paidFor)).toBe(16);
-  });
-
-  it("returns 0 when every period is covered", () => {
-    expect(unitDebt(fee, periods, () => fee)).toBe(0);
   });
 });

@@ -1,6 +1,6 @@
 import {getTranslations} from "next-intl/server";
+import {sessionAllows} from "@/core/auth/permissions";
 
-import {getPermissionsForRoles} from "@/core/auth/permissions";
 import {requireTenantPermission} from "@/core/auth/session";
 import {ChargesTable} from "@/modules/finance/components/charges-table";
 import {FinancePageHeader} from "@/modules/finance/components/finance-page-header";
@@ -8,7 +8,6 @@ import {listChargeViews} from "@/modules/finance/services/finance-analytics.serv
 
 export default async function ChargesPage() {
     const {session, tenantId} = await requireTenantPermission("finance:read");
-    const permissions = getPermissionsForRoles(session.user.roles);
     const t = await getTranslations("finance");
     const rows = await listChargeViews(tenantId);
 
@@ -20,7 +19,7 @@ export default async function ChargesPage() {
             />
             <ChargesTable
                 rows={rows}
-                canWrite={permissions.includes("charge:write")}
+                canWrite={sessionAllows(session, "charge:write")}
             />
         </>
     );

@@ -1,19 +1,13 @@
 "use client";
 
+import {useTranslations} from "next-intl";
 import {useState} from "react";
 import {toast} from "sonner";
 import {Badge} from "@/components/ui/badge";
 import {Button} from "@/components/ui/button";
+import {todayIso} from "@/lib/date";
 import {updateCommandantAction} from "@/modules/commandants/commandant.actions";
 import {CommandantDialog, type CommandantRow, type OwnerOption} from "./commandant-dialog";
-
-function today(): string {
-  return new Date().toISOString().slice(0, 10);
-}
-
-function formatPeriod(startDate: string, endDate: string | null): string {
-  return `${startDate} — ${endDate ?? "по настоящее время"}`;
-}
 
 export function CommandantsBoard({
   commandants,
@@ -22,6 +16,8 @@ export function CommandantsBoard({
   commandants: CommandantRow[];
   owners: OwnerOption[];
 }) {
+  const t = useTranslations("commandants");
+  const tc = useTranslations("common");
   const [editOpen, setEditOpen] = useState(false);
   const [editing, setEditing] = useState<CommandantRow | null>(null);
 
@@ -41,9 +37,9 @@ export function CommandantsBoard({
         phone: row.phone,
         isActive: false,
         startDate: row.startDate,
-        endDate: today(),
+        endDate: todayIso(),
       });
-      toast.success("Период завершён");
+      toast.success(t("tenureEnded"));
     } catch (err) {
       toast.error((err as Error).message);
     }
@@ -59,7 +55,7 @@ export function CommandantsBoard({
         startDate: row.startDate,
         endDate: null,
       });
-      toast.success("Комендант активирован");
+      toast.success(t("activated"));
     } catch (err) {
       toast.error((err as Error).message);
     }
@@ -68,7 +64,7 @@ export function CommandantsBoard({
   return (
     <div className="space-y-6">
       {active.length === 0 && (
-        <p className="text-sm text-muted-foreground">Комендант не назначен</p>
+        <p className="text-sm text-muted-foreground">{t("none")}</p>
       )}
 
       {active.length > 0 && (
@@ -78,15 +74,15 @@ export function CommandantsBoard({
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <p className="text-base font-semibold">{commandant.fullName}</p>
-                  <p className="mt-1 text-sm text-muted-foreground">{commandant.phone ?? "Нет телефона"}</p>
+                  <p className="mt-1 text-sm text-muted-foreground">{commandant.phone ?? t("noPhone")}</p>
                 </div>
-                <Badge className="bg-success/12 border-success/35 text-success">Активен</Badge>
+                <Badge className="bg-success/12 border-success/35 text-success">{t("active")}</Badge>
               </div>
-              <p className="mt-3 text-sm text-muted-foreground">{formatPeriod(commandant.startDate, commandant.endDate)}</p>
-              {commandant.ownerId && <p className="mt-1 text-xs text-muted-foreground">Из собственников</p>}
+              <p className="mt-3 text-sm text-muted-foreground">{commandant.startDate} — {commandant.endDate ?? t("untilNow")}</p>
+              {commandant.ownerId && <p className="mt-1 text-xs text-muted-foreground">{t("ownerBadge")}</p>}
               <div className="mt-4 flex gap-2">
-                <Button variant="outline" size="sm" onClick={() => openEdit(commandant)}>Изменить</Button>
-                <Button variant="outline" size="sm" className="text-destructive hover:text-destructive" onClick={() => endTenure(commandant)}>Завершить период</Button>
+                <Button variant="outline" size="sm" onClick={() => openEdit(commandant)}>{t("edit")}</Button>
+                <Button variant="outline" size="sm" className="text-destructive hover:text-destructive" onClick={() => endTenure(commandant)}>{t("endTenure")}</Button>
               </div>
             </div>
           ))}
@@ -95,16 +91,16 @@ export function CommandantsBoard({
 
       {history.length > 0 && (
         <section>
-          <h2 className="text-base font-semibold">История</h2>
-          <p className="mt-1 text-sm text-muted-foreground">Прошлые коменданты, включая собственников</p>
+          <h2 className="text-base font-semibold">{t("history")}</h2>
+          <p className="mt-1 text-sm text-muted-foreground">{t("historyDescription")}</p>
           <div className="surface-panel mt-3 overflow-hidden">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b bg-muted/40 text-left text-xs font-semibold text-muted-foreground">
-                  <th className="px-4 py-2.5">Имя</th>
-                  <th className="px-4 py-2.5">Телефон</th>
-                  <th className="px-4 py-2.5">Период</th>
-                  <th className="px-4 py-2.5">Статус</th>
+                  <th className="px-4 py-2.5">{t("name")}</th>
+                  <th className="px-4 py-2.5">{t("phone")}</th>
+                  <th className="px-4 py-2.5">{tc("period")}</th>
+                  <th className="px-4 py-2.5">{tc("status")}</th>
                   <th className="px-4 py-2.5" />
                 </tr>
               </thead>
@@ -113,15 +109,15 @@ export function CommandantsBoard({
                   <tr key={row.id}>
                     <td className="px-4 py-3 font-medium">
                       {row.fullName}
-                      {row.ownerId && <span className="ml-2 text-xs text-muted-foreground">собственник</span>}
+                      {row.ownerId && <span className="ml-2 text-xs text-muted-foreground">{t("owner")}</span>}
                     </td>
                     <td className="px-4 py-3 text-muted-foreground">{row.phone ?? "—"}</td>
-                    <td className="px-4 py-3 text-muted-foreground">{formatPeriod(row.startDate, row.endDate)}</td>
-                    <td className="px-4 py-3"><Badge variant="secondary">Завершён</Badge></td>
+                    <td className="px-4 py-3 text-muted-foreground">{row.startDate} — {row.endDate ?? t("untilNow")}</td>
+                    <td className="px-4 py-3"><Badge variant="secondary">{t("ended")}</Badge></td>
                     <td className="px-4 py-3 text-right">
                       <div className="flex justify-end gap-1">
-                        <Button variant="ghost" size="sm" onClick={() => openEdit(row)}>Изменить</Button>
-                        <Button variant="ghost" size="sm" onClick={() => activate(row)}>Активировать</Button>
+                        <Button variant="ghost" size="sm" onClick={() => openEdit(row)}>{t("edit")}</Button>
+                        <Button variant="ghost" size="sm" onClick={() => activate(row)}>{t("activate")}</Button>
                       </div>
                     </td>
                   </tr>

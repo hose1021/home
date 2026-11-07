@@ -1,5 +1,5 @@
 import {getTranslations} from "next-intl/server";
-import {getPermissionsForRoles, type Permission} from "@/core/auth/permissions";
+import {sessionAllows} from "@/core/auth/permissions";
 import {requireTenantPermission} from "@/core/auth/session";
 import {listUnitsWithOwners} from "@/modules/unit/unit.service";
 import {UnitsTable} from "./units-table";
@@ -7,7 +7,6 @@ import {UnitsTable} from "./units-table";
 export default async function UnitsPage() {
   const t = await getTranslations("units");
   const { session, tenantId } = await requireTenantPermission("unit:read");
-  const permissions: Permission[] = getPermissionsForRoles(session.user.roles);
 
   const units = await listUnitsWithOwners(tenantId);
 
@@ -22,7 +21,7 @@ export default async function UnitsPage() {
       </div>
       <UnitsTable
         units={units}
-        canManage={permissions.includes("unit:write")}
+        canManage={sessionAllows(session, "unit:write")}
       />
     </div>
   );

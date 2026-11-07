@@ -10,24 +10,19 @@ import {Input} from "@/components/ui/input";
 import {Label} from "@/components/ui/label";
 import {Table, TableBody, TableCell, TableHead, TableHeader, TableRow} from "@/components/ui/table";
 import {Textarea} from "@/components/ui/textarea";
+import {WORK_ORDER_STATUSES, type WorkOrderStatus} from "@/core/db/schema/enums";
+import {formatAmount} from "@/modules/finance/money-format";
 import {createWorkOrderAction, updateWorkOrderStatusAction} from "@/modules/work-order/work-order.actions";
+import {WORK_ORDER_TONE} from "@/modules/work-order/work-order.constants";
 
 type Order = {
   id: string;
   title: string;
   description: string | null;
-  status: "pending" | "approved" | "in_progress" | "completed" | "cancelled";
+  status: WorkOrderStatus;
   estimatedCost: string | null;
   scheduledDate: Date | null;
   contractorName: string | null;
-};
-
-const STATUS_VARIANTS: Record<string, "default" | "secondary" | "outline" | "destructive"> = {
-  pending: "secondary",
-  approved: "default",
-  in_progress: "outline",
-  completed: "default",
-  cancelled: "destructive",
 };
 
 export function WorkOrdersBoard({ orders, contractors, canManage }: {
@@ -80,8 +75,8 @@ export function WorkOrdersBoard({ orders, contractors, canManage }: {
                   {o.description && <p className="text-xs text-muted-foreground">{o.description}</p>}
                 </TableCell>
                 <TableCell>{o.contractorName ?? "—"}</TableCell>
-                <TableCell className="text-right tabular-nums">{o.estimatedCost ? `${Number(o.estimatedCost).toFixed(2)} ₼` : "—"}</TableCell>
-                <TableCell><Badge variant={STATUS_VARIANTS[o.status] ?? "secondary"}>{t(`statuses.${o.status}`)}</Badge></TableCell>
+                <TableCell className="text-right tabular-nums">{o.estimatedCost ? formatAmount(o.estimatedCost) : "—"}</TableCell>
+                <TableCell><Badge variant={WORK_ORDER_TONE[o.status]}>{t(`statuses.${o.status}`)}</Badge></TableCell>
                 {canManage && (
                   <TableCell className="text-right">
                     <select
@@ -89,7 +84,7 @@ export function WorkOrdersBoard({ orders, contractors, canManage }: {
                       onChange={(e) => setStatus(o.id, e.target.value as Order["status"])}
                       className="filter-select"
                     >
-                      {(["pending", "approved", "in_progress", "completed", "cancelled"] as const).map((s) => (
+                      {WORK_ORDER_STATUSES.map((s) => (
                         <option key={s} value={s}>{t(`statuses.${s}`)}</option>
                       ))}
                     </select>

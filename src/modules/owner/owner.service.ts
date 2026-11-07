@@ -1,15 +1,20 @@
-import {and, eq, notInArray, sql} from "drizzle-orm";
+import {and, eq, ne, notInArray, sql} from "drizzle-orm";
 import {writeAuditLog} from "@/core/audit/audit.service";
 import {assertValidUsername, hashPassword, normalizeUsername} from "@/core/auth/auth";
+import {PASSWORD_MIN_LENGTH} from "@/core/auth/constants";
 import type {Role} from "@/core/auth/permissions";
 import {db} from "@/core/db";
 import {buildings} from "@/core/db/schema/buildings";
+import type {UnitType} from "@/core/db/schema/enums";
 import {owners, ownerships} from "@/core/db/schema/owners";
 import {payments} from "@/core/db/schema/payments";
 import {units} from "@/core/db/schema/units";
 import {userRoles, users, sessions} from "@/core/db/schema/users";
 import {DomainError} from "@/core/errors/app-error";
-import {buildPeriods, getDebtConfig, getOutstandingByUnit, type BillingPeriod} from "@/modules/finance/services/debt.service";
+import {todayIso} from "@/lib/date";
+import {periodKey} from "@/modules/finance/period";
+import {buildPeriods, getDebtConfig, getOutstandingByUnit, getOwnersDebtStatus, type BillingPeriod} from "@/modules/finance/services/debt.service";
+import {moneyToCents} from "@/modules/finance/services/money";
 
 export async function getOwnerById(tenantId: string, id: string) {
   const [o] = await db
@@ -20,6 +25,84 @@ export async function getOwnerById(tenantId: string, id: string) {
   return o ?? null;
 }
 
+export type OwnerOption = { id: string; fullName: string; phone: string | null };
+
+/** Pick-list of owners for assignment controls. */
+export async function listOwnerOptions(tenantId: string): Promise<OwnerOption[]> {
+  return await db
+    .select({ id: owners.id, fullName: owners.fullName, phone: owners.phone })
+    .from(owners)
+    .where(and(eq(owners.tenantId, tenantId), ne(owners.status, "deleted")))
+    .orderBy(owners.fullName);
+}
+
+export type OwnerListRow = {
+  id: string;
+  userId: string | null;
+  fullName: string;
+  phone: string | null;
+  username: string;
+  roles: Role[];
+  unitNumbers: string[];
+  unitCount: number;
+  hasDebt: boolean;
+  hasPaid: boolean;
+};
+
+/** Owner registry rows with roles, units and payment status; `userId` scopes the list to one person. */
+export async function listOwnersWithDebt(
+  tenantId: string,
+  options: { userId?: string } = {},
+): Promise<OwnerListRow[]> {
+  const rows = await db
+    .select({
+      id: owners.id,
+      userId: owners.userId,
+      fullName: users.fullName,
+      phone: users.phone,
+      username: users.username,
+      role: userRoles.role,
+      unitNumbers:
+        sql<string[]>`coalesce(array_agg(distinct ${units.unitNumber}) filter (where ${units.unitNumber} is not null), '{}')`,
+    })
+    .from(owners)
+    .innerJoin(users, eq(users.id, owners.userId))
+    .leftJoin(userRoles, eq(userRoles.userId, users.id))
+    .leftJoin(ownerships, eq(ownerships.ownerId, owners.id))
+    .leftJoin(units, eq(units.id, ownerships.unitId))
+    .where(and(
+      eq(owners.tenantId, tenantId),
+      ne(owners.status, "deleted"),
+      options.userId ? eq(owners.userId, options.userId) : undefined,
+    ))
+    .groupBy(owners.id, owners.userId, users.id, userRoles.role)
+    .orderBy(owners.fullName);
+
+  const debtStatus = await getOwnersDebtStatus(tenantId);
+
+  const grouped = rows.reduce<Record<string, OwnerListRow>>((acc, row) => {
+    if (!acc[row.id]) {
+      const status = debtStatus.get(row.id);
+      acc[row.id] = {
+        id: row.id,
+        userId: row.userId,
+        fullName: row.fullName,
+        phone: row.phone,
+        username: row.username,
+        roles: [],
+        unitNumbers: row.unitNumbers,
+        unitCount: row.unitNumbers.length,
+        hasDebt: status?.hasDebt ?? false,
+        hasPaid: status?.hasPaidThisPeriod ?? false,
+      };
+    }
+    if (row.role) acc[row.id]?.roles.push(row.role as Role);
+    return acc;
+  }, {});
+
+  return Object.values(grouped);
+}
+
 export type PaidPeriodRow = {
   unitId: string;
   periodYear: number;
@@ -27,13 +110,39 @@ export type PaidPeriodRow = {
   paid: string;
 };
 
-/** Confirmed payments per unit per "YYYY-M" period — the key scheme the owner detail view groups by. Pure. */
+/** Confirmed payments per unit per billing period, keyed by the canonical `YYYY-MM`. Pure. */
 export function buildPaidByUnit(rows: PaidPeriodRow[]): Map<string, Map<string, number>> {
   const map = new Map<string, Map<string, number>>();
   for (const r of rows) {
     const inner = map.get(r.unitId) ?? new Map<string, number>();
-    inner.set(`${r.periodYear}-${r.periodMonth}`, Number(r.paid));
+    inner.set(periodKey(r.periodYear, r.periodMonth), Number(r.paid));
     map.set(r.unitId, inner);
+  }
+  return map;
+}
+
+export type PaymentPeriodRow = {
+  id: string;
+  unitId: string;
+  periodYear: number;
+  periodMonth: number;
+  amount: string;
+  tariffPerSqm: string;
+  paymentMethod: string;
+  referenceNo: string | null;
+};
+
+/** Latest payment display per unit per period, keyed `unitId-YYYY-MM` for the month rows. Pure. */
+function buildPaymentByUnitPeriod(rows: PaymentPeriodRow[]) {
+  const map = new Map<string, Omit<PaymentPeriodRow, "unitId" | "periodYear" | "periodMonth">>();
+  for (const r of rows) {
+    map.set(`${r.unitId}-${periodKey(r.periodYear, r.periodMonth)}`, {
+      id: r.id,
+      amount: r.amount,
+      tariffPerSqm: r.tariffPerSqm,
+      paymentMethod: r.paymentMethod,
+      referenceNo: r.referenceNo,
+    });
   }
   return map;
 }
@@ -64,6 +173,13 @@ export type OwnerDetail = {
   tariffPerSqm: number;
   periods: BillingPeriod[];
   paidByUnit: Map<string, Map<string, number>>;
+  paymentByUnitPeriod: Map<string, {
+    id: string;
+    amount: string;
+    tariffPerSqm: string;
+    paymentMethod: string;
+    referenceNo: string | null;
+  }>;
   payments: {
     id: string;
     amount: string;
@@ -173,7 +289,7 @@ export async function getOwnerDetail(tenantId: string, ownerId: string): Promise
   for (const u of ownerUnits) totalArea += Number(u.area);
   const unitsWithMoney = ownerUnits.map((u) => {
     const area = Number(u.area);
-    const monthlyFee = area * cfg.tariffPerSqm;
+    const monthlyFee = moneyToCents(area * cfg.tariffPerSqm) / 100;
     const totalDebt = outstandingByUnit.get(u.id) ?? 0;
     grandDebt += totalDebt;
     return {...u, monthlyFee, totalDebt};
@@ -184,10 +300,11 @@ export async function getOwnerDetail(tenantId: string, ownerId: string): Promise
     units: unitsWithMoney,
     grandDebt,
     totalArea,
-    totalMonthlyFee: totalArea * cfg.tariffPerSqm,
+    totalMonthlyFee: moneyToCents(totalArea * cfg.tariffPerSqm) / 100,
     tariffPerSqm: cfg.tariffPerSqm,
     periods,
     paidByUnit: paidMap,
+    paymentByUnitPeriod: buildPaymentByUnitPeriod(paymentList),
     payments: paymentList,
   };
 }
@@ -200,7 +317,7 @@ export async function createOwnerWithUnit(tenantId: string, input: {
   unitNumber: string;
   floor: number;
   entrance: number;
-  type: "residential" | "commercial" | "parking" | "storage" | "other";
+  type: UnitType;
   area: string;
 }, userId: string) {
   const [building] = await db
@@ -208,7 +325,7 @@ export async function createOwnerWithUnit(tenantId: string, input: {
     .from(buildings)
     .where(eq(buildings.tenantId, tenantId))
     .limit(1);
-  if (!building) throw new DomainError("building_not_found", "No building found");
+  if (!building) throw new DomainError("building_not_found");
 
   const username = normalizeUsername(input.username);
   assertValidUsername(username);
@@ -222,7 +339,7 @@ export async function createOwnerWithUnit(tenantId: string, input: {
       phone: input.phone ?? null,
       passwordHash,
     }).returning();
-    if (!user) throw new Error("Failed to create user");
+    if (!user) throw new DomainError("owner_create_failed");
 
     const [unit] = await tx.insert(units).values({
       tenantId,
@@ -233,7 +350,7 @@ export async function createOwnerWithUnit(tenantId: string, input: {
       type: input.type,
       area: input.area,
     }).returning();
-    if (!unit) throw new Error("Failed to create unit");
+    if (!unit) throw new DomainError("owner_create_failed");
 
     const [createdOwner] = await tx.insert(owners).values({
       tenantId,
@@ -241,7 +358,7 @@ export async function createOwnerWithUnit(tenantId: string, input: {
       fullName: user.fullName,
       phone: user.phone,
     }).returning();
-    if (!createdOwner) throw new Error("Failed to create owner");
+    if (!createdOwner) throw new DomainError("owner_create_failed");
 
     await tx.insert(userRoles).values({
       userId: user.id,
@@ -253,7 +370,7 @@ export async function createOwnerWithUnit(tenantId: string, input: {
       tenantId,
       ownerId: createdOwner.id,
       unitId: unit.id,
-      registeredDate: new Date().toISOString().slice(0, 10),
+      registeredDate: todayIso(),
       isPrimary: true,
     });
 
@@ -316,7 +433,7 @@ export async function updateOwnerWithRoles(tenantId: string, id: string, input: 
     .from(owners)
     .where(and(eq(owners.id, id), eq(owners.tenantId, tenantId)))
     .limit(1);
-  if (!existingOwner || !existingOwner.userId) return null;
+  if (!existingOwner || !existingOwner.userId) throw new DomainError("owner_not_found");
 
   await db.transaction(async (tx) => {
     await syncUserOwnerProfile(tx, existingOwner.userId, input);
@@ -349,7 +466,7 @@ export async function deleteOwner(tenantId: string, id: string, userId: string) 
     .from(owners)
     .where(and(eq(owners.id, id), eq(owners.tenantId, tenantId)))
     .limit(1);
-  if (!owner) return;
+  if (!owner) throw new DomainError("owner_not_found");
 
   await db.transaction(async (tx) => {
     await tx.update(owners).set({ status: "deleted", updatedAt: new Date() }).where(eq(owners.id, owner.id));
@@ -379,7 +496,7 @@ export async function assignUnitToOwner(
     .from(owners)
     .where(and(eq(owners.id, ownerId), eq(owners.tenantId, tenantId)))
     .limit(1);
-  if (!owner) throw new DomainError("owner_not_found", "Owner not found");
+  if (!owner) throw new DomainError("owner_not_found");
 
   await db.transaction(async (tx) => {
     const [unit] = await tx
@@ -387,7 +504,7 @@ export async function assignUnitToOwner(
       .from(units)
       .where(and(eq(units.id, unitId), eq(units.tenantId, tenantId), eq(units.status, "active")))
       .limit(1);
-    if (!unit) throw new DomainError("unit_not_found", "Unit not found");
+    if (!unit) throw new DomainError("unit_not_found");
 
     const [existing] = await tx
       .select({ id: ownerships.id })
@@ -398,23 +515,23 @@ export async function assignUnitToOwner(
         eq(ownerships.tenantId, tenantId),
       ))
       .limit(1);
-    if (existing) throw new DomainError("unit_already_assigned", "Квартира уже привязана к этому собственнику");
+    if (existing) throw new DomainError("unit_already_assigned");
 
     const [unitAssigned] = await tx
       .select({ id: ownerships.id })
       .from(ownerships)
       .where(and(eq(ownerships.unitId, unitId), eq(ownerships.tenantId, tenantId)))
       .limit(1);
-    if (unitAssigned) throw new DomainError("unit_assigned_elsewhere", "Квартира уже привязана к другому собственнику");
+    if (unitAssigned) throw new DomainError("unit_assigned_elsewhere");
 
     const [created] = await tx.insert(ownerships).values({
       tenantId,
       ownerId,
       unitId,
-      registeredDate: new Date().toISOString().slice(0, 10),
+      registeredDate: todayIso(),
       isPrimary: false,
     }).returning();
-    if (!created) throw new Error("Failed to assign unit");
+    if (!created) throw new DomainError("ownership_create_failed");
 
     await writeAuditLog({
       tenantId,
@@ -438,7 +555,7 @@ export async function createAndAssignUnitToOwner(
     unitNumber: string;
     floor: number;
     entrance: number;
-    type: "residential" | "commercial" | "parking" | "storage" | "other";
+    type: UnitType;
     area: string;
   },
   userId: string,
@@ -448,14 +565,14 @@ export async function createAndAssignUnitToOwner(
     .from(owners)
     .where(and(eq(owners.id, ownerId), eq(owners.tenantId, tenantId)))
     .limit(1);
-  if (!owner) throw new DomainError("owner_not_found", "Owner not found");
+  if (!owner) throw new DomainError("owner_not_found");
 
   const [building] = await db
     .select()
     .from(buildings)
     .where(eq(buildings.tenantId, tenantId))
     .limit(1);
-  if (!building) throw new DomainError("building_not_found", "No building found");
+  if (!building) throw new DomainError("building_not_found");
 
   const result = await db.transaction(async (tx) => {
     const [unit] = await tx.insert(units).values({
@@ -467,19 +584,19 @@ export async function createAndAssignUnitToOwner(
       type: input.type,
       area: input.area,
     }).returning();
-    if (!unit) throw new Error("Failed to create unit");
+    if (!unit) throw new DomainError("owner_create_failed");
 
     await tx.insert(ownerships).values({
       tenantId,
       ownerId,
       unitId: unit.id,
-      registeredDate: new Date().toISOString().slice(0, 10),
+      registeredDate: todayIso(),
       isPrimary: false,
     });
 
     return unit;
   });
-  if (!result) throw new Error("Failed to create unit");
+  if (!result) throw new DomainError("owner_create_failed");
 
   await writeAuditLog({
     tenantId,
@@ -535,7 +652,7 @@ export async function removeUnitFromOwner(
       eq(ownerships.tenantId, tenantId),
     ))
     .limit(1);
-  if (!link) throw new DomainError("ownership_not_found", "Связь не найдена");
+  if (!link) throw new DomainError("ownership_not_found");
 
   await db
     .delete(ownerships)
@@ -563,9 +680,9 @@ export async function updateOwnerPassword(tenantId: string, id: string, newPassw
     .from(owners)
     .where(and(eq(owners.id, id), eq(owners.tenantId, tenantId)))
     .limit(1);
-  if (!owner || !owner.userId) throw new DomainError("owner_not_found", "Owner not found");
+  if (!owner || !owner.userId) throw new DomainError("owner_not_found");
 
-  if (newPassword.length < 12) throw new DomainError("weak_password", "Password must be at least 12 characters");
+  if (newPassword.length < PASSWORD_MIN_LENGTH) throw new DomainError("weak_password");
 
   const passwordHash = await hashPassword(newPassword);
 

@@ -1,6 +1,7 @@
 "use client";
 
 import {IconSearch, IconX} from "@tabler/icons-react";
+import {useTranslations} from "next-intl";
 import {useMemo, useState} from "react";
 import {toast} from "sonner";
 import {
@@ -18,31 +19,13 @@ import {Button} from "@/components/ui/button";
 import {Dialog, DialogContent, DialogHeader, DialogTitle,} from "@/components/ui/dialog";
 import {Input} from "@/components/ui/input";
 import {Label} from "@/components/ui/label";
-import {assignExistingUnitAction, removeUnitFromOwnerAction} from "@/modules/owner/owner.actions";
-import {createUnitAction, updateUnitAction, deleteUnitAction, listOwnersAction} from "@/modules/unit/unit.actions";
+import {UNIT_TYPES, type UnitType} from "@/core/db/schema/enums";
+import {formatNumber} from "@/modules/finance/money-format";
+import {assignExistingUnitAction, listOwnersAction, removeUnitFromOwnerAction} from "@/modules/owner/owner.actions";
+import {createUnitAction, deleteUnitAction, updateUnitAction} from "@/modules/unit/unit.actions";
 
-const TYPE_LABELS: Record<string, string> = {
-  residential: "Жилая",
-  commercial: "Коммерческая",
-  parking: "Парковка",
-  storage: "Склад",
-  other: "Другое",
-};
-
-const TYPE_OPTIONS = [
-  { value: "", label: "Все типы" },
-  { value: "residential", label: "Жилая" },
-  { value: "commercial", label: "Коммерческая" },
-  { value: "parking", label: "Парковка" },
-  { value: "storage", label: "Склад" },
-  { value: "other", label: "Другое" },
-];
-
-const OWNER_OPTIONS = [
-  { value: "", label: "Все" },
-  { value: "assigned", label: "С собственником" },
-  { value: "unassigned", label: "Без собственника" },
-];
+const OWNER_FILTERS = ["all", "assigned", "unassigned"] as const;
+type OwnerFilter = (typeof OWNER_FILTERS)[number];
 
 type UnitRow = {
   id: string;
@@ -66,9 +49,11 @@ export function UnitsTable({
   units: UnitRow[];
   canManage: boolean;
 }) {
+  const t = useTranslations("units");
+  const tc = useTranslations("common");
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState("");
-  const [ownerFilter, setOwnerFilter] = useState("");
+  const [ownerFilter, setOwnerFilter] = useState<OwnerFilter>("all");
 
   const [createOpen, setCreateOpen] = useState(false);
   const [editUnit, setEditUnit] = useState<UnitRow | null>(null);
@@ -82,8 +67,8 @@ export function UnitsTable({
   async function loadOwners() {
     try {
       setOwners(await listOwnersAction());
-    } catch {
-      // ignore
+    } catch (error) {
+      toast.error((error as Error).message);
     }
   }
 
@@ -121,11 +106,11 @@ export function UnitsTable({
         unitNumber: fd.get("unitNumber") as string,
         entrance: Number(fd.get("entrance")),
         floor: Number(fd.get("floor")),
-        type: fd.get("type") as "residential" | "commercial" | "parking" | "storage" | "other",
+        type: fd.get("type") as UnitType,
         area: fd.get("area") as string,
       });
       setCreateOpen(false);
-      toast.success("Квартира создана");
+      toast.success(t("created"));
     } catch (err) {
       toast.error((err as Error).message);
     } finally {
@@ -143,11 +128,11 @@ export function UnitsTable({
         unitNumber: fd.get("unitNumber") as string,
         entrance: Number(fd.get("entrance")),
         floor: Number(fd.get("floor")),
-        type: fd.get("type") as "residential" | "commercial" | "parking" | "storage" | "other",
+        type: fd.get("type") as UnitType,
         area: fd.get("area") as string,
       });
       setEditUnit(null);
-      toast.success("Квартира обновлена");
+      toast.success(t("updated"));
     } catch (err) {
       toast.error((err as Error).message);
     } finally {
@@ -161,7 +146,7 @@ export function UnitsTable({
     try {
       await deleteUnitAction(deleteId);
       setDeleteId(null);
-      toast.success("Квартира удалена");
+      toast.success(t("deleted"));
     } catch (err) {
       toast.error((err as Error).message);
     } finally {
@@ -177,7 +162,7 @@ export function UnitsTable({
       await assignExistingUnitAction(selectedOwnerId, assignUnit.id);
       setAssignUnit(null);
       setSelectedOwnerId("");
-      toast.success("Квартира привязана");
+      toast.success(t("assignedSuccess"));
     } catch (err) {
       toast.error((err as Error).message);
     } finally {
@@ -193,7 +178,7 @@ export function UnitsTable({
     try {
       await removeUnitFromOwnerAction(ownerId, detachUnit.id);
       setDetachUnit(null);
-      toast.success("Квартира отвязана");
+      toast.success(t("unassignedSuccess"));
     } catch (err) {
       toast.error((err as Error).message);
     } finally {
@@ -204,28 +189,27 @@ export function UnitsTable({
   const unitFormFields = (defaults?: UnitRow) => (
     <div className="grid grid-cols-2 gap-3">
       <div>
-        <Label htmlFor="unitNumber">№ квартиры</Label>
+        <Label htmlFor="unitNumber">{t("unitNumber")}</Label>
         <Input id="unitNumber" name="unitNumber" defaultValue={defaults?.unitNumber ?? ""} required className="mt-1" />
       </div>
       <div>
-        <Label htmlFor="floor">Этаж</Label>
+        <Label htmlFor="floor">{t("floor")}</Label>
         <Input id="floor" name="floor" type="number" defaultValue={defaults?.floor ?? ""} required className="mt-1" />
       </div>
       <div>
-        <Label htmlFor="entrance">Подъезд</Label>
+        <Label htmlFor="entrance">{t("entrance")}</Label>
         <Input id="entrance" name="entrance" type="number" defaultValue={defaults?.entrance ?? 1} className="mt-1" />
       </div>
       <div>
-        <Label htmlFor="type">Тип</Label>
+        <Label htmlFor="type">{t("type")}</Label>
         <select name="type" defaultValue={defaults?.type ?? "residential"} className="mt-1 field">
-          <option value="residential">Жилая</option>
-          <option value="commercial">Коммерческая</option>
-          <option value="parking">Парковка</option>
-          <option value="storage">Склад</option>
+          {UNIT_TYPES.map((type) => (
+            <option key={type} value={type}>{t(`types.${type}`)}</option>
+          ))}
         </select>
       </div>
       <div>
-        <Label htmlFor="area">Площадь (м²)</Label>
+        <Label htmlFor="area">{t("area")}</Label>
         <Input id="area" name="area" type="number" step="0.01" defaultValue={defaults?.area ?? ""} required className="mt-1" />
       </div>
     </div>
@@ -240,11 +224,11 @@ export function UnitsTable({
             <Input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Поиск по номеру или собственнику..."
+              placeholder={t("searchPlaceholder")}
               className="w-80 pl-9 pr-8"
             />
             {search && (
-              <button type="button" aria-label="Очистить поиск" onClick={() => setSearch("")} className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground/70 hover:text-muted-foreground">
+              <button type="button" aria-label={tc("reset")} onClick={() => setSearch("")} className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground/70 hover:text-muted-foreground">
                 <IconX className="size-4" />
               </button>
             )}
@@ -252,18 +236,23 @@ export function UnitsTable({
 
           <select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)}
             className="filter-select">
-            {TYPE_OPTIONS.map((o) => (<option key={o.value} value={o.value}>{o.label}</option>))}
+            <option value="">{t("allTypes")}</option>
+            {UNIT_TYPES.map((type) => (
+              <option key={type} value={type}>{t(`types.${type}`)}</option>
+            ))}
           </select>
 
-          <select value={ownerFilter} onChange={(e) => setOwnerFilter(e.target.value)}
+          <select value={ownerFilter} onChange={(e) => setOwnerFilter(e.target.value as OwnerFilter)}
             className="filter-select">
-            {OWNER_OPTIONS.map((o) => (<option key={o.value} value={o.value}>{o.label}</option>))}
+            {OWNER_FILTERS.map((filter) => (
+              <option key={filter} value={filter}>{t(`ownerFilters.${filter}`)}</option>
+            ))}
           </select>
         </div>
 
         {canManage && (
           <Button onClick={() => setCreateOpen(true)}>
-            + Добавить квартиру
+            + {t("createUnit")}
           </Button>
         )}
       </div>
@@ -272,12 +261,12 @@ export function UnitsTable({
         <table className="min-w-full divide-y divide-border">
           <thead className="bg-muted/50">
             <tr>
-              <th className="px-4 py-3 text-left text-xs font-bold text-muted-foreground">№</th>
-              <th className="px-4 py-3 text-left text-xs font-bold text-muted-foreground">Подъезд</th>
-              <th className="px-4 py-3 text-left text-xs font-bold text-muted-foreground">Этаж</th>
-              <th className="px-4 py-3 text-left text-xs font-bold text-muted-foreground">Тип</th>
-              <th className="px-4 py-3 text-right text-xs font-bold text-muted-foreground">Площадь</th>
-              <th className="px-4 py-3 text-left text-xs font-bold text-muted-foreground">Собственники</th>
+              <th className="px-4 py-3 text-left text-xs font-bold text-muted-foreground">#</th>
+              <th className="px-4 py-3 text-left text-xs font-bold text-muted-foreground">{t("entrance")}</th>
+              <th className="px-4 py-3 text-left text-xs font-bold text-muted-foreground">{t("floor")}</th>
+              <th className="px-4 py-3 text-left text-xs font-bold text-muted-foreground">{t("type")}</th>
+              <th className="px-4 py-3 text-right text-xs font-bold text-muted-foreground">{t("area")}</th>
+              <th className="px-4 py-3 text-left text-xs font-bold text-muted-foreground">{t("owners")}</th>
               <th className="px-4 py-3 text-right text-xs font-bold text-muted-foreground" />
             </tr>
           </thead>
@@ -288,9 +277,9 @@ export function UnitsTable({
                 <td className="px-4 py-3 text-sm text-muted-foreground">{u.entrance}</td>
                 <td className="px-4 py-3 text-sm text-muted-foreground">{u.floor}</td>
                 <td className="px-4 py-3 text-sm">
-                  <Badge variant="secondary">{TYPE_LABELS[u.type] ?? u.type}</Badge>
+                  <Badge variant="secondary">{t(`types.${u.type}`)}</Badge>
                 </td>
-                <td className="px-4 py-3 text-right text-sm">{Number(u.area).toFixed(1)} м²</td>
+                <td className="px-4 py-3 text-right text-sm">{formatNumber(u.area)} {tc("squareMeters")}</td>
                 <td className="px-4 py-3 text-sm text-muted-foreground">
                   {u.ownerNames.length > 0 ? u.ownerNames.join(", ") : "—"}
                 </td>
@@ -298,18 +287,18 @@ export function UnitsTable({
                   {canManage && (
                     <div className="flex justify-end gap-2">
                       <Button variant="outline" size="sm" onClick={() => { setEditUnit(u); }}>
-                        Ред.
+                        {tc("edit")}
                       </Button>
                       <Button variant="outline" size="sm" onClick={() => openAssign(u)}>
-                        Привязать
+                        {t("assign")}
                       </Button>
                       {u.ownerCount > 0 && (
                         <Button variant="outline" size="sm" onClick={() => setDetachUnit(u)}>
-                          Отвязать
+                          {t("detach")}
                         </Button>
                       )}
                       <Button variant="destructive" size="sm" onClick={() => setDeleteId(u.id)}>
-                        Удалить
+                        {tc("delete")}
                       </Button>
                     </div>
                   )}
@@ -318,18 +307,18 @@ export function UnitsTable({
             ))}
           </tbody>
         </table>
-        {filtered.length === 0 && <p className="p-8 text-center text-sm text-muted-foreground">Нет квартир</p>}
+        {filtered.length === 0 && <p className="p-8 text-center text-sm text-muted-foreground">{t("none")}</p>}
       </div>
-      <p className="text-sm text-muted-foreground">Показано: {filtered.length} из {units.length}</p>
+      <p className="text-sm text-muted-foreground">{t("showing", {shown: filtered.length, total: units.length})}</p>
 
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
         <DialogContent>
-          <DialogHeader><DialogTitle>Добавить квартиру</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{t("createUnit")}</DialogTitle></DialogHeader>
           <form onSubmit={handleCreate} className="space-y-4">
             {unitFormFields()}
             <div className="flex justify-end gap-3">
-              <Button type="button" variant="outline" onClick={() => setCreateOpen(false)}>Отмена</Button>
-              <Button type="submit" disabled={pending}>{pending ? "Создание..." : "Создать"}</Button>
+              <Button type="button" variant="outline" onClick={() => setCreateOpen(false)}>{tc("cancel")}</Button>
+              <Button type="submit" disabled={pending}>{pending ? t("creating") : tc("create")}</Button>
             </div>
           </form>
         </DialogContent>
@@ -337,13 +326,13 @@ export function UnitsTable({
 
       <Dialog open={!!editUnit} onOpenChange={(o) => { if (!o) setEditUnit(null); }}>
         <DialogContent>
-          <DialogHeader><DialogTitle>Редактировать квартиру</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{t("editUnit")}</DialogTitle></DialogHeader>
           {editUnit && (
             <form onSubmit={handleEdit} className="space-y-4">
               {unitFormFields(editUnit)}
               <div className="flex justify-end gap-3">
-                <Button type="button" variant="outline" onClick={() => setEditUnit(null)}>Отмена</Button>
-                <Button type="submit" disabled={pending}>{pending ? "Сохранение..." : "Сохранить"}</Button>
+                <Button type="button" variant="outline" onClick={() => setEditUnit(null)}>{tc("cancel")}</Button>
+                <Button type="submit" disabled={pending}>{pending ? t("saving") : tc("save")}</Button>
               </div>
             </form>
           )}
@@ -352,14 +341,14 @@ export function UnitsTable({
 
       <Dialog open={!!assignUnit} onOpenChange={(o) => { if (!o) { setAssignUnit(null); setSelectedOwnerId(""); } }}>
         <DialogContent>
-          <DialogHeader><DialogTitle>Привязать квартиру к собственнику</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{t("assignTitle")}</DialogTitle></DialogHeader>
           {assignUnit && (
             <form onSubmit={handleAssign} className="space-y-4">
               <p className="text-sm text-muted-foreground">
-                Кв. {assignUnit.unitNumber}, под. {assignUnit.entrance}, эт. {assignUnit.floor}
+                {t("unitSummary", {unit: assignUnit.unitNumber, entrance: assignUnit.entrance, floor: assignUnit.floor})}
               </p>
               <div>
-                <Label htmlFor="owner">Собственник</Label>
+                <Label htmlFor="owner">{t("owner")}</Label>
                 <select
                   id="owner"
                   value={selectedOwnerId}
@@ -367,15 +356,15 @@ export function UnitsTable({
                   required
                   className="mt-1 field"
                 >
-                  <option value="">— Выберите —</option>
+                  <option value="">{t("chooseOwner")}</option>
                   {owners.map((o) => (
                     <option key={o.id} value={o.id}>{o.fullName}</option>
                   ))}
                 </select>
               </div>
               <div className="flex justify-end gap-3">
-                <Button type="button" variant="outline" onClick={() => { setAssignUnit(null); setSelectedOwnerId(""); }}>Отмена</Button>
-                <Button type="submit" disabled={pending || !selectedOwnerId}>{pending ? "Привязка..." : "Привязать"}</Button>
+                <Button type="button" variant="outline" onClick={() => { setAssignUnit(null); setSelectedOwnerId(""); }}>{tc("cancel")}</Button>
+                <Button type="submit" disabled={pending || !selectedOwnerId}>{pending ? t("assigning") : t("assign")}</Button>
               </div>
             </form>
           )}
@@ -385,16 +374,19 @@ export function UnitsTable({
       <AlertDialog open={!!detachUnit} onOpenChange={(o) => { if (!o) setDetachUnit(null); }}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Отвязать квартиру</AlertDialogTitle>
+            <AlertDialogTitle>{t("detachTitle")}</AlertDialogTitle>
             <AlertDialogDescription>
-              {detachUnit && (
-                <>Кв. {detachUnit.unitNumber}, под. {detachUnit.entrance}, эт. {detachUnit.floor} — собственник {detachUnit.ownerNames[0]} будет отвязан.</>
-              )}
+              {detachUnit && t("detachConfirm", {
+                unit: detachUnit.unitNumber,
+                entrance: detachUnit.entrance,
+                floor: detachUnit.floor,
+                owner: detachUnit.ownerNames[0] ?? "",
+              })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Отмена</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDetach} disabled={pending}>{pending ? "Отвязка..." : "Отвязать"}</AlertDialogAction>
+            <AlertDialogCancel>{tc("cancel")}</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDetach} disabled={pending}>{pending ? t("detaching") : t("detach")}</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
@@ -402,12 +394,12 @@ export function UnitsTable({
       <AlertDialog open={!!deleteId} onOpenChange={(o) => { if (!o) setDeleteId(null); }}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Удалить квартиру</AlertDialogTitle>
-            <AlertDialogDescription>Квартира будет помечена как удалённая.</AlertDialogDescription>
+            <AlertDialogTitle>{t("deleteTitle")}</AlertDialogTitle>
+            <AlertDialogDescription>{t("deleteConfirm")}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Отмена</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} disabled={pending}>Удалить</AlertDialogAction>
+            <AlertDialogCancel>{tc("cancel")}</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} disabled={pending}>{tc("delete")}</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

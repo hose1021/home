@@ -1,5 +1,6 @@
 import {decimal, index, pgTable, text, timestamp, uuid, varchar} from "drizzle-orm/pg-core";
 import {charges} from "./charges";
+import type {AdjustmentKind} from "./enums";
 import {tenants} from "./tenants";
 import {users} from "./users";
 
@@ -11,7 +12,7 @@ export const adjustments = pgTable("adjustments", {
   id: uuid("id").defaultRandom().primaryKey(),
   tenantId: uuid("tenant_id").notNull().references(() => tenants.id),
   chargeId: uuid("charge_id").notNull().references(() => charges.id, { onDelete: "cascade" }),
-  kind: varchar("kind", { length: 10 }).notNull().$type<"credit" | "debit">(),
+  kind: varchar("kind", { length: 10 }).notNull().$type<AdjustmentKind>(),
   amount: decimal("amount", { precision: 12, scale: 2 }).notNull(),
   reason: text("reason").notNull(),
   createdBy: uuid("created_by").notNull().references(() => users.id),

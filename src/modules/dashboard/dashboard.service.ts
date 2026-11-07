@@ -1,19 +1,21 @@
 import {and, desc, eq, sql} from "drizzle-orm";
-import type {CommandantInfo} from "@/app/[locale]/(dashboard)/commandant-card";
 import {db} from "@/core/db";
 import {charges} from "@/core/db/schema/charges";
-import {owners, ownerships} from "@/core/db/schema/owners";
+import type {ChargeStatus, PaymentStatus} from "@/core/db/schema/enums";
+import {managementMembers} from "@/core/db/schema/management-members";
+import {owners} from "@/core/db/schema/owners";
 import {payments} from "@/core/db/schema/payments";
 import {tickets} from "@/core/db/schema/tickets";
 import {units} from "@/core/db/schema/units";
-import {userRoles, users} from "@/core/db/schema/users";
+import {users} from "@/core/db/schema/users";
 import {listAnnouncements, type Announcement} from "@/modules/announcements/announcement.service";
-import {getActiveCommandant} from "@/modules/commandants/commandant.service";
+import {getActiveCommandant, type CommandantInfo} from "@/modules/commandants/commandant.service";
 import {listChargesForOwner, type OwnerCharge} from "@/modules/finance/services/charge.service";
+import {moneyToCents} from "@/modules/finance/services/money";
 import {getOwnerDetail, type OwnerDetail} from "@/modules/owner/owner.service";
 
 export type BoardMember = {
-    userId: string;
+    id: string;
     ownerId: string | null;
     fullName: string;
     entrances: string;
@@ -29,14 +31,14 @@ export type RecentPayment = {
     paymentMethod: string;
     periodYear: number;
     periodMonth: number;
-    status: "confirmed" | "rejected" | "refunded";
+    status: PaymentStatus;
 };
 
 export type RecentCharge = {
     id: string;
     amount: string;
     dueDate: string;
-    status: "pending" | "paid" | "partially_paid" | "overdue" | "cancelled";
+    status: ChargeStatus;
     ownerName: string | null;
     unitNumber: string | null;
 };
@@ -64,10 +66,10 @@ export type DashboardData = {
 };
 
 /** Dedupe board members — one row per user, first row wins. Pure, no DB. */
-export function rankBoardMembers(rows: BoardMember[]): BoardMember[] {
+export function dedupeBoardMembers(rows: BoardMember[]): BoardMember[] {
     const seen = new Map<string, BoardMember>();
     for (const row of rows) {
-        if (!seen.has(row.userId)) seen.set(row.userId, row);
+        if (!seen.has(row.id)) seen.set(row.id, row);
     }
     return [...seen.values()];
 }
@@ -135,7 +137,7 @@ export async function getDashboardData(tenantId: string): Promise<DashboardData>
             chargeGroups.set(key, {...row});
             continue;
         }
-        group.amount = (Number(group.amount) + Number(row.amount)).toFixed(2);
+        group.amount = ((moneyToCents(group.amount) + moneyToCents(row.amount)) / 100).toFixed(2);
         if (row.dueDate < group.dueDate) group.dueDate = row.dueDate;
         if (row.status === "overdue") group.status = "overdue";
     }
@@ -153,42 +155,20 @@ export async function getDashboardData(tenantId: string): Promise<DashboardData>
 }
 
 async function getBoardMembers(tenantId: string): Promise<BoardMember[]> {
-    const boardRows = (await db
+    const boardRows = await db
         .select({
-            userId: users.id,
-            ownerId: owners.id,
-            fullName: users.fullName,
-            role: userRoles.role,
-            entrances: sql<string>`coalesce(string_agg(distinct ${units.entrance}::text, ', '), '')`,
+            id: managementMembers.id,
+            ownerId: managementMembers.ownerId,
+            fullName: managementMembers.fullName,
+            entrances: managementMembers.blockLabel,
         })
-        .from(users)
-        .innerJoin(
-            userRoles,
-            and(
-                eq(userRoles.userId, users.id),
-                eq(userRoles.scopeTenantId, tenantId),
-            ),
-        )
-        .leftJoin(
-            owners,
-            and(eq(owners.userId, users.id), eq(owners.tenantId, tenantId)),
-        )
-        .leftJoin(
-            ownerships,
-            and(eq(ownerships.ownerId, owners.id), eq(ownerships.tenantId, tenantId)),
-        )
-        .leftJoin(
-            units,
-            and(eq(units.id, ownerships.unitId), eq(units.tenantId, tenantId)),
-        )
+        .from(managementMembers)
         .where(and(
-            eq(users.tenantId, tenantId),
-            eq(users.isActive, true),
-            eq(userRoles.role, "management_member"),
+            eq(managementMembers.tenantId, tenantId),
+            eq(managementMembers.isActive, true),
         ))
-        .groupBy(users.id, owners.id, userRoles.role)
-        .orderBy(users.fullName)) as unknown as BoardMember[];
-    return rankBoardMembers(boardRows);
+        .orderBy(managementMembers.sortOrder);
+    return dedupeBoardMembers(boardRows);
 }
 
 /** Resident read-model: own debt, units, payments, charges, house news and board contacts. */

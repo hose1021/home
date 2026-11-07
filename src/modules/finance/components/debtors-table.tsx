@@ -5,19 +5,10 @@ import {useLocale, useTranslations} from "next-intl";
 import {FilterSearch, FilterSelect, TableFilters, matchesQuery, useTableQuery} from "@/components/table-filters";
 import {TableBody, TableCell, TableHead, TableHeader, TableRow} from "@/components/ui/table";
 import {Link} from "@/i18n/navigation";
+import {AGE_BUCKET_KEYS, ageBucket} from "@/modules/finance/ageing";
 import {FinanceTable} from "@/modules/finance/components/finance-table";
 import {formatAmount, formatDate} from "@/modules/finance/money-format";
 import type {DebtorRow} from "@/modules/finance/services/finance-analytics.service";
-
-const BUCKETS = ["notDue", "days1to30", "days31to60", "days61to90", "over90"] as const;
-
-function bucketOf(days: number): (typeof BUCKETS)[number] {
-    if (days <= 0) return "notDue";
-    if (days <= 30) return "days1to30";
-    if (days <= 60) return "days31to60";
-    if (days <= 90) return "days61to90";
-    return "over90";
-}
 
 export function DebtorsTable({rows}: {rows: DebtorRow[]}) {
     const t = useTranslations("finance");
@@ -28,7 +19,7 @@ export function DebtorsTable({rows}: {rows: DebtorRow[]}) {
     const bucket = params.value("bucket");
 
     const filtered = rows.filter((row) =>
-        (!bucket || bucketOf(row.daysOverdue) === bucket) &&
+        (!bucket || ageBucket(row.daysOverdue) === bucket) &&
         matchesQuery(query, [row.ownerName, ...row.unitNumbers])
     );
 
@@ -43,7 +34,7 @@ export function DebtorsTable({rows}: {rows: DebtorRow[]}) {
                         onChange={(value) => params.update({bucket: value})}
                         options={[
                             {value: "", label: t("filters.all")},
-                            ...BUCKETS.map((item) => ({value: item, label: t(`analytics.${item === "notDue" ? "notDue" : item}`)})),
+                            ...AGE_BUCKET_KEYS.map((item) => ({value: item, label: t(`analytics.${item}`)})),
                         ]}
                     />
                 </TableFilters>

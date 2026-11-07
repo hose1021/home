@@ -9,19 +9,21 @@ import {Dialog, DialogContent, DialogHeader, DialogTitle} from "@/components/ui/
 import {Input} from "@/components/ui/input";
 import {Label} from "@/components/ui/label";
 import {Table, TableBody, TableCell, TableHead, TableHeader, TableRow} from "@/components/ui/table";
+import {RESIDENT_TYPES, type ResidentType} from "@/core/db/schema/enums";
+import {todayIso} from "@/lib/date";
 import {createResidentAction, updateResidentAction} from "@/modules/resident/resident.actions";
 
 type Resident = {
   id: string;
   fullName: string;
-  residentType: "owner" | "family" | "tenant" | "guest" | null;
+  residentType: ResidentType | null;
   phone: string | null;
   movedInAt: string;
   movedOutAt: string | null;
   unitNumber: string | null;
 };
 
-const TYPE_VARIANTS: Record<string, "default" | "secondary" | "outline"> = {
+const TYPE_VARIANTS: Record<ResidentType, "default" | "secondary" | "outline"> = {
   owner: "default",
   family: "secondary",
   tenant: "secondary",
@@ -38,7 +40,7 @@ export function ResidentsBoard({ residents, units, canManage }: {
 
   async function markMovedOut(id: string) {
     try {
-      await updateResidentAction(id, { movedOutAt: new Date().toISOString().slice(0, 10) });
+      await updateResidentAction(id, { movedOutAt: todayIso() });
       toast.success(t("updated"));
     } catch (err) {
       toast.error((err as Error).message);
@@ -108,7 +110,7 @@ function ResidentDialog({ units, onClose }: {
   const [fullName, setFullName] = useState("");
   const [residentType, setResidentType] = useState<Resident["residentType"]>("family");
   const [phone, setPhone] = useState("");
-  const [movedInAt, setMovedInAt] = useState(new Date().toISOString().slice(0, 10));
+  const [movedInAt, setMovedInAt] = useState(todayIso());
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -151,7 +153,7 @@ function ResidentDialog({ units, onClose }: {
             <div>
               <Label htmlFor="r-type">{t("type")}</Label>
               <select id="r-type" value={residentType ?? "family"} onChange={(e) => setResidentType(e.target.value as Resident["residentType"])} className="mt-1 field">
-                {(["owner", "family", "tenant", "guest"] as const).map((ty) => <option key={ty} value={ty}>{t(`types.${ty}`)}</option>)}
+                {RESIDENT_TYPES.map((ty) => <option key={ty} value={ty}>{t(`types.${ty}`)}</option>)}
               </select>
             </div>
           </div>

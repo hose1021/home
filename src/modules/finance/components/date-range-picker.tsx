@@ -1,7 +1,7 @@
 "use client";
 
 import {IconCalendar} from "@tabler/icons-react";
-import {endOfMonth, format, startOfMonth, subDays, subMonths} from "date-fns";
+import {endOfMonth, format, parseISO, startOfMonth, subDays, subMonths} from "date-fns";
 import {az, enUS, ru} from "date-fns/locale";
 import {useLocale, useTranslations} from "next-intl";
 import * as React from "react";
@@ -15,22 +15,6 @@ import {monthBounds} from "@/modules/finance/period";
 export type DateRangeSelection = {month?: string; from?: Date; to?: Date};
 
 const LOCALES = {ru, az, en: enUS};
-
-/** Local calendar date as `YYYY-MM-DD`, without a timezone shift. */
-export function formatIsoDate(date?: Date): string {
-    if (!date) return "";
-    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
-}
-
-function monthDate(month: string): Date {
-    const [year = 1970, monthNumber = 1] = month.split("-").map(Number);
-    return new Date(year, monthNumber - 1, 1);
-}
-
-function parseIso(iso: string): Date {
-    const [year = 1970, monthNumber = 1, day = 1] = iso.split("-").map(Number);
-    return new Date(year, monthNumber - 1, day);
-}
 
 export function DateRangePicker({value, onChange, placeholder, applyLabel}: {
     value: DateRangeSelection;
@@ -52,7 +36,7 @@ export function DateRangePicker({value, onChange, placeholder, applyLabel}: {
     const selected = draft.from ? {from: draft.from, to: draft.to} : undefined;
     const complete = mode === "month" ? Boolean(draft.month) : Boolean(draft.from && draft.to);
     const label = value.month
-        ? format(monthDate(value.month), "LLLL yyyy", {locale}).replace(/^./, (letter) => letter.toUpperCase())
+        ? format(parseISO(`${value.month}-01`), "LLLL yyyy", {locale}).replace(/^./, (letter) => letter.toUpperCase())
         : value.from
             ? value.to
                 ? `${days(value.from)} — ${days(value.to)}`
@@ -63,7 +47,7 @@ export function DateRangePicker({value, onChange, placeholder, applyLabel}: {
         setMode(next);
         if (next === "range" && draft.month) {
             const bounds = monthBounds(draft.month);
-            setDraft({from: parseIso(bounds.from), to: parseIso(bounds.to)});
+            setDraft({from: parseISO(bounds.from), to: parseISO(bounds.to)});
         }
     }
 

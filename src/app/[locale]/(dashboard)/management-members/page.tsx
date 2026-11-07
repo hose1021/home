@@ -1,5 +1,5 @@
 import {getTranslations} from "next-intl/server";
-import {getPermissionsForRoles, type Permission} from "@/core/auth/permissions";
+import {sessionAllows} from "@/core/auth/permissions";
 import {requireTenantPermission} from "@/core/auth/session";
 import {listManagementMembers} from "@/modules/management-member/management-member.service";
 import {ManagementBoard} from "./management-board";
@@ -7,8 +7,7 @@ import {ManagementBoard} from "./management-board";
 export default async function ManagementMembersPage() {
   const { session, tenantId } = await requireTenantPermission("settings:read");
   const t = await getTranslations("management");
-  const permissions: Permission[] = getPermissionsForRoles(session.user.roles);
-  const canManage = permissions.includes("settings:write");
+  const canManage = sessionAllows(session, "settings:write");
   const members = await listManagementMembers(tenantId);
 
   return (

@@ -1,64 +1,49 @@
 "use server";
 
-import {and, eq, ne} from "drizzle-orm";
-import {revalidatePath} from "next/cache";
-import {requireTenantPermission} from "@/core/auth/session";
-import {db} from "@/core/db";
-import {buildings} from "@/core/db/schema/buildings";
-import {owners} from "@/core/db/schema/owners";
+import {type z} from "zod";
+import {runAction} from "@/core/actions/action";
 import {unitInputSchema, uuidSchema} from "@/core/validation/action-schemas";
-import {createUnit, deleteUnit, listUnitsWithOwners, updateUnit} from "./unit.service";
+import {createUnit, deleteUnit, updateUnit} from "./unit.service";
 
-export async function createUnitAction(input: {
-  unitNumber: string;
-  entrance: number;
-  floor: number;
-  type: "residential" | "commercial" | "parking" | "storage" | "other";
-  area: string;
-}) {
-  const validated = unitInputSchema.parse(input);
-  const { session, tenantId } = await requireTenantPermission("unit:write");
-  const [building] = await db.select().from(buildings).where(eq(buildings.tenantId, tenantId)).limit(1);
-  if (!building) throw new Error("No building found. Create a building first.");
-
-  await createUnit(tenantId, building.id, validated, session.user.id);
-  revalidatePath("/units");
-  return { success: true };
+export async function createUnitAction(input: z.input<typeof unitInputSchema>) {
+  return runAction({
+    permission: "unit:write",
+    schema: unitInputSchema,
+    errors: "errors",
+    revalidate: ["/units"],
+    handler: async ({session, tenantId}, data) => {
+      await createUnit(tenantId, data, session.user.id);
+      return {success: true};
+    },
+  }, input);
 }
 
-export async function updateUnitAction(id: string, input: {
-  unitNumber?: string;
-  entrance?: number;
-  floor?: number;
-  type?: "residential" | "commercial" | "parking" | "storage" | "other";
-  area?: string;
-}) {
-  id = uuidSchema.parse(id);
-  input = unitInputSchema.partial().parse(input);
-  const { session, tenantId } = await requireTenantPermission("unit:write");
-  await updateUnit(tenantId, id, input, session.user.id);
-  revalidatePath("/units");
-  return { success: true };
+const unitIdInputSchema = uuidSchema;
+const unitUpdateInputSchema = unitInputSchema.partial().extend({id: unitIdInputSchema});
+
+export async function updateUnitAction(id: string, input: Omit<z.input<typeof unitUpdateInputSchema>, "id">) {
+  return runAction({
+    permission: "unit:write",
+    schema: unitUpdateInputSchema,
+    errors: "errors",
+    revalidate: ["/units"],
+    handler: async ({session, tenantId}, data) => {
+      const {id, ...patch} = data;
+      await updateUnit(tenantId, id, patch, session.user.id);
+      return {success: true};
+    },
+  }, {id, ...input});
 }
 
 export async function deleteUnitAction(id: string) {
-  const { session, tenantId } = await requireTenantPermission("unit:write");
-  await deleteUnit(tenantId, id, session.user.id);
-  revalidatePath("/units");
-  return { success: true };
-}
-
-export async function listUnitsAction() {
-  const { tenantId } = await requireTenantPermission("unit:read");
-  return await listUnitsWithOwners(tenantId);
-}
-
-export async function listOwnersAction() {
-  const { tenantId } = await requireTenantPermission("owner:read");
-  const rows = await db
-    .select({ id: owners.id, fullName: owners.fullName })
-    .from(owners)
-    .where(and(eq(owners.tenantId, tenantId), ne(owners.status, "deleted")))
-    .orderBy(owners.fullName);
-  return rows;
+  return runAction({
+    permission: "unit:write",
+    schema: unitIdInputSchema,
+    errors: "errors",
+    revalidate: ["/units"],
+    handler: async ({session, tenantId}, unitId) => {
+      await deleteUnit(tenantId, unitId, session.user.id);
+      return {success: true};
+    },
+  }, id);
 }

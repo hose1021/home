@@ -63,7 +63,8 @@
     "confirmDeleteTitle": "Delete record",
     "auth": {
       "login": "Username"
-    }
+    },
+    "toggleTheme": "Toggle color theme"
   },
   "auth": {
     "login": "Login",
@@ -146,7 +147,9 @@
     "dueBy": "due",
     "noCharges": "No charges yet",
     "openFinance": "Open finance",
-    "block": "Block"
+    "block": "Block",
+    "present": "present",
+    "ownerProfile": "Owner profile"
   },
   "owners": {
     "registry": "Resident registry",
@@ -201,7 +204,27 @@
     "unitNumber": "Unit {unit}",
     "blockFloor": "Entrance {entrance}, floor {floor}",
     "feeFormula": "{area} m² × {tariff} AZN = {fee} AZN/mo",
-    "unitDebt": "Unit debt"
+    "unitDebt": "Unit debt",
+    "roles": "Roles",
+    "changePassword": "Change password",
+    "passwordHint": "At least {min} characters. All user sessions will be reset.",
+    "newPassword": "New password",
+    "setPassword": "Set",
+    "saving": "Saving...",
+    "passwordTooShort": "Password must be at least {min} characters",
+    "passwordUpdated": "Password updated. User sessions were reset.",
+    "ownerFieldset": "Owner",
+    "unitFieldset": "Unit",
+    "newUnitFieldset": "New unit",
+    "creating": "Creating...",
+    "loadUnitsFailed": "Failed to load units",
+    "existingUnitMode": "Choose existing",
+    "newUnitMode": "Create new",
+    "noAvailableUnits": "No available units. Create a new one.",
+    "chooseUnit": "— Select a unit —",
+    "unitOption": "Unit {unit} — entrance {entrance}, floor {floor}, {area} m²",
+    "linking": "Assigning...",
+    "assign": "Assign"
   },
   "units": {
     "title": "Units",
@@ -220,7 +243,39 @@
       "other": "Other"
     },
     "registry": "Premises registry",
-    "description": "All units and non-residential premises · {count} total"
+    "description": "All units and non-residential premises · {count} total",
+    "updated": "Unit updated",
+    "detached": "Unit detached",
+    "detach": "Detach",
+    "detachTitle": "Detach unit",
+    "detachDescription": "Unit #{unit} will be detached from the owner. The unit itself is not deleted.",
+    "detaching": "Unassigning...",
+    "addUnit": "Add unit",
+    "searchPlaceholder": "Search by number or owner...",
+    "allTypes": "All types",
+    "ownerFilters": {
+      "all": "All",
+      "assigned": "Has owner",
+      "unassigned": "No owner"
+    },
+    "owners": "Owners",
+    "owner": "Owner",
+    "created": "Unit created",
+    "deleted": "Unit deleted",
+    "assignedSuccess": "Unit assigned",
+    "unassignedSuccess": "Unit unassigned",
+    "assign": "Assign",
+    "assignTitle": "Assign unit to owner",
+    "detachConfirm": "Unit {unit}, entrance {entrance}, floor {floor} — owner {owner} will be unassigned.",
+    "deleteTitle": "Delete unit",
+    "deleteConfirm": "The unit will be marked as deleted.",
+    "none": "No units",
+    "showing": "Showing {shown} of {total}",
+    "chooseOwner": "— Select —",
+    "unitSummary": "Unit {unit}, entrance {entrance}, floor {floor}",
+    "creating": "Creating...",
+    "saving": "Saving...",
+    "assigning": "Assigning..."
   },
   "finance": {
     "title": "Finance",
@@ -621,7 +676,9 @@
     "noMeetings": "No meetings yet",
     "types": {
       "annual": "Annual",
-      "extraordinary": "Extraordinary"
+      "extraordinary": "Extraordinary",
+      "board": "Board",
+      "audit": "Audit"
     },
     "statuses": {
       "planned": "Planned",
@@ -644,9 +701,9 @@
     "noAnnouncements": "No announcements yet",
     "priorities": {
       "low": "Normal",
-      "medium": "Important",
       "high": "Urgent",
-      "urgent": "Critical"
+      "urgent": "Critical",
+      "normal": "Normal"
     },
     "errors": {
       "announcement_not_found": "Announcement not found",
@@ -667,22 +724,46 @@
     "phone": "Phone"
   },
   "errors": {
-    "unauthorized": "Authentication required",
     "forbidden": "Insufficient permissions",
-    "notFound": "Not found",
-    "serverError": "Server error",
-    "validationError": "Validation error",
     "ticketNotFound": "Ticket not found",
-    "invalidTransition": "Invalid status transition: {from} → {to}",
+    "invalidTransition": "This status transition is not allowed",
     "unitNotFound": "Unit not found",
     "tenantNotFound": "Organization not found",
     "ownerNotFound": "Owner not found",
-    "paymentNotFound": "Payment not found",
     "paymentAmountPositive": "Payment amount must be positive",
     "invalidPaymentYear": "Invalid payment year",
     "invalidPaymentMonth": "Invalid payment month",
     "invalidPaymentMethod": "Invalid payment method",
-    "invalidTariff": "Invalid tariff"
+    "invalidTariff": "Invalid tariff",
+    "invalidChargeYear": "Invalid charge year",
+    "invalidChargeMonth": "Invalid charge month",
+    "chargeNotFound": "Charge not found",
+    "chargeNotPayable": "Charge is not payable",
+    "ownerUnitMismatch": "Owner does not own this unit",
+    "expenseAmountPositive": "Expense amount must be positive",
+    "expenseDescriptionRequired": "Expense description is required",
+    "invalidExpenseDate": "Invalid expense date",
+    "invalidBillingStart": "Invalid billing start month",
+    "invalidDueDay": "Due day must be 1-28",
+    "buildingNotFound": "Building not found",
+    "unitCreateFailed": "Failed to create unit",
+    "residentNotFound": "Resident not found",
+    "residentCreateFailed": "Failed to create resident",
+    "managementMemberNotFound": "Management member not found",
+    "managementMemberCreateFailed": "Failed to create management member",
+    "contractorNotFound": "Contractor not found",
+    "contractorCreateFailed": "Failed to create contractor",
+    "rejectionReasonRequired": "A rejection reason is required",
+    "commentRequired": "Comment cannot be empty",
+    "workOrderNotFound": "Work order not found",
+    "meetingNotFound": "Meeting not found",
+    "protocolNotFound": "Protocol not found",
+    "protocolArchived": "An archived protocol cannot be signed",
+    "notificationNotFound": "Notification not found",
+    "votingNotFound": "Voting not found",
+    "invalidDateRange": "The end date is before the start date",
+    "protocolSigned": "The protocol is already signed",
+    "readOnlyView": "Changes are not allowed while viewing as another identity"
   },
   "voting": {
     "eyebrow": "Decision making",
@@ -705,7 +786,17 @@
       "completed": "Completed",
       "cancelled": "Cancelled",
       "archived": "Archived"
-    }
+    },
+    "createTitle": "New voting",
+    "titleLabel": "Title",
+    "typeLabel": "Type",
+    "startDate": "Start",
+    "endDate": "End",
+    "quorum": "Quorum, %",
+    "options": "Options",
+    "optionsHint": "One option per line",
+    "optionsRequired": "At least two options are required",
+    "created": "Voting created"
   },
   "audit": {
     "eyebrow": "Security & control",
@@ -737,6 +828,47 @@
       "fundsFlow": "Fund cash flow",
       "receivables": "Receivables analysis",
       "audit": "Change audit"
+    },
+    "tabs": {
+      "debt": "Debt",
+      "income": "Income and expenses",
+      "aging": "Aged receivables",
+      "audit": "Audit"
+    },
+    "debt": {
+      "owner": "Owner",
+      "units": "Units",
+      "charged": "Charged",
+      "paid": "Paid",
+      "debt": "Debt",
+      "empty": "No debt"
+    },
+    "income": {
+      "totalIncome": "Income (paid)",
+      "totalExpense": "Expenses (actual)",
+      "balance": "Actual balance",
+      "month": "Month",
+      "amount": "Income",
+      "date": "Date",
+      "item": "Item",
+      "sum": "Amount"
+    },
+    "aging": {
+      "bucket": "Overdue period",
+      "count": "Charges",
+      "amount": "Amount",
+      "total": "Total",
+      "notDue": "Not due",
+      "days1to30": "1–30 days",
+      "days31to90": "31–90 days",
+      "over90": "90+ days"
+    },
+    "audit": {
+      "action": "Action",
+      "entity": "Entity",
+      "user": "User",
+      "date": "Date",
+      "empty": "No audit events yet"
     }
   },
   "contractors": {
@@ -810,7 +942,8 @@
     "created": "Work order created",
     "updated": "Work order updated",
     "saving": "Saving...",
-    "emptyDescription": "The list is empty. Create your first work order."
+    "emptyDescription": "The list is empty. Create your first work order.",
+    "titleRequired": "Title is required"
   },
   "residents": {
     "eyebrow": "People in the building",
@@ -877,7 +1010,14 @@
     "required": "Recipient and title are required",
     "created": "Notification sent",
     "saving": "Sending...",
-    "emptyDescription": "No notifications"
+    "emptyDescription": "No notifications",
+    "types": {
+      "info": "Info",
+      "warning": "Warning",
+      "payment": "Payment",
+      "meeting": "Meeting",
+      "ticket": "Ticket"
+    }
   },
   "budget": {
     "eyebrow": "Financial planning",
@@ -926,19 +1066,79 @@
       "unit_already_assigned": "Unit is already assigned to this owner",
       "unit_assigned_elsewhere": "Unit is already assigned to another owner",
       "ownership_not_found": "Ownership not found",
-      "weak_password": "Password must be at least 12 characters"
+      "weak_password": "Password must be at least 12 characters",
+      "owner_create_failed": "Failed to create owner",
+      "ownership_create_failed": "Failed to assign unit"
     }
   },
   "commandants": {
     "errors": {
-      "commandant_not_found": "Commandant not found"
-    }
+      "commandant_not_found": "Commandant not found",
+      "commandant_create_failed": "Failed to create commandant"
+    },
+    "eyebrow": "Building management",
+    "title": "Commandants",
+    "description": "Current and past building commandants",
+    "add": "Add commandant",
+    "createTitle": "Add commandant",
+    "editTitle": "Edit commandant",
+    "fromOwners": "From owners (optional)",
+    "manual": "— manually —",
+    "fullName": "Full name",
+    "phone": "Phone",
+    "startDate": "Period start",
+    "endDate": "Period end",
+    "openEnded": "Empty = until now",
+    "active": "Active commandant",
+    "created": "Commandant added",
+    "updated": "Commandant updated",
+    "saving": "Saving...",
+    "none": "No commandant assigned",
+    "noPhone": "No phone",
+    "ownerBadge": "From owners",
+    "edit": "Edit",
+    "endTenure": "End period",
+    "tenureEnded": "Period ended",
+    "activated": "Commandant activated",
+    "history": "History",
+    "historyDescription": "Past commandants, including owners",
+    "name": "Name",
+    "owner": "owner",
+    "untilNow": "until now",
+    "ended": "Ended",
+    "activate": "Activate"
   },
   "settings": {
     "errors": {
       "user_not_found": "User not found",
       "wrong_current_password": "Current password is incorrect"
-    }
+    },
+    "eyebrow": "House management",
+    "title": "Settings",
+    "description": "Personal profile and organization settings",
+    "profileTitle": "Personal profile",
+    "profileHint": "Name and phone are visible to neighbours and the board",
+    "fullName": "Full name",
+    "phone": "Phone",
+    "profileSaved": "Profile updated",
+    "passwordTitle": "Password",
+    "passwordHint": "Changing the password ends other sessions",
+    "currentPassword": "Current password",
+    "newPassword": "New password",
+    "confirmPassword": "Repeat password",
+    "passwordHintMin": "At least {min} characters",
+    "passwordTooShort": "Password must be at least {min} characters",
+    "passwordMismatch": "Passwords do not match",
+    "passwordSaved": "Password changed. Other sessions were signed out.",
+    "organizationTitle": "Organization",
+    "organizationHint": "Visible to admins only",
+    "organizationName": "Organization name",
+    "organizationSlug": "Slug",
+    "organizationSlugHint": "Used in the URL and cannot be changed",
+    "taxId": "VAT ID",
+    "address": "Address",
+    "saved": "Settings saved",
+    "saving": "Saving..."
   },
   "documents": {
     "eyebrow": "HOA archive",
@@ -1040,5 +1240,13 @@
     "news": "House news",
     "noNews": "No announcements yet",
     "board": "Board and commandant"
+  },
+  "viewAs": {
+    "label": "View as",
+    "off": "Real view",
+    "viewingAs": "Viewing as: {name}",
+    "readOnly": "Changes are disabled",
+    "changed": "View mode changed",
+    "failed": "Failed to switch the view"
   }
 }

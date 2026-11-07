@@ -17,16 +17,18 @@ import {
 import {Badge} from "@/components/ui/badge";
 import {Button} from "@/components/ui/button";
 import {Dialog, DialogContent, DialogHeader, DialogTitle,} from "@/components/ui/dialog";
+import type {MeetingFormat, MeetingStatus, MeetingType} from "@/core/db/schema/enums";
 import {MeetingForm} from "@/modules/meeting/components/MeetingForm";
 import {deleteMeetingAction} from "@/modules/meeting/meeting.actions";
+import {MEETING_FORMAT_KEYS, MEETING_STATUS_TONE} from "@/modules/meeting/meeting.constants";
 
 type Agenda = { id: string; title: string; description: string | null; sortOrder: number };
 type Meeting = {
   id: string;
   title: string;
-  meetingType: string | null;
-  meetingFormat: string | null;
-  status: string | null;
+  meetingType: MeetingType | null;
+  meetingFormat: MeetingFormat | null;
+  status: MeetingStatus | null;
   proposedDate: Date;
   actualDate: Date | null;
   location: string | null;
@@ -55,16 +57,17 @@ export function MeetingTable({ meetings, canManage }: { meetings: Meeting[]; can
               <div className="flex-1">
                 <div className="flex items-center gap-2">
                   <h3 className="font-medium">{m.title}</h3>
-                  <Badge variant="secondary" className={
-                    m.status === "completed" ? "bg-success/12 border-success/35 text-success" :
-                    m.status === "scheduled" ? "bg-primary/12 border-primary/35 text-primary" :
-                    "border border-border bg-muted text-foreground"
-                  }>{statusLabel(m.status, tm)}</Badge>
+                  {m.status && (
+                    <Badge variant="secondary" className={MEETING_STATUS_TONE[m.status]}>
+                      {tm(`statuses.${m.status}`)}
+                    </Badge>
+                  )}
                 </div>
                 <p className="mt-2 text-xs text-muted-foreground">
-                  {new Date(m.proposedDate).toLocaleDateString("ru")}
+                  {new Date(m.proposedDate).toLocaleDateString()}
                   {m.location && ` • ${m.location}`}
-                  {" • "}{meetingTypeLabel(m.meetingType, tm)}{" • "}{formatLabel(m.meetingFormat, tc)}
+                  {m.meetingType && ` • ${tm(`types.${m.meetingType}`)}`}
+                  {m.meetingFormat && ` • ${tc(MEETING_FORMAT_KEYS[m.meetingFormat])}`}
                 </p>
                 {m.agendas.length > 0 && (
                   <ul className="mt-2 space-y-0.5">
@@ -108,27 +111,3 @@ export function MeetingTable({ meetings, canManage }: { meetings: Meeting[]; can
   );
 }
 
-function statusLabel(s: string | null, tm: ReturnType<typeof useTranslations<"meetings">>) {
-  const map: Record<string, string> = {
-    scheduled: String(tm("statuses.planned")),
-    completed: String(tm("statuses.completed")),
-    cancelled: String(tm("statuses.cancelled")),
-    in_progress: String(tm("statuses.in_progress")),
-  };
-  return map[s ?? ""] ?? s ?? "—";
-}
-function meetingTypeLabel(s: string | null, tm: ReturnType<typeof useTranslations<"meetings">>) {
-  const map: Record<string, string> = {
-    annual: String(tm("types.annual")),
-    extraordinary: String(tm("types.extraordinary")),
-  };
-  return map[s ?? ""] ?? s ?? "—";
-}
-function formatLabel(s: string | null, tc: ReturnType<typeof useTranslations<"common">>) {
-  const map: Record<string, string> = {
-    in_person: String(tc("formatInPerson")),
-    online: String(tc("formatOnline")),
-    mixed: String(tc("formatMixed")),
-  };
-  return map[s ?? ""] ?? s ?? "—";
-}

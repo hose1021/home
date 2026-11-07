@@ -12,11 +12,13 @@ import {
     BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import {Card, CardContent} from "@/components/ui/card";
-import {getPermissionsForRoles, hasStaffRole, type Permission} from "@/core/auth/permissions";
+import {hasStaffRole, sessionAllows} from "@/core/auth/permissions";
 import {requireTenantPermission} from "@/core/auth/session";
 import {Link} from "@/i18n/navigation";
+import {formatAmount, formatNumber} from "@/modules/finance/money-format";
+import {periodKey} from "@/modules/finance/period";
 import {getOwnerDetail} from "@/modules/owner/owner.service";
-import {type MonthPayment, MonthRow} from "./month-row";
+import {MonthRow} from "./month-row";
 import {OwnerUnitsSection} from "./owner-units-section";
 import {OwnerUnitCard} from "./OwnerUnitCard";
 import {PaymentHistory} from "./payment-history";
@@ -30,30 +32,17 @@ export default async function OwnerDetailsPage({
   const { locale, ownerId } = await params;
   const t = await getTranslations("owners");
   const tp = await getTranslations("payments");
+  const tc = await getTranslations("common");
   const { session, tenantId } = await requireTenantPermission("owner:read");
-  const permissions: Permission[] = getPermissionsForRoles(session.user.roles);
-  const canPay = permissions.includes("payment:write");
+  const canPay = sessionAllows(session, "payment:write");
+  const canManageUnits = sessionAllows(session, "owner:write");
 
   const detail = await getOwnerDetail(tenantId, ownerId);
   if (!detail) notFound();
-  const {owner, ownerUnits, paymentList} = {
-    owner: detail.owner,
-    ownerUnits: detail.units,
-    paymentList: detail.payments,
-  };
+  const {owner, paymentByUnitPeriod, payments} = detail;
+  const ownerUnits = detail.units;
   const restrictToCurrentOwner = !hasStaffRole(session.user.roles);
   if (restrictToCurrentOwner && owner.userId !== session.user.id) notFound();
-
-  const paymentByUnitPeriod = new Map<string, MonthPayment>();
-  for (const p of paymentList) {
-    paymentByUnitPeriod.set(`${p.unitId}-${p.periodYear}-${p.periodMonth}`, {
-      id: p.id,
-      amount: p.amount,
-      tariffPerSqm: p.tariffPerSqm,
-      paymentMethod: p.paymentMethod,
-      referenceNo: p.referenceNo,
-    });
-  }
 
   const initials = owner.fullName.split(" ").filter(Boolean).slice(0, 2).map((part) => part[0]).join("").toUpperCase();
 
@@ -90,18 +79,18 @@ export default async function OwnerDetailsPage({
           <IconCash className={detail.grandDebt > 0 ? "size-5 text-destructive" : "size-5 text-success"} />
           <div>
             <p className="text-xs text-muted-foreground">{t("totalDebt")}</p>
-            <p className={`text-xl font-semibold tabular-nums ${detail.grandDebt > 0 ? "text-destructive" : "text-success"}`}>{detail.grandDebt.toFixed(2)} ₼</p>
+            <p className={`text-xl font-semibold tabular-nums ${detail.grandDebt > 0 ? "text-destructive" : "text-success"}`}>{formatAmount(detail.grandDebt)}</p>
           </div>
         </div>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-3">
         <OwnerMetric icon={IconHome} label={t("units")} value={String(detail.units.length)} />
-        <OwnerMetric icon={IconRulerMeasure} label={t("totalArea")} value={`${detail.totalArea.toFixed(1)} м²`} />
-        <OwnerMetric icon={IconBuilding} label={t("monthlyTariff")} value={`${detail.totalMonthlyFee.toFixed(2)} ₼`} />
+        <OwnerMetric icon={IconRulerMeasure} label={t("totalArea")} value={`${formatNumber(detail.totalArea)} ${tc("squareMeters")}`} />
+        <OwnerMetric icon={IconBuilding} label={t("monthlyTariff")} value={formatAmount(detail.totalMonthlyFee)} />
       </div>
 
-      <OwnerUnitsSection ownerId={ownerId} units={ownerUnits} canManage={canPay}>
+      <OwnerUnitsSection ownerId={ownerId} units={ownerUnits} canManage={canManageUnits}>
         {ownerUnits.length > 0 ? (
         <div className="space-y-4">
           {ownerUnits.map((unit) => {
@@ -117,22 +106,22 @@ export default async function OwnerDetailsPage({
             }
 
             return (
-              <OwnerUnitCard key={unit.id} ownerId={owner.id} unit={unit} canManage={canPay}>
+              <OwnerUnitCard key={unit.id} ownerId={owner.id} unit={unit} canManage={canManageUnits}>
                 <div className="bg-muted/20 p-5 sm:p-6">
                   <div className="flex items-start justify-between gap-4">
                     <div>
                       <div className="flex items-center gap-2"><span className="flex size-8 items-center justify-center rounded-[4px] bg-background shadow-xs"><IconHome className="size-4" /></span><h2 className="text-lg font-semibold">{t("unitNumber", {unit: unit.unitNumber})}</h2></div>
                       <p className="mt-2 text-sm text-muted-foreground">
-                        {t("blockFloor", {entrance: unit.entrance, floor: unit.floor})}, {area.toFixed(1)} м²
+                        {t("blockFloor", {entrance: unit.entrance, floor: unit.floor})}, {formatNumber(area)} {tc("squareMeters")}
                       </p>
                       <p className="mt-1 text-xs text-muted-foreground">
-                        {t("feeFormula", {area: area.toFixed(1), tariff: detail.tariffPerSqm.toFixed(2), fee: monthlyFee.toFixed(2)})}
+                        {t("feeFormula", {area: formatNumber(area), tariff: formatNumber(detail.tariffPerSqm), fee: formatNumber(monthlyFee)})}
                       </p>
                     </div>
                     <div className="text-right">
                       <p className="text-xs text-muted-foreground">{t("unitDebt")}</p>
                       <p className={`mt-1 text-xl font-semibold tabular-nums ${totalDebt > 0 ? "text-destructive" : "text-success"}`}>
-                        {totalDebt.toFixed(2)} ₼
+                        {formatAmount(totalDebt)}
                       </p>
                     </div>
                   </div>
@@ -146,9 +135,9 @@ export default async function OwnerDetailsPage({
                       </div>
                       <div className="divide-y divide-border/70">
                         {yearPeriods.map(({ year, month }) => {
-                          const paid = detail.paidByUnit.get(unit.id)?.get(`${year}-${month}`) ?? 0;
+                          const paid = detail.paidByUnit.get(unit.id)?.get(periodKey(year, month)) ?? 0;
                           const isPaid = paid >= monthlyFee;
-                          const payment = paymentByUnitPeriod.get(`${unit.id}-${year}-${month}`) ?? null;
+                          const payment = paymentByUnitPeriod.get(`${unit.id}-${periodKey(year, month)}`) ?? null;
                           return (
                             <MonthRow
                               key={`${year}-${month}`}
@@ -183,13 +172,13 @@ export default async function OwnerDetailsPage({
       )}
       </OwnerUnitsSection>
 
-      {paymentList.length > 0 && (
+      {payments.length > 0 && (
         <div className="space-y-3">
           <div><h2 className="text-base font-semibold">{t("paymentHistory")}</h2><p className="mt-1 text-sm text-muted-foreground">{tp("recentOperations")}</p></div>
           <PaymentHistory
             ownerId={owner.id}
             canEdit={canPay}
-            payments={paymentList}
+            payments={payments}
           />
         </div>
       )}
