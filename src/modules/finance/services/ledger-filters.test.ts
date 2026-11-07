@@ -1,6 +1,6 @@
 import {describe, expect, it} from "vitest";
-import {filterChargeViews, filterPaymentViews, type LedgerPeriod} from "./ledger-filters";
 import type {ChargeView, PaymentView} from "./finance-analytics.service";
+import {filterChargeViews, filterPaymentViews, type LedgerPeriod} from "./ledger-filters";
 
 const charge = (overrides: Partial<ChargeView>): ChargeView => ({
     id: "charge-1",

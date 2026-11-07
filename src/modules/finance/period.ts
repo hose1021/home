@@ -1,3 +1,5 @@
+import {isoDate} from "@/lib/date";
+
 /** One period model for every finance screen: a whole month or an explicit date range. */
 export type FinancePeriod = {month: string; from: string; to: string};
 
@@ -6,10 +8,6 @@ const DAY = /^\d{4}-\d{2}-\d{2}$/;
 
 function pad(value: number): string {
     return String(value).padStart(2, "0");
-}
-
-export function isoDate(date: Date): string {
-    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
 }
 
 /** Canonical billing-period key: `YYYY-MM`, month always padded. */

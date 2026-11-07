@@ -17,8 +17,8 @@ import {
 } from "@/components/ui/alert-dialog";
 import {Button} from "@/components/ui/button";
 import {Link} from "@/i18n/navigation";
+import {isoDate} from "@/lib/date";
 import {formatAmount, formatDate, formatNumber} from "@/modules/finance/money-format";
-import {isoDate} from "@/modules/finance/period";
 import {monthName} from "./month-row";
 import {refundPaymentAction} from "./pay-action";
 

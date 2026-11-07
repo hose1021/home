@@ -3,7 +3,8 @@
 import {usePathname, useRouter, useSearchParams} from "next/navigation";
 import {useTranslations} from "next-intl";
 
-import {isoDate, resolvePeriod} from "@/modules/finance/period";
+import {isoDate} from "@/lib/date";
+import {resolvePeriod} from "@/modules/finance/period";
 import {DateRangePicker, type DateRangeSelection} from "./date-range-picker";
 
 const toDate = (iso: string) => (iso ? new Date(`${iso}T00:00:00`) : undefined);

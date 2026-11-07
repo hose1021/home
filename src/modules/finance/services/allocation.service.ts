@@ -6,7 +6,7 @@ import {charges} from "@/core/db/schema/charges";
 import {type ChargeStatus} from "@/core/db/schema/enums";
 import {ADJUSTMENT_KINDS} from "@/core/db/schema/enums";
 import {payments} from "@/core/db/schema/payments";
-import {isoDate} from "@/modules/finance/period";
+import {isoDate} from "@/lib/date";
 import {centsToDecimal, moneyToCents} from "./money";
 
 const [CREDIT_KIND, DEBIT_KIND] = ADJUSTMENT_KINDS;
