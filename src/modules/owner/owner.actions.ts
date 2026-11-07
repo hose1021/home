@@ -2,9 +2,7 @@
 
 import {z} from "zod";
 import {runAction} from "@/core/actions/action";
-import {sessionAllows} from "@/core/auth/permissions";
-
-import {ForbiddenError} from "@/core/errors/app-error";
+import {assertPermission} from "@/core/auth/permissions";
 import {ownerCreateSchema, ownerUpdateSchema, passwordSchema, unitInputSchema, uuidSchema} from "@/core/validation/action-schemas";
 import {assignUnitToOwner, createAndAssignUnitToOwner, createOwnerWithUnit, deleteOwner, getUnassignedUnits, listOwnerOptions, removeUnitFromOwner, updateOwnerPassword, updateOwnerWithRoles} from "./owner.service";
 
@@ -34,10 +32,8 @@ export async function updateOwnerAction(id: string, input: z.input<typeof ownerU
     errors: "owner.errors",
     revalidate: ["/owners"],
     // Role assignment is a privilege grant, so it needs the user-management permission on top of owner:write.
-    authorize: async ({session}, data) => {
-      if (data.roles !== undefined && !sessionAllows(session, "user:manage")) {
-        throw new ForbiddenError('Missing permission "user:manage"');
-      }
+    authorize: ({session}, data) => {
+      if (data.roles !== undefined) assertPermission(session, "user:manage");
     },
     handler: async ({session, tenantId}, data) => {
       const {id, ...patch} = data;

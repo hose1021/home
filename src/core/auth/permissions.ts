@@ -1,4 +1,5 @@
 import {ROLES, type Role} from "@/core/db/schema/enums";
+import {ForbiddenError} from "@/core/errors/app-error";
 
 export {ROLES, type Role};
 
@@ -90,4 +91,11 @@ export type SessionLike = {user: {roles: readonly Role[]}};
 
 export function sessionAllows(session: SessionLike, permission: Permission): boolean {
   return hasAnyPermission(session.user.roles, permission);
+}
+
+/** One permission guard: pages and server actions read the same failure message. */
+export function assertPermission(session: SessionLike, permission: Permission): void {
+  if (!sessionAllows(session, permission)) {
+    throw new ForbiddenError(`Missing permission "${permission}"`);
+  }
 }

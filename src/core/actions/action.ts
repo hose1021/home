@@ -19,7 +19,7 @@ type ActionConfig<Schema extends z.ZodTypeAny, Result> = {
   errors: string;
   revalidate?: Revalidate<z.infer<Schema>, Result>;
   /** Extra ownership rule that runs after the permission check. */
-  authorize?: (ctx: ActionContext, input: z.infer<Schema>) => Promise<void>;
+  authorize?: (ctx: ActionContext, input: z.infer<Schema>) => Promise<void> | void;
   handler: (ctx: ActionContext, input: z.infer<Schema>) => Promise<Result>;
 };
 

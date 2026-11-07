@@ -1,8 +1,7 @@
 import {cookies} from "next/headers";
 import {redirect} from "next/navigation";
-import {ForbiddenError} from "@/core/errors/app-error";
 import {getSessionFromToken, getSessionUserById, type SessionUser} from "./auth";
-import {sessionAllows, type Permission} from "./permissions";
+import {assertPermission, type Permission} from "./permissions";
 import {canActAs, parseViewAs, VIEW_AS_COOKIE, type ViewAs, applyViewAs} from "./view-as";
 
 const SESSION_COOKIE = "session_token";
@@ -46,7 +45,7 @@ export async function requireTenantContext(): Promise<{session: Session; tenantI
 
 export async function requireTenantPermission(permission: Permission): Promise<{session: Session; tenantId: string}> {
   const ctx = await requireTenantContext();
-  if (!sessionAllows(ctx.session, permission)) throw new ForbiddenError(`Missing permission "${permission}"`);
+  assertPermission(ctx.session, permission);
   return ctx;
 }
 
