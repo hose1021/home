@@ -14,3 +14,8 @@ export function centsToMoney(cents: number): number {
 export function centsToDecimal(cents: number): string {
   return (cents / 100).toFixed(2);
 }
+
+/** One apartment's monthly charge: area × tariff, in whole cents. */
+export function monthlyFeeCents(area: string | number, tariffPerSqm: string | number): number {
+  return moneyToCents(Number(area) * Number(tariffPerSqm));
+}
