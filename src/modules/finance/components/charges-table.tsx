@@ -4,7 +4,7 @@ import {useRouter, useSearchParams} from "next/navigation";
 import {useTranslations, useLocale} from "next-intl";
 import {useState} from "react";
 
-import {FilterReset, FilterSearch, FilterSelect, SortableHead, TableFilters, matchesQuery, sortRows, useTableQuery, type SortDirection} from "@/components/table-filters";
+import {FilterReset, FilterSearch, FilterSelect, SortableHead, TableFilters, sortRows, useTableQuery, type SortDirection} from "@/components/table-filters";
 import {Button} from "@/components/ui/button";
 import {Dialog, DialogContent, DialogHeader, DialogTitle} from "@/components/ui/dialog";
 import {TableBody, TableCell, TableHeader, TableRow} from "@/components/ui/table";
@@ -13,8 +13,9 @@ import {ChargeGenerateDialog} from "@/modules/finance/components/ChargeGenerateF
 import {FinanceStatusBadge} from "@/modules/finance/components/finance-status-badge";
 import {FinanceTable} from "@/modules/finance/components/finance-table";
 import {formatAmount, formatDate} from "@/modules/finance/money-format";
-import {isWholeMonth, resolvePeriod} from "@/modules/finance/period";
+import {resolvePeriod} from "@/modules/finance/period";
 import type {ChargeView} from "@/modules/finance/services/finance-analytics.service";
+import {filterChargeViews} from "@/modules/finance/services/ledger-filters";
 
 export function ChargesTable({rows, canWrite}: {
     rows: ChargeView[];
@@ -32,19 +33,10 @@ export function ChargesTable({rows, canWrite}: {
     const query = params.value("q");
     const status = params.value("status");
     const period = resolvePeriod({month: searchParams.get("month"), from: searchParams.get("from"), to: searchParams.get("to")});
-    const byBillingMonth = isWholeMonth(period.from, period.to);
-    const billingMonth = period.from.slice(0, 7);
     const sortKey = params.value("sort");
     const sortDir: SortDirection = params.value("dir") === "desc" ? "desc" : "asc";
 
-    const filtered = rows.filter((row) => {
-        const inPeriod = byBillingMonth
-            ? `${row.periodYear}-${String(row.periodMonth).padStart(2, "0")}` === billingMonth
-            : (!period.from || row.dueDate >= period.from) && (!period.to || row.dueDate <= period.to);
-        return inPeriod &&
-            (!status || row.status === status) &&
-            matchesQuery(query, [row.ownerName, row.unitNumber]);
-    });
+    const filtered = filterChargeViews(rows, {query, status, period});
     const sorted = sortRows(filtered, sortKey, sortDir, {
         due: (row) => row.dueDate,
         period: (row) => row.periodYear * 100 + row.periodMonth,

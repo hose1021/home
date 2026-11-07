@@ -2,8 +2,8 @@ import {NextResponse} from "next/server";
 import {sessionAllows} from "@/core/auth/permissions";
 
 import {getSession} from "@/core/auth/session";
-import {matchesQuery} from "@/lib/search";
 import {listChargeViews, listDebtors, listPaymentViews} from "@/modules/finance/services/finance-analytics.service";
+import {filterChargeViews, filterPaymentViews} from "@/modules/finance/services/ledger-filters";
 
 function csvCell(value: unknown): string {
   const text = value == null ? "" : String(value);
@@ -40,19 +40,15 @@ export async function GET(request: Request) {
   const status = params.get("status") ?? "";
   const from = params.get("from") ?? "";
   const to = params.get("to") ?? "";
-  const inRange = (date: string) => (!from || date >= from) && (!to || date <= to);
+  const period = {from, to};
 
   if (type === "payments") {
     const rows = await listPaymentViews(tenantId);
-    const filtered = rows.filter((row) =>
-      (!status || row.status === status) &&
-      inRange(row.paymentDate.slice(0, 10)) &&
-      matchesQuery(query, [row.ownerName, row.unitNumber, row.referenceNo]),
-    );
+    const filtered = filterPaymentViews(rows, {query, status, period});
     return new NextResponse(toCsv(
       HEADERS.payments,
       filtered.map((row) => [
-        row.paymentDate.slice(0, 10),
+        row.paymentDate,
         row.unitNumber ?? "",
         row.ownerName ?? "",
         `${row.periodMonth}.${row.periodYear}`,
@@ -83,11 +79,7 @@ export async function GET(request: Request) {
   }
 
   const rows = await listChargeViews(tenantId);
-  const filtered = rows.filter((row) =>
-    (!status || row.status === status) &&
-    inRange(row.dueDate) &&
-    matchesQuery(query, [row.ownerName, row.unitNumber]),
-  );
+  const filtered = filterChargeViews(rows, {query, status, period});
   return new NextResponse(toCsv(
     HEADERS.charges,
     filtered.map((row) => [

@@ -4,7 +4,7 @@ import {useRouter, useSearchParams} from "next/navigation";
 import {useLocale, useTranslations} from "next-intl";
 import {useState} from "react";
 
-import {FilterReset, FilterSearch, FilterSelect, SortableHead, TableFilters, matchesQuery, sortRows, useTableQuery, type SortDirection} from "@/components/table-filters";
+import {FilterReset, FilterSearch, FilterSelect, SortableHead, TableFilters, sortRows, useTableQuery, type SortDirection} from "@/components/table-filters";
 import {Button} from "@/components/ui/button";
 import {Dialog, DialogContent, DialogHeader, DialogTitle} from "@/components/ui/dialog";
 import {TableBody, TableCell, TableHeader, TableRow} from "@/components/ui/table";
@@ -15,6 +15,7 @@ import {PaymentDialog} from "@/modules/finance/components/PaymentForm";
 import {formatAmount, formatDate} from "@/modules/finance/money-format";
 import {resolvePeriod} from "@/modules/finance/period";
 import type {PaymentView} from "@/modules/finance/services/finance-analytics.service";
+import {filterPaymentViews} from "@/modules/finance/services/ledger-filters";
 
 type UnitOption = {id: string; unitNumber: string; entrance: number; floor: number; ownerName: string | null; ownerId: string | null};
 
@@ -39,13 +40,7 @@ export function PaymentsTable({rows, units, canWrite}: {
     const sortKey = params.value("sort");
     const sortDir: SortDirection = params.value("dir") === "desc" ? "desc" : "asc";
 
-    const filtered = rows.filter((row) =>
-        (!status || row.status === status) &&
-        (!method || row.method === method) &&
-        (!period.from || row.paymentDate >= period.from) &&
-        (!period.to || row.paymentDate <= period.to) &&
-        matchesQuery(query, [row.ownerName, row.unitNumber, row.referenceNo])
-    );
+    const filtered = filterPaymentViews(rows, {query, status, method, period});
     const sorted = sortRows(filtered, sortKey, sortDir, {
         date: (row) => row.paymentDate,
         unit: (row) => row.unitNumber,
