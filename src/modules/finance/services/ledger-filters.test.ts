@@ -69,7 +69,7 @@ describe("filterPaymentViews", () => {
     it("filters by status, method, period and reference", () => {
         const rows = [
             payment({}),
-            payment({id: "payment-2", status: "pending", method: "bank_transfer", referenceNo: "REF-77"}),
+            payment({id: "payment-2", status: "rejected", method: "bank_transfer", referenceNo: "REF-77"}),
             payment({id: "payment-3", paymentDate: "2026-04-30"}),
         ];
 

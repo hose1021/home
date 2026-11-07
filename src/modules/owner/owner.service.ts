@@ -5,7 +5,7 @@ import {PASSWORD_MIN_LENGTH} from "@/core/auth/constants";
 import type {Role} from "@/core/auth/permissions";
 import {db} from "@/core/db";
 import {buildings} from "@/core/db/schema/buildings";
-import type {UnitType} from "@/core/db/schema/enums";
+import type {PaymentStatus, UnitType} from "@/core/db/schema/enums";
 import {owners, ownerships} from "@/core/db/schema/owners";
 import {payments} from "@/core/db/schema/payments";
 import {units} from "@/core/db/schema/units";
@@ -187,7 +187,7 @@ export type OwnerDetail = {
     periodYear: number;
     periodMonth: number;
     paymentMethod: string;
-    status: string;
+    status: PaymentStatus;
     referenceNo: string | null;
     notes: string | null;
     paymentDate: Date;

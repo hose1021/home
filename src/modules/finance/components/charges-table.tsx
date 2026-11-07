@@ -4,13 +4,13 @@ import {useRouter, useSearchParams} from "next/navigation";
 import {useTranslations, useLocale} from "next-intl";
 import {useState} from "react";
 
+import {ChargeStatusBadge} from "@/components/status-badge";
 import {FilterReset, FilterSearch, FilterSelect, SortableHead, TableFilters, sortRows, useTableQuery, type SortDirection} from "@/components/table-filters";
 import {Button} from "@/components/ui/button";
 import {Dialog, DialogContent, DialogHeader, DialogTitle} from "@/components/ui/dialog";
 import {TableBody, TableCell, TableHeader, TableRow} from "@/components/ui/table";
 import {CHARGE_STATUSES} from "@/core/db/schema/enums";
 import {ChargeGenerateDialog} from "@/modules/finance/components/ChargeGenerateForm";
-import {FinanceStatusBadge} from "@/modules/finance/components/finance-status-badge";
 import {FinanceTable} from "@/modules/finance/components/finance-table";
 import {formatAmount, formatDate} from "@/modules/finance/money-format";
 import {resolvePeriod} from "@/modules/finance/period";
@@ -110,7 +110,7 @@ export function ChargesTable({rows, canWrite}: {
                                 <TableCell className="text-right text-sm font-medium">{formatAmount(row.amount)}</TableCell>
                                 <TableCell className="text-right text-sm text-muted-foreground tabular-nums">{formatAmount(row.paid)}</TableCell>
                                 <TableCell className="text-right text-sm font-semibold tabular-nums">{row.outstanding > 0 ? formatAmount(row.outstanding) : "—"}</TableCell>
-                                <TableCell><FinanceStatusBadge kind="charge" status={row.status} /></TableCell>
+                                <TableCell><ChargeStatusBadge status={row.status} label={t(`charges.status.${row.status}`)} /></TableCell>
                             </TableRow>
                         ))}
                         {sorted.length === 0 && (
@@ -137,7 +137,7 @@ export function ChargesTable({rows, canWrite}: {
                             <Detail label={tc("amount")} value={formatAmount(selected.amount)} />
                             <Detail label={t("payments.allocated")} value={formatAmount(selected.paid)} />
                             <Detail label={t("debtors.outstanding")} value={formatAmount(selected.outstanding)} />
-                            <Detail label={tc("status")} value={<FinanceStatusBadge kind="charge" status={selected.status} />} />
+                            <Detail label={tc("status")} value={<ChargeStatusBadge status={selected.status} label={t(`charges.status.${selected.status}`)} />} />
                         </dl>
                     )}
                 </DialogContent>

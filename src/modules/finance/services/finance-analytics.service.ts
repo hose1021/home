@@ -3,7 +3,7 @@ import {db} from "@/core/db";
 import {adjustments} from "@/core/db/schema/adjustments";
 import {paymentAllocations} from "@/core/db/schema/allocations";
 import {charges as chargesTable} from "@/core/db/schema/charges";
-import {type AdjustmentKind, type ChargeStatus} from "@/core/db/schema/enums";
+import {type AdjustmentKind, type ChargeStatus, type PaymentStatus} from "@/core/db/schema/enums";
 import {owners} from "@/core/db/schema/owners";
 import {payments} from "@/core/db/schema/payments";
 import {units} from "@/core/db/schema/units";
@@ -142,7 +142,7 @@ export type ChargeView = {
     amount: number;
     paid: number;
     outstanding: number;
-    status: string;
+    status: ChargeStatus;
 };
 
 export async function listChargeViews(tenantId: string, asOf = new Date()): Promise<ChargeView[]> {
@@ -179,7 +179,7 @@ export type PaymentView = {
     unallocated: number;
     method: string;
     referenceNo: string | null;
-    status: string;
+    status: PaymentStatus;
 };
 
 export async function listPaymentViews(tenantId: string): Promise<PaymentView[]> {
@@ -289,7 +289,10 @@ export type OverviewData = {
         upcomingCount: number;
         upcomingAmount: number;
     };
-    activity: {id: string; kind: "charge" | "payment"; date: string; title: string; amount: number; status: string}[];
+    activity: (
+        | {id: string; kind: "charge"; date: string; title: string; amount: number; status: ChargeStatus}
+        | {id: string; kind: "payment"; date: string; title: string; amount: number; status: PaymentStatus}
+    )[];
 };
 
 function monthRange(from: string, to: string): {key: string; start: Date; end: Date}[] {

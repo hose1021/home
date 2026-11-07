@@ -1,13 +1,13 @@
 import {notFound} from "next/navigation";
 import {getTranslations} from "next-intl/server";
 
+import {ChargeStatusBadge, PaymentStatusBadge} from "@/components/status-badge";
 import {Badge} from "@/components/ui/badge";
 import {TableBody, TableCell, TableHead, TableHeader, TableRow} from "@/components/ui/table";
 import {requireTenantPermission} from "@/core/auth/session";
 import {Link} from "@/i18n/navigation";
 import {PrimaryMetric} from "@/modules/finance/components/finance-metric";
 import {FinancePageHeader} from "@/modules/finance/components/finance-page-header";
-import {FinanceStatusBadge} from "@/modules/finance/components/finance-status-badge";
 import {FinanceTable} from "@/modules/finance/components/finance-table";
 import {formatAmount, formatDate} from "@/modules/finance/money-format";
 import {getOwnerLedger} from "@/modules/finance/services/finance-analytics.service";
@@ -64,7 +64,7 @@ export default async function DebtorAccountPage({
                             <TableCell className="text-right text-sm tabular-nums">{formatAmount(charge.amount)}</TableCell>
                             <TableCell className="text-right text-sm text-muted-foreground tabular-nums">{formatAmount(charge.paid)}</TableCell>
                             <TableCell className="text-right text-sm font-semibold tabular-nums">{charge.outstanding > 0 ? formatAmount(charge.outstanding) : "—"}</TableCell>
-                            <TableCell><FinanceStatusBadge kind="charge" status={charge.status} /></TableCell>
+                            <TableCell><ChargeStatusBadge status={charge.status} label={t(`charges.status.${charge.status}`)} /></TableCell>
                         </TableRow>
                     ))}
                     {ledger.charges.length === 0 && (
@@ -95,7 +95,7 @@ export default async function DebtorAccountPage({
                             <TableCell className="text-right text-sm tabular-nums">{formatAmount(payment.amount)}</TableCell>
                             <TableCell className="text-right text-sm text-muted-foreground tabular-nums">{formatAmount(payment.allocated)}</TableCell>
                             <TableCell className="text-right text-sm tabular-nums">{payment.unallocated > 0 ? formatAmount(payment.unallocated) : "—"}</TableCell>
-                            <TableCell><FinanceStatusBadge kind="payment" status={payment.status} /></TableCell>
+                            <TableCell><PaymentStatusBadge status={payment.status} label={t(`payments.status.${payment.status}`)} /></TableCell>
                         </TableRow>
                     ))}
                     {ledger.payments.length === 0 && (

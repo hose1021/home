@@ -4,12 +4,12 @@ import {useRouter, useSearchParams} from "next/navigation";
 import {useLocale, useTranslations} from "next-intl";
 import {useState} from "react";
 
+import {PaymentStatusBadge} from "@/components/status-badge";
 import {FilterReset, FilterSearch, FilterSelect, SortableHead, TableFilters, sortRows, useTableQuery, type SortDirection} from "@/components/table-filters";
 import {Button} from "@/components/ui/button";
 import {Dialog, DialogContent, DialogHeader, DialogTitle} from "@/components/ui/dialog";
 import {TableBody, TableCell, TableHeader, TableRow} from "@/components/ui/table";
 import {PAYMENT_METHODS, PAYMENT_STATUSES} from "@/core/db/schema/enums";
-import {FinanceStatusBadge} from "@/modules/finance/components/finance-status-badge";
 import {FinanceTable} from "@/modules/finance/components/finance-table";
 import {PaymentDialog} from "@/modules/finance/components/PaymentForm";
 import {formatAmount, formatDate} from "@/modules/finance/money-format";
@@ -123,7 +123,7 @@ export function PaymentsTable({rows, units, canWrite}: {
                                     {row.unallocated > 0 ? formatAmount(row.unallocated) : "—"}
                                 </TableCell>
                                 <TableCell className="text-sm">{t(`payments.paymentMethods.${row.method}` as Parameters<typeof t>[0])}</TableCell>
-                                <TableCell><FinanceStatusBadge kind="payment" status={row.status} /></TableCell>
+                                <TableCell><PaymentStatusBadge status={row.status} label={t(`payments.status.${row.status}`)} /></TableCell>
                             </TableRow>
                         ))}
                         {sorted.length === 0 && (
@@ -151,7 +151,7 @@ export function PaymentsTable({rows, units, canWrite}: {
                             <Detail label={t("payments.unallocated")} value={formatAmount(selected.unallocated)} />
                             <Detail label={t("payments.method")} value={t(`payments.paymentMethods.${selected.method}` as Parameters<typeof t>[0])} />
                             <Detail label={t("payments.referenceNo")} value={selected.referenceNo ?? "—"} />
-                            <Detail label={tc("status")} value={<FinanceStatusBadge kind="payment" status={selected.status} />} />
+                            <Detail label={tc("status")} value={<PaymentStatusBadge status={selected.status} label={t(`payments.status.${selected.status}`)} />} />
                         </dl>
                     )}
                 </DialogContent>

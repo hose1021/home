@@ -1,12 +1,12 @@
 import {IconAlertTriangle, IconArrowRight, IconCash, IconClock, IconReceipt} from "@tabler/icons-react";
 import {getTranslations} from "next-intl/server";
 
+import {ChargeStatusBadge, PaymentStatusBadge} from "@/components/status-badge";
 import {requireTenantPermission} from "@/core/auth/session";
 import {Link} from "@/i18n/navigation";
 import {DualBarChart, RankedBarChart} from "@/modules/finance/components/finance-charts";
 import {FinancePanel, MetricStrip, PrimaryMetric} from "@/modules/finance/components/finance-metric";
 import {FinancePageHeader} from "@/modules/finance/components/finance-page-header";
-import {FinanceStatusBadge} from "@/modules/finance/components/finance-status-badge";
 import {formatAmount, formatDate} from "@/modules/finance/money-format";
 import {resolvePeriod} from "@/modules/finance/period";
 import {getOverviewData} from "@/modules/finance/services/finance-analytics.service";
@@ -153,7 +153,9 @@ export default async function FinanceOverviewPage({
                                     <p className="truncate font-medium">{row.title}</p>
                                     <p className="mt-0.5 text-xs text-muted-foreground">{formatDate(row.date, locale)}</p>
                                 </div>
-                                <FinanceStatusBadge kind={row.kind} status={row.status} />
+                                {row.kind === "charge"
+                                    ? <ChargeStatusBadge status={row.status} label={t(`charges.status.${row.status}`)} />
+                                    : <PaymentStatusBadge status={row.status} label={t(`payments.status.${row.status}`)} />}
                                 <p className="amount w-28 shrink-0 text-right text-sm font-semibold tabular-nums">{formatAmount(row.amount)}</p>
                             </li>
                         ))}
